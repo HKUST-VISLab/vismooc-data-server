@@ -1,0 +1,12 @@
+language: python
+python:
+  - 3.4
+  - 3.5
+# command to install dependencies
+install:
+  - pip install -r requirements.txt
+
+after_success:
+  - pip install tox coverage
+  - coverage combine
+  - bash <(curl -s https://codecov.io/bash)
