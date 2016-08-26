@@ -31,16 +31,16 @@ class Pipe:
     def __init__(self):
         self.__raw_data = None
         self._processed_data = None
-        self._test = 1
 
     def input(self, data):
         """
             input raw data for processing
         """
-        self.__raw_data = data
-        # in the beginning both raw data and processed data are the same
-        self._processed_data = data
-        return self
+        if type(data) is dict:
+            self.__raw_data = data
+            # in the beginning both raw data and processed data are the same
+            self._processed_data = data
+            return self
 
     def pipe(self, processor):
         """
@@ -48,7 +48,7 @@ class Pipe:
         """
         if isinstance(processor, PipeModule) and self._processed_data is not None:
             self._processed_data = processor.process(self._processed_data)
-        return self
+            return self
 
     def output(self):
         return self._processed_data
