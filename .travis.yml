@@ -14,10 +14,11 @@ notifications:
 # command to install dependencies
 install:
   - pip install -r requirements.txt
-  - pip install coverage codeclimate-test-reporter
+  - pip install coverage
 script:
   # - pylint mathematician
   - coverage run --source mathematician setup.py test
 after_success:
   - bash <(curl -s https://codecov.io/bash)
+  - pip install codeclimate-test-reporter
   - codeclimate-test-reporter --token CODECLIMATE_REPO_TOKEN
