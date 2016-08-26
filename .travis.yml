@@ -6,7 +6,7 @@ python:
 install:
   - pip install -r requirements.txt
 script:
-  - python test/test.py
+  - python tests/test.py
 after_success:
   - pip install tox coverage
   - coverage combine
