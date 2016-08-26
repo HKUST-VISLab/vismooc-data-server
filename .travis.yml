@@ -21,4 +21,4 @@ script:
 after_success:
   - bash <(curl -s https://codecov.io/bash)
   - pip install codeclimate-test-reporter
-  - codeclimate-test-reporter --token CODECLIMATE_REPO_TOKEN
+  - codeclimate-test-reporter --token $CODECLIMATE_REPO_TOKEN
