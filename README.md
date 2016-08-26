@@ -11,5 +11,6 @@ Dev
 [![Code Climate](https://codeclimate.com/github/HKUST-VISLab/vismooc-data-server/badges/gpa.svg)](https://codeclimate.com/github/HKUST-VISLab/vismooc-data-server)
 [![Test Coverage](https://codeclimate.com/github/HKUST-VISLab/vismooc-data-server/badges/coverage.svg)](https://codeclimate.com/github/HKUST-VISLab/vismooc-data-server/coverage)
 [![codecov](https://codecov.io/gh/HKUST-VISLab/vismooc-data-server/branch/dev/graph/badge.svg)](https://codecov.io/gh/HKUST-VISLab/vismooc-data-server)
+[![Issue Count](https://codeclimate.com/github/HKUST-VISLab/vismooc-data-server/badges/issue_count.svg)](https://codeclimate.com/github/HKUST-VISLab/vismooc-data-server)
 [![GitHub issues](https://img.shields.io/github/issues/HKUST-VISLab/vismooc-data-server.svg)](https://github.com/HKUST-VISLab/vismooc-data-server/issues)
 [![Python version](https://img.shields.io/badge/python-3.5-blue.svg)](http://vis.cse.ust.hk/)
