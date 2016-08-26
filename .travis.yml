@@ -1,7 +1,5 @@
 language: python
-python:
-  - 3.4
-  - 3.5
+python: 3.5
 
 notifications:
   email:
@@ -16,8 +14,10 @@ notifications:
 # command to install dependencies
 install:
   - pip install -r requirements.txt
-  - pip install coverage
+  - pip install coverage codeclimate-test-reporter
 script:
+  - pylint mathematician
   - coverage run --source mathematician setup.py test
 after_success:
   - bash <(curl -s https://codecov.io/bash)
+  - codeclimate-test-reporter --token CODECLIMATE_REPO_TOKEN
