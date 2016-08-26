@@ -1,2 +1,2 @@
-import numpy
-print(numpy.abs(-5))
+import mathematician.pipe as pipe
+p = pipe.Pipe()
