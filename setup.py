@@ -9,6 +9,6 @@ setup(
     keywords="vismooc, dataserver, vislab, hkust",
     url="https://github.com/HKUST-VISLab/vismooc-data-server",
     packages=["mathematician"],
-    install_requires = [],
+    install_requires=[],
     test_suite="tests.get_tests"
 )
