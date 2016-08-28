@@ -33,8 +33,8 @@ class TestPipeClass(unittest.TestCase):
                           'when no input data, pipe will return None')
 
     def test_outout(self):
-        test_input = {'a': 10}
-        self.assertIs(self.pipe.input(test_input).output(), test_input,
-                      'output will return processed_data')
         self.assertIsNone(self.pipe.output(),
                           'when no input data, output will return None')
+        test_input = {'a': 10}
+        self.assertIs(self.pipe.input(test_input).output(), test_input,
+                      'when data has been input, output will return processed_data')
