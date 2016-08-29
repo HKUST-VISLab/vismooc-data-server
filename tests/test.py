@@ -17,6 +17,7 @@ with aiohttp.ClientSession(loop=loop) as session:
 
 loop.close()
 
+#hello
 print(numpy.abs(-5))
 print('hello world')
 
