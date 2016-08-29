@@ -1,3 +1,3 @@
-from . import pipe
+from . import pipe, httphelper
 
-__all__ = ["pipe"]
+__all__ = ["pipe", "httphelper"]
