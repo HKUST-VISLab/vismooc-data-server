@@ -1,10 +1,6 @@
-import numpy
-import sys
 import asyncio
 import aiohttp
-sys.path.append('..')
 from httphelper import HttpHelper
-
 
 
 http_test = HttpHelper("http://www.google.com")
@@ -17,7 +13,4 @@ with aiohttp.ClientSession(loop=loop) as session:
 
 loop.close()
 
-print(numpy.abs(-5))
-print('hello world')
-
-#print(http_test.get("/"))
+print("Hello")
