@@ -16,7 +16,8 @@ class PipeModule:
         Returns:
             dict: The return value, processed data.
         """
-        pass
+        processed_data = raw_data
+        return processed_data
 
 
 class Pipe:
