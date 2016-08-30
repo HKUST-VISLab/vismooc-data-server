@@ -1,12 +1,12 @@
 import http.client
 import aiohttp
 
-"""This class is proposed to provide data-fetch interface
 
-"""
 
 class HttpHelper:
-    #init
+    """This class is proposed to provide data-fetch interface
+
+    """
     def __init__(self, host):
         self.host = host
         self.http_header = {}
@@ -28,10 +28,11 @@ class HttpHelper:
             raise Exception('too many arguments !')
 
 
-    """Send synchronous get request
     
-    """
     def get(self, url, *params):
+        """Send synchronous get request
+    
+        """
         if len(params) == 1 and isinstance(params[0], (dict)):
             url = url + '?'
             for key in params[0]:
@@ -47,10 +48,11 @@ class HttpHelper:
         conn.close()
         return data
 
-    """Send synchronous post request
     
-    """
     def post(self, url, *params):
+        """Send synchronous post request
+    
+        """
         if len(params) == 1 and isinstance(params[0], (dict)):
             post_params = params[0]
         elif len(params) > 1:
@@ -63,21 +65,22 @@ class HttpHelper:
         return data
     
 
-    """Send asynchronous get request
     
-        Example for use:
-            http_test = HttpHelper("http://www.google.com")
-            loop = asyncio.get_event_loop()
-
-            with aiohttp.ClientSession(loop=loop) as session:
-                content = loop.run_until_complete(
-                    http_test.async_get(session, "/"))
-                print(content)
-
-            loop.close()
-    """
 
     async def async_get(self, session, url, *params):
+        """Send asynchronous get request
+    
+            Example for use:
+                http_test = HttpHelper("http://www.google.com")
+                loop = asyncio.get_event_loop()
+
+                with aiohttp.ClientSession(loop=loop) as session:
+                    content = loop.run_until_complete(
+                        http_test.async_get(session, "/"))
+                    print(content)
+
+                loop.close()
+        """
         if len(params) == 1 and isinstance(params[0], (dict)):
             url = url + '?'
             for key in params[0]:
@@ -94,20 +97,21 @@ class HttpHelper:
                 return result
         
 
-    """Send asynchronous post request
-
-        Example for use:
-            http_test = HttpHelper("http://www.google.com")
-            loop = asyncio.get_event_loop()
-
-            with aiohttp.ClientSession(loop=loop) as session:
-                content = loop.run_until_complete(
-                    http_test.async_get(session, "/"))
-                print(content)
-
-            loop.close()
-    """
+    
     async def async_post(self, session, url, *params):
+        """Send asynchronous post request
+
+            Example for use:
+                http_test = HttpHelper("http://www.google.com")
+                loop = asyncio.get_event_loop()
+
+                with aiohttp.ClientSession(loop=loop) as session:
+                    content = loop.run_until_complete(
+                        http_test.async_get(session, "/"))
+                    print(content)
+
+                loop.close()
+        """
         if len(params) == 1 and isinstance(params[0], (dict)):
             post_params = params[0]
         elif len(params) > 1:
