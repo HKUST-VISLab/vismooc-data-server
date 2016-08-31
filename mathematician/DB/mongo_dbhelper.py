@@ -12,7 +12,7 @@ class MongoDB(BaseDB):
         return self.__db.collection_names()
 
     def get_collection(self, name):
-        return self.__db[name]
+        return MongoCollection(self.__db, self.__db[name])
 
 
 class MongoCollection(BaseCollection):
