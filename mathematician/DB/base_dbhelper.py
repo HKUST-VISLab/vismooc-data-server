@@ -28,9 +28,8 @@ class BaseDB(metaclass=ABCMeta):
 
 class BaseCollection(metaclass=ABCMeta):
 
-    def __init__(self, db, name):
-        self.db = db
-        self.name = name
+    def __init__(self, db, collection):
+        pass
 
     @abstractmethod
     def insert_one(self, document):
@@ -99,7 +98,7 @@ class BaseCollection(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def distinct(self, query):
+    def distinct(self, key, query):
         """Get a list of distinct values for key among all documents in this collection.
         """
         pass
@@ -153,8 +152,8 @@ class BaseCollection(metaclass=ABCMeta):
         """Perform a map/reduce operation on this collection.
         """
         pass
-    
-    def inline_map_reduce(self, map_func, reduce_func,**kwargs):
+
+    def inline_map_reduce(self, map_func, reduce_func, **kwargs):
         """Perform an inline map/reduce operation on this collection.
         """
         pass
@@ -164,7 +163,6 @@ class BaseCollection(metaclass=ABCMeta):
         """
         pass
 
-    
     def initialize_unordered_bulk_op(self, bypass_document_validation=False):
         """Initialize an unordered batch of write operations.
         """
