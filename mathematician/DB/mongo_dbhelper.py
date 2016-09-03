@@ -14,6 +14,10 @@ class MongoDB(BaseDB):
     def get_collection(self, name):
         return MongoCollection(self.__db, self.__db[name])
 
+    def add_user(self, user_name, passwd):
+        return self.__db.add_user(self, user_name, passwd)
+    
+        
 
 class MongoCollection(BaseCollection):
 
