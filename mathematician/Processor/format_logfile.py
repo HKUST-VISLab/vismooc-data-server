@@ -1,9 +1,9 @@
 import re
 import json
-from .pipe import PipeModule
+from ..pipe import PipeModule
 
 
-class ProcessLogFile(PipeModule):
+class FormatLogFile(PipeModule):
 
     def __init__(self):
         super().__init__()

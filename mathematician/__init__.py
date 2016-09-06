@@ -1,3 +1,4 @@
-from . import pipe, httphelper, formatLogFile
+from .Processor import FormatLogFile, FormatUserFile
+from . import pipe, httphelper
 
-__all__ = ["pipe", "httphelper", "formatLogFile"]
+__all__ = ["pipe", "httphelper", "FormatLogFile", "FormatUserFile"]
