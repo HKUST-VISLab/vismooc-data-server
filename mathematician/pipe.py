@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from abc import ABCMeta, abstractmethod
+from datetime import datetime
 
 
 class PipeModule(metaclass=ABCMeta):
@@ -41,11 +42,13 @@ class Pipe:
         """
             input raw data for processing
         """
-        # if type(data) is not dict:
-        #     return None
-        self.__raw_data = data
+
+        self.__raw_data = {
+            "created_date": datetime.now(),
+            "data": data
+        }
         # in the beginning both raw data and processed data are the same
-        self._processed_data = data
+        self._processed_data = self.__raw_data
         return self
 
     def pipe(self, processor):
