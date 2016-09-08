@@ -63,8 +63,14 @@
             ],
             "index" : 
             [
-                {"name" : 1},
-                {"status" : 1}
+                {
+                    "field" : "name",
+                    "order" : 1
+                },
+                {
+                    "field" : "status",
+                    "order" : 1
+                }
             ]
         },
         {
@@ -102,7 +108,10 @@
             ],
             "index" : 
             [
-                {"country" : 1}
+                {
+                    "field" : "country",
+                    "order" : 1
+                }
             ]
 
         },
@@ -129,7 +138,10 @@
             ],
             "index" : 
             [
-                {"timestamp" : 1}
+                {
+                    "field" : "timestamp",
+                    "order" : 1
+                }
             ]
         },
         {
@@ -179,8 +191,14 @@
             ],
             "index" : 
             [
-                {"course_id" : 1},
-                {"original_id" : 1}
+                {
+                    "field" : "course_id",
+                    "order" : 1
+                },
+                {
+                    "field" : "original_id",
+                    "order" : 1
+                }
             ]
         },
         {
@@ -214,12 +232,19 @@
             ],
             "index" : 
             [
-                {"user_id" : 1},
-                {"video_id" : 1},
-                {"original_id" : 1}
+                {
+                    "field" : "user_id",
+                    "order" : 1
+                },
+                {
+                    "field" : "video_id",
+                    "order" : 1
+                },
+                {
+                    "field" : "original_id",
+                    "order" : 1
+                }
             ]
         }
     ]
-
-
 }
