@@ -8,13 +8,23 @@ def db_creater(db_configfile="./dbconfig.json"):
         config = json.load(db_config)
     
     db = MongoDB("localhost", config['db_name'])
+    db.clear()
 
     # There is some trouble here
     # db.add_user(config['db_user'], config['db_passwd'])
     for collection in config['db_collections']:
-        #first construct the validator 
+        
+        #first construct the validator
+        validation_list = [] 
+        if collection["fields"]:
+            for a_field in collection["fields"]:
+                validation_list.append({a_field["field_name"] : a_field["validation"]})
+        
+        #create collection with specified validation option
+        a_collection = db.create_collection(collection['collection_name'], validator={"$and":validation_list})
+            
+
         #second make the index
-        a_collection = db.create_collection(collection['collection_name'])
         if collection["index"]:
             indexes = []
             for a_index in collection["index"]:
@@ -25,4 +35,4 @@ def db_creater(db_configfile="./dbconfig.json"):
 
 if __name__ == '__main__':
     db_creater()
-    print("Done")
+    print("Successfully created the database")

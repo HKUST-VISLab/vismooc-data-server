@@ -7,7 +7,8 @@ class MongoDB(BaseDB):
 
     def __init__(self, host, db_name, port=27017):
         super().__init__(host, db_name, port)
-        self.__db = MongoClient(host, port)[db_name]
+        self.__client = MongoClient(host, port)
+        self.__db = self.__client[db_name]
     
     def create_collection(self, name, codec_options=None,
                           read_preference=None, write_concern=None,
@@ -24,6 +25,9 @@ class MongoDB(BaseDB):
 
     def add_user(self, user_name, passwd):
         return self.__db.add_user(self, "user_name", passwd)
+    
+    def clear(self):
+        self.__client.drop_database(self.__db)
     
     
         

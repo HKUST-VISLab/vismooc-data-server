@@ -10,55 +10,55 @@
             [
                 {
                     "field_name" : "name",
-                    "validation" : "$type : 'string'"
+                    "validation" : {"$type" : "string"}
                 },
                 {
                     "field_name" : "year",
-                    "validation" : "$regex : /[1-9]{4}/"
+                    "validation" : {"$regex" : "/[1-9]{4}/"}
                 },
                 {
                     "field_name" : "instructor",
-                    "validation" : "$type : 'string'"
+                    "validation" : {"$type" : "string"}
                 },
                 {
                     "field_name" : "status",
-                    "validation" : "$in : ['active', 'finish']"
+                    "validation" : {"$in" : ["active", "finish"]}
                 },
                 {
                     "field_name" : "url",
-                    "validation" : "$type : 'string'"
+                    "validation" : {"$type" : "string"}
                 },
                 {
                     "field_name" : "image",
-                    "validation" : "$type : 'string'"
+                    "validation" : {"$type" : "string"}
                 },
                 {
                     "field_name" : "description",
-                    "validation" : "$type : 'string'"
+                    "validation" : {"$type" : "string"}
                 },
                 {
                     "field_name" : "metainfo",
-                    "validation" : "$type : 'object'"
+                    "validation" : {"$type" : "object"}
                 },
                 {
                     "field_name" : "endTime",
-                    "validation" : "$type : 'timestamp'"
+                    "validation" : {"$type" : "timestamp"}
                 },
                 {
                     "field_name" : "startTime",
-                    "validation" : "$type : 'timestamp'"
+                    "validation" : {"$type" : "timestamp"}
                 },
                 {
                     "field_name" : "original_id",
-                    "validation" : "$type : 'string'"
+                    "validation" : {"$type" : "string"}
                 },
                 {
                     "field_name" : "student_list",
-                    "validation" : "$type : 'array'"
+                    "validation" : {"$type" : "array"}
                 },
                 {
                     "field_name" : "video_list",
-                    "validation" : "$type : 'array'"
+                    "validation" : {"$type" : "array"}
                 }
             ],
             "index" : 
@@ -77,34 +77,35 @@
             "collection_name" : "user",
             "fields" : 
             [
-                {
+                 {
                     "field_name" : "name",
-                    "validation" : "$type : 'string'"
+                    "validation" : {"$type" : "string"}
                 },
                 {
                     "field_name" : "age",
-                    "validation" : "$and : [{$gt : 0}, {$lt : 120}]"
-                },
-                {
-                    "field_name" : "country",
-                    "validation" : "$type : 'string'"
+                    "validation" : {"$gt" : 0, "$lt" : 120}
                 },
                 {
                     "field_name" : "gender",
-                    "validation" : "$in : ['male', 'female']"
+                    "validation" : {"$in" : ["male", "female"]}
                 },
                 {
                     "field_name" : "original_id",
-                    "validation" : "$type : 'string'"
+                    "validation" : {"$type" : "string"}
+                },
+                {
+                    "field_name" : "country",
+                    "validation" : {"$type" : "string"}
                 },
                 {
                     "field_name" : "course_list",
-                    "validation" : "$type : 'array'"
+                    "validation" : {"$type" : "array"}
                 },
                 {
                     "field_name" : "dropped_course_list",
-                    "validation" : "$type : 'array'"
+                    "validation" : {"$type" : "array"}
                 }
+               
             ],
             "index" : 
             [
@@ -121,19 +122,19 @@
             [
                 {
                     "field_name" : "course_id",
-                    "validation" : "$type : 'objectId'"
+                    "validation" : {"$type" : "objectId"}
                 },
                 {
                     "field_name" : "user_id",
-                    "validation" : "$type : 'objectId'"
+                    "validation" : {"$type" : "objectId"}
                 },
                 {
                     "field_name" : "timestamp",
-                    "validation" : "$type : 'timestamp'"
+                    "validation" : {"$type" : "timestamp"}
                 },
                 {
                     "field_name" : "action",
-                    "validation" : "$in : ['TODO', 'TODO']"
+                    "validation" : {"$in" : ["TODO", "TODO"]}
                 }
             ],
             "index" : 
@@ -150,43 +151,43 @@
             [
                 {
                     "field_name" : "course_id",
-                    "validation" : "$type : 'objectId'"
+                    "validation" : {"$type" : "objectId"}
                 },
                 {
                     "field_name" : "name",
-                    "validation" : "$type : 'string'"
+                    "validation" : {"$type" : "string"}
                 },
                 {
                     "field_name" : "temporal_hotness",
-                    "validation" : "$type : 'int'"
+                    "validation" : {"$type" : "int"}
                 },
                 {
                     "field_name" : "metainfo",
-                    "validation" : "$type : 'object'"
+                    "validation" : {"$type" : "object"}
                 },
                 {
                     "field_name" : "section",
-                    "validation" : "$type : 'string'"
+                    "validation" : {"$type" : "string"}
                 },
                 {
                     "field_name" : "description",
-                    "validation" : "$type : 'string'"
+                    "validation" : {"$type" : "string"}
                 },
                 {
                     "field_name" : "release_date",
-                    "validation" : "$type : 'timestamp'"
+                    "validation" : {"$type" : "timestamp"}
                 },
                 {
                     "field_name" : "url",
-                    "validation" : "$type : 'string'"
+                    "validation" : {"$type" : "string"}
                 },
                 {
                     "field_name" : "length",
-                    "validation" : "$type : 'int'"
+                    "validation" : {"$type" : "int"}
                 },
                 {
                     "field_name" : "original_id",
-                    "validation" : "$type : 'string'"
+                    "validation" : {"$type" : "string"}
                 }
             ],
             "index" : 
@@ -207,27 +208,27 @@
             [
                 {
                     "field_name" : "user_id",
-                    "validation" : "$type : 'objectId'"
+                    "validation" : {"$type" : "objectId"}
                 },
                 {
                     "field_name" : "video_id",
-                    "validation" : "$type : 'objectId'"
+                    "validation" : {"$type" : "objectId"}
                 },
                 {
                     "field_name" : "timestamp",
-                    "validation" : "$type : 'timestamp'"
+                    "validation" : {"$type" : "timestamp"}
                 },
                 {
                     "field_name" : "type",
-                    "validation" : "$in : ['TODO', 'TODO']"
+                    "validation" : {"$in" : ["TODO", "TODO"]}
                 },
                 {
                     "field_name" : "metainfo",
-                    "validation" : "$type : 'object'"
+                    "validation" : {"$type" : "object"}
                 },
                 {
                     "field_name" : "original_id",
-                    "validation" : "$type : 'string'"
+                    "validation" : {"$type" : "string"}
                 }
             ],
             "index" : 

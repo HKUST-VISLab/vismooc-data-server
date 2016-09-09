@@ -34,6 +34,13 @@ class BaseDB(metaclass=ABCMeta):
             passwd (string): The password of the user
         """
         pass
+    
+    @abstractmethod
+    def clear(self):
+        """clear all the data in the this db
+
+        """
+        pass
 
 
 class BaseCollection(metaclass=ABCMeta):
