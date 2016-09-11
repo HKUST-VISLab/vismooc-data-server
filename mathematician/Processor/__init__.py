@@ -1,3 +1,2 @@
-from .format_logfile import FormatLogFile
-from .format_userfile import FormatUserFile
-__All__ = ["FormatLogFile", "FormatUserFile"]
+from .old_hkvmooc import FormatLogFile, FormatUserFile, FormatVideoFile
+__All__ = ["FormatLogFile", "FormatUserFile", "FormatVideoFile"]

@@ -2,7 +2,7 @@ import json
 import time
 from os import listdir, path
 
-from mathematician.Processor import FormatLogFile, FormatUserFile
+from mathematician.Processor import FormatLogFile, FormatUserFile, FormatVideoFile
 from mathematician.pipe import Pipe
 
 
@@ -41,6 +41,20 @@ def main():
                 userfile_processor = FormatUserFile()
                 clean_userfile = pipeline.input(
                     raw_data).pipe(userfile_processor).output()
+                write_file = open(file_name + ".clean", "w")
+                write_file.write(json.dumps(clean_userfile["data"]))
+                write_file.close()
+
+                print(str(path.getsize(file_name)) +
+                      " spend:" + str(time.time() - start_time))
+        elif '-course_structure-' in file_name:
+            print(file_name)
+            with open(file_name, 'r') as file:
+                raw_data = file.readlines()
+                pipeline = Pipe()
+                videofile_processor = FormatVideoFile()
+                clean_userfile = pipeline.input(
+                    raw_data).pipe(videofile_processor).output()
                 write_file = open(file_name + ".clean", "w")
                 write_file.write(json.dumps(clean_userfile["data"]))
                 write_file.close()
