@@ -94,3 +94,7 @@ ENV/
 
 #Vscode settings
 .vscode/
+
+#test data
+test-data
+main.py
