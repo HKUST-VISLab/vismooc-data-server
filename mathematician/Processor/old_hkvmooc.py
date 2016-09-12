@@ -60,55 +60,140 @@ class FormatUserFile(PipeModule):
 
     def __init__(self):
         super().__init__()
-        self._target_field = {'id', 'username', 'country', 'date_of_birth'}
+        self._userprofile = {}
 
-    def process(self, raw_data):
-        processed_data = super().process(raw_data)
-        target_field = self._target_field
+    def load_data(self, data_filenames):
+        auth_user_filename = None
+        auth_userprofile_filename = None
+        for filename in data_filenames:
+            if '-auth_user-' in filename:
+                auth_user_filename = filename
+            elif '-auth_userprofile-' in filename:
+                auth_userprofile_filename = filename
 
-        headers = processed_data['data'][0][:-1].split('\t')
-        headers = [{'index': idx, 'name': header}
-                   for idx, header in enumerate(headers) if header in target_field]
+        if auth_userprofile_filename is not None:
+            with open(auth_userprofile_filename, 'r', encoding='utf-8') as file:
+                next(file)
+                lines = file.readlines()
+                good_lines = []
+                for i in reversed(range(len(lines))):
+                    if lines[i].startswith('\\n'):
+                        lines[i - 1] = lines[i - 1][:-1] + lines[i]
 
-        new_processed_data = []
-        for row in processed_data['data'][1:]:
+                    else:
+                        good_lines.append(lines[i])
+
+                for line in good_lines:
+                    line = line[:-1].split('\t')
+                    self._userprofile[line[1]] = line
+
+        if auth_user_filename is not None:
+            with open(auth_user_filename, 'r', encoding='utf-8') as file:
+
+                next(file)
+                raw_data = file.readlines()
+                file.close()
+                return raw_data
+        return None
+
+    def process(self, raw_data, raw_data_filenames=None):
+        data_to_be_processed = self.load_data(raw_data_filenames)
+
+        users = []
+        for row in data_to_be_processed:
             row = row[:-1].split('\t')
             user = {}
-            for header in headers:
-                user[header['name']] = row[header['index']]
-            new_processed_data.append(user)
+            user_id = row[0]
+            user_profile = self._userprofile.get(user_id)
+            user['gender'] = user_profile and user_profile[7]
+            user['courseList'] = []
+            user['dropedCourseList'] = []
+            user['age'] = row[16] or (user_profile and user_profile[9])
+            user['country'] = row[14] or (
+                user_profile and (user_profile[13] or user_profile[4]))
+            user['username'] = row[1]
+            user['originalId'] = user_id
+            users.append(user)
 
-        processed_data['data'] = new_processed_data
+        processed_data = raw_data
+        processed_data['data']['users'] = users
+
         return processed_data
 
 
-class FormatVideoFile(PipeModule):
+class FormatCourseStructFile(PipeModule):
 
     def __init__(self):
         super().__init__()
 
-    def process(self, raw_data):
-        processed_data = super().process(raw_data)
+    def load_data(self, data_filenames):
+        target_filename = None
+        for filename in data_filenames:
+            if '-course_structure-' in filename:
+                target_filename = filename
+                break
 
-        new_processed_data = []
-        course_structure = json.loads(''.join(processed_data['data']))
-        for key in course_structure:
-            value = course_structure[key]
+        if target_filename is not None:
+            with open(target_filename, 'r', encoding='utf-8') as file:
+
+                raw_data = ''.join(file.readlines())
+                file.close()
+                return raw_data
+
+        return None
+
+    def process(self, raw_data, raw_data_filenames=None):
+
+        data_to_be_processed = self.load_data(raw_data_filenames)
+
+        if data_to_be_processed is None:
+            return raw_data
+
+        course_structure_info = json.loads(data_to_be_processed)
+        videos = []
+        course = {}
+        for key in course_structure_info:
+            value = course_structure_info[key]
+            value_metadata = value.get('metadata') or {}
             if value['category'] == 'video':
                 video = {}
-                # course id is None
-                value_metadata = value['metadata']
-                video['name'] = value_metadata['display_name']
-                video['url'] = value_metadata['html5_sources']
-                video['section'] = value_metadata['sub']
-                
+                video['courseId'] = None
+                video['name'] = value_metadata.get('display_name')
+                video['temproalHotness'] = None
                 video['metaInfo'] = {}
-                youtube_id = value_metadata['youtube_id_1_0']
-                if youtube_id is not None:
-                    video['metaInfo']['youtube_id'] = youtube_id
+                video['section'] = value_metadata.get('sub')
+                video['releaseDate'] = None
+                video['description'] = None
+                video['url'] = len(value_metadata.get('html5_sources')) and value_metadata.get(
+                    'html5_sources')[0]
 
-                new_processed_data.append(video)
+                video['length'] = None
+                video['originalId'] = key
+                video['metaInfo']['youtube_id'] = value_metadata.get(
+                    'youtube_id_1_0')
 
-        print(len(new_processed_data))
-        processed_data['data'] = new_processed_data
+                videos.append(video)
+            elif value['category'] == 'course':
+                course['name'] = value_metadata.get('display_name')
+                course['year'] = None
+                course['instructor'] = None
+                course['status'] = None
+                course['url'] = None
+                course['image'] = value_metadata.get('course_image')
+                course['description'] = None
+                course['metaInfo'] = {}
+                course['startDate'] = value_metadata.get('start')
+                course['endDate'] = value_metadata.get('end')
+                course['originalId'] = key
+                course['students'] = []
+                course['videos'] = []
+
+        for video in videos:
+            video['courseId'] = course['originalId']
+            course['videos'].append(video['originalId'])
+
+        processed_data = raw_data
+        processed_data['data']['videos'] = videos
+        processed_data['data']['course'] = course
+
         return processed_data
