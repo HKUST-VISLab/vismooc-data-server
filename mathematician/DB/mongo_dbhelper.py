@@ -1,11 +1,20 @@
-from pymongo import MongoClient
+import pymongo
+from pymongo import MongoClient, IndexModel
 from .base_dbhelper import BaseDB, BaseCollection
 
 class MongoDB(BaseDB):
 
     def __init__(self, host, db_name, port=27017):
         super().__init__(host, db_name, port)
-        self.__db = MongoClient(host, port)[db_name]
+        self.__client = MongoClient(host, port)
+        self.__db = self.__client[db_name]
+    
+    def create_collection(self, name, codec_options=None,
+                          read_preference=None, write_concern=None,
+                          read_concern=None, **kwargs):
+        self.__db.create_collection(name,codec_options, read_preference,
+                                    write_concern, read_concern, **kwargs)
+        return MongoCollection(self.__db, name)
 
     def get_collection_names(self):
         return self.__db.collection_names()
@@ -13,13 +22,21 @@ class MongoDB(BaseDB):
     def get_collection(self, name):
         return MongoCollection(self.__db, self.__db[name])
 
+    def add_user(self, user_name, passwd):
+        return self.__db.add_user(self, "user_name", passwd)
+    
+    def clear(self):
+        self.__client.drop_database(self.__db)
+    
+    
+        
 
 class MongoCollection(BaseCollection):
 
     def __init__(self, db, collection):
         super().__init__(db, collection)
         self.__db = db
-        self.__collection = collection
+        self.__collection = db[collection]
         self._index_names = None
 
     def insert_one(self, document):
@@ -84,7 +101,7 @@ class MongoCollection(BaseCollection):
     def create_index(self, keys, **kwargs):
         """Creates an index on this collection.
         """
-        return self.__collection.create_index(keys, kwargs)
+        return self.__collection.create_index(keys, **kwargs)
 
     def drop_index(self, index_name):
         """Drops the specified index on this collection.
@@ -105,3 +122,4 @@ class MongoCollection(BaseCollection):
         """Get a index according to its name
         """
         pass
+    
