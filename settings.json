@@ -1,0 +1,8 @@
+// 将设置放入此文件中以覆盖默认值和用户设置。
+{
+    "python.pythonPath": "E:\\Workspace\\vismooc\\vismooc-data-server\\venv\\Scripts\\python",
+    "editor.fontSize": 16,
+    "python.linting.pylintArgs": [
+        "--init-hook=sys.path.insert(0, os.path.abspath('.'))"
+    ]
+}

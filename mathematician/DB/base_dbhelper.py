@@ -24,6 +24,23 @@ class BaseDB(metaclass=ABCMeta):
             BaseCollection: The target collection
         """
         pass
+    
+    @abstractmethod
+    def add_user(self, user_name, passwd):
+        """Set username and password to DB for authentication
+
+        Args:
+            user_name (string): The name of the user
+            passwd (string): The password of the user
+        """
+        pass
+    
+    @abstractmethod
+    def clear(self):
+        """clear all the data in the this db
+
+        """
+        pass
 
 
 class BaseCollection(metaclass=ABCMeta):
