@@ -67,19 +67,26 @@ class PipeLine:
     #     """
     #     return self
 
-    def output(self):
+    def excute(self):
         """
-            Excute all processor one by one and return the data after processing
+            Excute all processor one by one
+
         """
         self._processed_data = {'created_date': datetime.now(
         ).strftime('%Y-%m-%d %H:%M:%S'), 'data': {}}
 
-
-        
-        for processor in sorted(self._processors, key=lambda d:d.order):
+        for processor in sorted(self._processors, key=lambda d: d.order):
             self._processed_data = processor.process(
                 self._processed_data, self.__raw_data_filenames)
             self._processed_data['finished_date'] = datetime.now(
             ).strftime('%Y-%m-%d %H:%M:%S')
+
+        return self
+
+    def output(self):
+        """
+            Excute all processor one by one and return the data after processing
+        """
+        self.excute()
 
         return self._processed_data
