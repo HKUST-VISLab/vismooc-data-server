@@ -1,9 +1,10 @@
+# -*- coding: utf-8 -*-
 import json
 import time
 from os import listdir, path
 
-from mathematician.Processor import FormatLogFile, FormatUserFile, FormatVideoFile
-from mathematician.pipe import Pipe
+from mathematician.Processor import FormatLogFile, FormatUserFile, FormatCourseStructFile
+from mathematician.pipe import PipeLine
 
 
 def main():
@@ -31,36 +32,22 @@ def main():
     course_info_file_dir = './test-data/course-info-files/hkustx-2014-08-19'
     files = [path.join(course_info_file_dir, f) for f in listdir(
         course_info_file_dir) if path.isfile(path.join(course_info_file_dir, f))]
-    for file_name in files:
-        start_time = time.time()
-        if '-auth_user-' in file_name:
-            print(file_name)
-            with open(file_name, 'r') as file:
-                raw_data = file.readlines()
-                pipeline = Pipe()
-                userfile_processor = FormatUserFile()
-                clean_userfile = pipeline.input(
-                    raw_data).pipe(userfile_processor).output()
-                write_file = open(file_name + ".clean", "w")
-                write_file.write(json.dumps(clean_userfile["data"]))
-                write_file.close()
+    pipeline = PipeLine()
+    pipeline.input_files(files).pipe(
+        FormatUserFile()).pipe(FormatCourseStructFile())
 
-                print(str(path.getsize(file_name)) +
-                      " spend:" + str(time.time() - start_time))
-        elif '-course_structure-' in file_name:
-            print(file_name)
-            with open(file_name, 'r') as file:
-                raw_data = file.readlines()
-                pipeline = Pipe()
-                videofile_processor = FormatVideoFile()
-                clean_userfile = pipeline.input(
-                    raw_data).pipe(videofile_processor).output()
-                write_file = open(file_name + ".clean", "w")
-                write_file.write(json.dumps(clean_userfile["data"]))
-                write_file.close()
+    start_time = time.time()
+    processed_data = pipeline.output()
+    write_file = open("processed_data.json", "w")
+    write_file.write(json.dumps(processed_data))
+    write_file.close()
+    print("spend:" + str(time.time() - start_time))
 
-                print(str(path.getsize(file_name)) +
-                      " spend:" + str(time.time() - start_time))
 
 if __name__ == "__main__":
     main()
+    # filename = './test-data/course-info-files/hkustx-2014-08-19/HKUSTx-COMP102x-2T2014-auth_userprofile-prod-analytics.sql'
+    # with open(filename, 'r', encoding='utf-8') as file:
+    #     text = file.readlines()
+    #     for i in range(20):
+    #         print(str(i) + ":" + text[i])
