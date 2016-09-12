@@ -3,13 +3,12 @@ import json
 
 from ..pipe import PipeModule
 
-
 class FormatLogFile(PipeModule):
 
     def __init__(self):
         super().__init__()
 
-    def process(self, raw_data):
+    def process(self, raw_data, raw_data_filenames=None):
         processed_data = super().process(raw_data)
 
         wrong_username_pattern = r'"username"\s*:\s*"",'
@@ -79,7 +78,6 @@ class FormatUserFile(PipeModule):
                 for i in reversed(range(len(lines))):
                     if lines[i].startswith('\\n'):
                         lines[i - 1] = lines[i - 1][:-1] + lines[i]
-
                     else:
                         good_lines.append(lines[i])
 

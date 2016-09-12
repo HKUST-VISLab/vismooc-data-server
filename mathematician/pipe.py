@@ -83,10 +83,10 @@ class PipeLine:
         """
             Excute all processor one by one and return the data after processing
         """
-        self._processed_data = {'created_date': datetime.now().timestamp(), 'data': {}}
+        self._processed_data = {'created_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'data': {}}
 
         for processor in self._processors:
             self._processed_data = processor.process(
                 self._processed_data, self.__raw_data_filenames)
-            self._processed_data['finished_date'] = datetime.now().timestamp()
+            self._processed_data['finished_date'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         return self._processed_data

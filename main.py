@@ -46,8 +46,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    # filename = './test-data/course-info-files/hkustx-2014-08-19/HKUSTx-COMP102x-2T2014-auth_userprofile-prod-analytics.sql'
-    # with open(filename, 'r', encoding='utf-8') as file:
-    #     text = file.readlines()
-    #     for i in range(20):
-    #         print(str(i) + ":" + text[i])
