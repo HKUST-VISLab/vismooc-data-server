@@ -1,7 +1,6 @@
 from pymongo import MongoClient
 from .base_dbhelper import BaseDB, BaseCollection
 
-
 class MongoDB(BaseDB):
 
     def __init__(self, host, db_name, port=27017):

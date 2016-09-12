@@ -195,3 +195,41 @@ class FormatCourseStructFile(PipeModule):
         processed_data['data']['course'] = course
 
         return processed_data
+
+
+class FormatEnrollmentFile(PipeModule):
+
+    action = {1: 'enroll', 0: 'unenroll'}
+
+    def __init__(self):
+        super().__init__()
+
+    def load_data(self, data_filenames):
+        target_filename = None
+        for filename in data_filenames:
+            if '-student_courseenrollment-' in filename:
+                target_filename = filename
+                break
+
+        if target_filename is not None:
+            with open(target_filename, 'r', encoding='utf-8') as file:
+                next(file)
+                raw_data = file.readlines()
+                file.close()
+                return raw_data
+        return None
+
+    def process(self, raw_data, raw_data_filenames=None):
+        data_to_be_processed = self.load_data(raw_data_filenames)
+        enrollments = []
+        for row in data_to_be_processed:
+            enrollment = {}
+            enrollment['courseId'] = row[2]
+            enrollment['userId'] = row[1]
+            enrollment['timestamp'] = row[3]
+            enrollment['action'] = FormatEnrollmentFile.action.get(row[4])
+            enrollments.append(enrollment)
+
+        processed_data = raw_data
+        processed_data['data']['enrollments'] = enrollments
+        return processed_data
