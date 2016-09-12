@@ -1,11 +1,13 @@
 import re
 import json
-
+from operator import itemgetter
 from ..pipe import PipeModule
+
 
 class FormatCourseStructFile(PipeModule):
 
     order = 0
+
     def __init__(self):
         super().__init__()
 
@@ -33,13 +35,15 @@ class FormatCourseStructFile(PipeModule):
             return raw_data
 
         course_structure_info = json.loads(data_to_be_processed)
-        videos = []
+        videos = {}
         course = {}
         for key in course_structure_info:
             value = course_structure_info[key]
             value_metadata = value.get('metadata') or {}
             if value['category'] == 'video':
                 video = {}
+                video_id = key[6:].split('/')
+                video_id = key[:3] + '-' + '-'.join(video_id)
                 video['courseId'] = None
                 video['name'] = value_metadata.get('display_name')
                 video['temproalHotness'] = None
@@ -49,14 +53,15 @@ class FormatCourseStructFile(PipeModule):
                 video['description'] = None
                 video['url'] = len(value_metadata.get('html5_sources')) and value_metadata.get(
                     'html5_sources')[0]
-
                 video['length'] = None
-                video['originalId'] = key
+                video['originalId'] = video_id
                 video['metaInfo']['youtube_id'] = value_metadata.get(
                     'youtube_id_1_0')
-
-                videos.append(video)
+                videos[video['originalId']] = video
             elif value['category'] == 'course':
+                course_id = key[6:].split('/')
+                course_id = course_id[0] + '/' + \
+                    course_id[1] + '/' + course_id[3]
                 course['name'] = value_metadata.get('display_name')
                 course['year'] = None
                 course['instructor'] = None
@@ -67,13 +72,15 @@ class FormatCourseStructFile(PipeModule):
                 course['metaInfo'] = {}
                 course['startDate'] = value_metadata.get('start')
                 course['endDate'] = value_metadata.get('end')
-                course['originalId'] = key
-                course['studentIds'] = []
-                course['videoIds'] = []
+                course['originalId'] = course_id
+                course['studentIds'] = set()
+                course['videoIds'] = set()
 
-        for video in videos:
-            video['courseId'] = course['originalId'] # video collection is complete here
-            course['videoIds'].append(video['originalId']) # course collection needs studentIds
+        for video in videos.values():
+            # video collection is completed
+            video['courseId'] = course['originalId']
+            # course collection needs studentIds
+            course['videoIds'].add(video['originalId'])
 
         processed_data = raw_data
         processed_data['data']['videos'] = videos
@@ -85,10 +92,10 @@ class FormatCourseStructFile(PipeModule):
 class FormatUserFile(PipeModule):
 
     order = 1
+
     def __init__(self):
         super().__init__()
         self._userprofile = {}
-        
 
     def load_data(self, data_filenames):
         auth_user_filename = None
@@ -126,26 +133,31 @@ class FormatUserFile(PipeModule):
     def process(self, raw_data, raw_data_filenames=None):
         data_to_be_processed = self.load_data(raw_data_filenames)
 
-        users = []
+        if data_to_be_processed is None:
+            return raw_data
+
+        users = {}
         for row in data_to_be_processed:
             row = row[:-1].split('\t')
             user = {}
             user_id = row[0]
             user_profile = self._userprofile.get(user_id)
             user['gender'] = user_profile and user_profile[7]
-            user['courseList'] = []
-            user['dropedCourseList'] = []
+            user['courseIds'] = set()
+            user['droppedCourseIds'] = set()
             user['age'] = row[16] or (user_profile and user_profile[9])
             user['country'] = row[14] or (
                 user_profile and (user_profile[13] or user_profile[4]))
             user['username'] = row[1]
             user['originalId'] = user_id
-            users.append(user)
+            users[user['originalId']] = user
 
         processed_data = raw_data
+        # user collection needs courseIds and droppedCourseIds
         processed_data['data']['users'] = users
 
         return processed_data
+
 
 class FormatEnrollmentFile(PipeModule):
 
@@ -172,27 +184,61 @@ class FormatEnrollmentFile(PipeModule):
 
     def process(self, raw_data, raw_data_filenames=None):
         data_to_be_processed = self.load_data(raw_data_filenames)
+        if data_to_be_processed is None:
+            return raw_data
+        course = raw_data['data']['course']
+        users = raw_data['data']['users']
+
         enrollments = []
-        for row in data_to_be_processed:
+        for row in sorted(data_to_be_processed, key=itemgetter(3)):
             enrollment = {}
             enrollment['courseId'] = row[2]
             enrollment['userId'] = row[1]
             enrollment['timestamp'] = row[3]
             enrollment['action'] = FormatEnrollmentFile.action.get(row[4])
             enrollments.append(enrollment)
+            # fill user collection
+            users[row[1]]['courseIds'].add(row[2])
+            # fill course collection
+            if enrollment['action'] == 1:
+                course['studentIds'].add(row[1])
+            else:
+                course['studentIds'].remove(row[1])
+                users[row[1]]['droppedCourseIds'].add(row[2])
 
         processed_data = raw_data
+        # course and users collection are completed
         processed_data['data']['enrollments'] = enrollments
+
         return processed_data
+
 
 class FormatLogFile(PipeModule):
 
     order = 3
+
     def __init__(self):
         super().__init__()
 
+    def load_data(self, data_filenames):
+        target_filename = None
+        for filename in data_filenames:
+            if '-events-' in filename:
+                target_filename = filename
+                break
+
+        if target_filename is not None:
+            with open(target_filename, 'r', encoding='utf-8') as file:
+                raw_data = file.readlines()
+                file.close()
+                return raw_data
+        return None
+
     def process(self, raw_data, raw_data_filenames=None):
-        processed_data = super().process(raw_data)
+        data_to_be_processed = self.load_data(raw_data_filenames)
+
+        if data_to_be_processed is None:
+            return raw_data
 
         wrong_username_pattern = r'"username"\s*:\s*"",'
         right_eventsource_pattern = r'"event_source"\s*:\s*"browser"'
@@ -202,7 +248,7 @@ class FormatLogFile(PipeModule):
         match_event_pattern = r',?\s*("event"\s*:\s*"([^"]|\\")*(?<!\\)")'
         match_username_pattern = r',?\s*("username"\s*:\s*"[^"]*")'
         match_time_pattern = r',?\s*("time"\s*:\s*"[^"]*")'
-
+        match_event_json_escape_pattern = r'"(?={)|"$'
         re_filter_wrong_pattern = re.compile(wrong_username_pattern)
         re_search_right_eventsource_pattern = re.compile(
             right_eventsource_pattern)
@@ -212,27 +258,39 @@ class FormatLogFile(PipeModule):
         re_search_event_pattern = re.compile(match_event_pattern)
         re_search_username_pattern = re.compile(match_username_pattern)
         re_search_time_pattern = re.compile(match_time_pattern)
+        re_search_event_json_escape_pattern = re.compile(
+            match_event_json_escape_pattern)
 
-        new_processed_data = []
-        for line in processed_data['data']:
+        events = []
+        for line in data_to_be_processed:
             event_type = re_search_right_eventtype_pattern.search(line)
             if re_filter_wrong_pattern.search(line) is None and re_search_right_eventsource_pattern.search(line) is not None and event_type is not None:
                 context = re_search_context_pattern.search(line)
-                event = re_search_event_pattern.search(line)
+                event_field = re_search_event_pattern.search(line)
                 username = re_search_username_pattern.search(line)
                 timestamp = re_search_time_pattern.search(line)
                 temp_array = [event_type.group()]
-                if context:
+                if context is not None:
                     temp_array.append(context.group(1))
-                if event:
-                    temp_array.append(event.group(1))
-                if username:
+                if event_field is not None:
+                    temp_array.append(re_search_event_json_escape_pattern.sub(
+                        '', event_field.group(1).replace('\\', '')))
+                if username is not None:
                     temp_array.append(username.group(1))
-                if timestamp:
+                if timestamp is not None:
                     temp_array.append(timestamp.group(1))
 
                 json_str = "{" + ",".join(temp_array) + "}"
-                new_processed_data.append(json.loads(json_str))
-        processed_data['data'] = new_processed_data
+                event_json = json.loads(json_str)
+                event = {}
+                event_context = event_json.get('context')
+                event['userId'] =  event_context and event_context['user_id']
+                event['videoId'] = event_json.get('event') and event_json.get('event')['id']
+                event['timestamp'] = event_json.get('time')
+                event['type'] = event_json.get('event_type')
+                event['metaInfo'] = event_json.get('event')
+                events.append(event_json)
 
+        processed_data = raw_data
+        processed_data['data']['events'] = events
         return processed_data
