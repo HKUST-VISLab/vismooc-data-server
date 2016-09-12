@@ -284,13 +284,37 @@ class FormatLogFile(PipeModule):
                 event_json = json.loads(json_str)
                 event = {}
                 event_context = event_json.get('context')
-                event['userId'] =  event_context and event_context['user_id']
-                event['videoId'] = event_json.get('event') and event_json.get('event')['id']
+                event['userId'] = event_context and event_context['user_id']
+
+                event['videoId'] = event_json.get(
+                    'event') and event_json.get('event')['id']
+
                 event['timestamp'] = event_json.get('time')
                 event['type'] = event_json.get('event_type')
                 event['metaInfo'] = event_json.get('event')
-                events.append(event_json)
+                events.append(event)
 
         processed_data = raw_data
         processed_data['data']['events'] = events
         return processed_data
+
+
+class SetEncoder(json.JSONEncoder):
+    # pylint: disable=E0202
+    def default(self, obj): 
+        if type(obj) is set:
+            return list(obj)
+        return json.JSONEncoder.default(self, obj)
+
+
+class OutputFile(PipeModule):
+    order = 999
+
+    def __init__(self):
+        super().__init__()
+
+    def process(self, raw_data, raw_data_filenames=None):
+        write_file = open('./test-data/processed_data.json', 'w')
+        write_file.write(json.dumps(raw_data, cls=SetEncoder))
+        write_file.close()
+        return raw_data
