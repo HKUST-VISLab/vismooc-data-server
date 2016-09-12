@@ -1,249 +1,329 @@
 {
-    "db_name" : "vismooc_db",
-    "db_user" : "vismooc",
-    "db_passwd" : "vismooc",
-    "db_collections" : 
-    [
+    "db_name": "vismooc_db",
+    "db_user": "vismooc",
+    "db_passwd": "vismooc",
+    "db_collections": [
         {
-            "collection_name" : "course",
-            "fields" : 
-            [
+            "collection_name": "course",
+            "fields": [
                 {
-                    "field_name" : "name",
-                    "validation" : {"$type" : "string"}
+                    "field_name": "name",
+                    "validation": {
+                        "$type": "string"
+                    }
                 },
                 {
-                    "field_name" : "year",
-                    "validation" : {"$regex" : "/[1-9]{4}/"}
+                    "field_name": "year",
+                    "validation": {
+                        "$regex": "/[1-9]{4}/"
+                    }
                 },
                 {
-                    "field_name" : "instructor",
-                    "validation" : {"$type" : "string"}
+                    "field_name": "instructor",
+                    "validation": {
+                        "$type": "string"
+                    }
                 },
                 {
-                    "field_name" : "status",
-                    "validation" : {"$in" : ["active", "finish"]}
+                    "field_name": "status",
+                    "validation": {
+                        "$in": [
+                            "active",
+                            "finish"
+                        ]
+                    }
                 },
                 {
-                    "field_name" : "url",
-                    "validation" : {"$type" : "string"}
+                    "field_name": "url",
+                    "validation": {
+                        "$type": "string"
+                    }
                 },
                 {
-                    "field_name" : "image",
-                    "validation" : {"$type" : "string"}
+                    "field_name": "image",
+                    "validation": {
+                        "$type": "string"
+                    }
                 },
                 {
-                    "field_name" : "description",
-                    "validation" : {"$type" : "string"}
+                    "field_name": "description",
+                    "validation": {
+                        "$type": "string"
+                    }
                 },
                 {
-                    "field_name" : "metainfo",
-                    "validation" : {"$type" : "object"}
+                    "field_name": "metainfo",
+                    "validation": {
+                        "$type": "object"
+                    }
                 },
                 {
-                    "field_name" : "endTime",
-                    "validation" : {"$type" : "timestamp"}
+                    "field_name": "endTime",
+                    "validation": {
+                        "$type": "timestamp"
+                    }
                 },
                 {
-                    "field_name" : "startTime",
-                    "validation" : {"$type" : "timestamp"}
+                    "field_name": "startTime",
+                    "validation": {
+                        "$type": "timestamp"
+                    }
                 },
                 {
-                    "field_name" : "original_id",
-                    "validation" : {"$type" : "string"}
+                    "field_name": "original_id",
+                    "validation": {
+                        "$type": "string"
+                    }
                 },
                 {
-                    "field_name" : "student_list",
-                    "validation" : {"$type" : "array"}
+                    "field_name": "student_list",
+                    "validation": {
+                        "$type": "array"
+                    }
                 },
                 {
-                    "field_name" : "video_list",
-                    "validation" : {"$type" : "array"}
+                    "field_name": "video_list",
+                    "validation": {
+                        "$type": "array"
+                    }
                 }
             ],
-            "index" : 
-            [
+            "index": [
                 {
-                    "field" : "name",
-                    "order" : 1
+                    "field": "name",
+                    "order": 1
                 },
                 {
-                    "field" : "status",
-                    "order" : 1
+                    "field": "status",
+                    "order": 1
                 }
             ]
         },
         {
-            "collection_name" : "user",
-            "fields" : 
-            [
-                 {
-                    "field_name" : "name",
-                    "validation" : {"$type" : "string"}
+            "collection_name": "user",
+            "fields": [
+                {
+                    "field_name": "name",
+                    "validation": {
+                        "$type": "string"
+                    }
                 },
                 {
-                    "field_name" : "age",
-                    "validation" : {"$gt" : 0, "$lt" : 120}
+                    "field_name": "age",
+                    "validation": {
+                        "$gt": 0,
+                        "$lt": 120
+                    }
                 },
                 {
-                    "field_name" : "gender",
-                    "validation" : {"$in" : ["male", "female"]}
+                    "field_name": "gender",
+                    "validation": {
+                        "$in": [
+                            "male",
+                            "female"
+                        ]
+                    }
                 },
                 {
-                    "field_name" : "original_id",
-                    "validation" : {"$type" : "string"}
+                    "field_name": "original_id",
+                    "validation": {
+                        "$type": "string"
+                    }
                 },
                 {
-                    "field_name" : "country",
-                    "validation" : {"$type" : "string"}
+                    "field_name": "country",
+                    "validation": {
+                        "$type": "string"
+                    }
                 },
                 {
-                    "field_name" : "course_list",
-                    "validation" : {"$type" : "array"}
+                    "field_name": "course_list",
+                    "validation": {
+                        "$type": "array"
+                    }
                 },
                 {
-                    "field_name" : "dropped_course_list",
-                    "validation" : {"$type" : "array"}
-                }
-               
-            ],
-            "index" : 
-            [
-                {
-                    "field" : "country",
-                    "order" : 1
-                }
-            ]
-
-        },
-        {
-            "collection_name" : "enroll_history",
-            "fields" : 
-            [
-                {
-                    "field_name" : "course_id",
-                    "validation" : {"$type" : "objectId"}
-                },
-                {
-                    "field_name" : "user_id",
-                    "validation" : {"$type" : "objectId"}
-                },
-                {
-                    "field_name" : "timestamp",
-                    "validation" : {"$type" : "timestamp"}
-                },
-                {
-                    "field_name" : "action",
-                    "validation" : {"$in" : ["TODO", "TODO"]}
+                    "field_name": "dropped_course_list",
+                    "validation": {
+                        "$type": "array"
+                    }
                 }
             ],
-            "index" : 
-            [
+            "index": [
                 {
-                    "field" : "timestamp",
-                    "order" : 1
+                    "field": "country",
+                    "order": 1
                 }
             ]
         },
         {
-            "collection_name" : "video",
-            "fields" : 
-            [
+            "collection_name": "enroll_history",
+            "fields": [
                 {
-                    "field_name" : "course_id",
-                    "validation" : {"$type" : "objectId"}
+                    "field_name": "course_id",
+                    "validation": {
+                        "$type": "objectId"
+                    }
                 },
                 {
-                    "field_name" : "name",
-                    "validation" : {"$type" : "string"}
+                    "field_name": "user_id",
+                    "validation": {
+                        "$type": "objectId"
+                    }
                 },
                 {
-                    "field_name" : "temporal_hotness",
-                    "validation" : {"$type" : "int"}
+                    "field_name": "timestamp",
+                    "validation": {
+                        "$type": "timestamp"
+                    }
                 },
                 {
-                    "field_name" : "metainfo",
-                    "validation" : {"$type" : "object"}
-                },
-                {
-                    "field_name" : "section",
-                    "validation" : {"$type" : "string"}
-                },
-                {
-                    "field_name" : "description",
-                    "validation" : {"$type" : "string"}
-                },
-                {
-                    "field_name" : "release_date",
-                    "validation" : {"$type" : "timestamp"}
-                },
-                {
-                    "field_name" : "url",
-                    "validation" : {"$type" : "string"}
-                },
-                {
-                    "field_name" : "length",
-                    "validation" : {"$type" : "int"}
-                },
-                {
-                    "field_name" : "original_id",
-                    "validation" : {"$type" : "string"}
+                    "field_name": "action",
+                    "validation": {
+                        "$in": [
+                            "TODO",
+                            "TODO"
+                        ]
+                    }
                 }
             ],
-            "index" : 
-            [
+            "index": [
                 {
-                    "field" : "course_id",
-                    "order" : 1
-                },
-                {
-                    "field" : "original_id",
-                    "order" : 1
+                    "field": "timestamp",
+                    "order": 1
                 }
             ]
         },
         {
-            "collection_name" : "video_log",
-            "fields" : 
-            [
+            "collection_name": "video",
+            "fields": [
                 {
-                    "field_name" : "user_id",
-                    "validation" : {"$type" : "objectId"}
+                    "field_name": "course_id",
+                    "validation": {
+                        "$type": "objectId"
+                    }
                 },
                 {
-                    "field_name" : "video_id",
-                    "validation" : {"$type" : "objectId"}
+                    "field_name": "name",
+                    "validation": {
+                        "$type": "string"
+                    }
                 },
                 {
-                    "field_name" : "timestamp",
-                    "validation" : {"$type" : "timestamp"}
+                    "field_name": "temporal_hotness",
+                    "validation": {
+                        "$type": "int"
+                    }
                 },
                 {
-                    "field_name" : "type",
-                    "validation" : {"$in" : ["TODO", "TODO"]}
+                    "field_name": "metainfo",
+                    "validation": {
+                        "$type": "object"
+                    }
                 },
                 {
-                    "field_name" : "metainfo",
-                    "validation" : {"$type" : "object"}
+                    "field_name": "section",
+                    "validation": {
+                        "$type": "string"
+                    }
                 },
                 {
-                    "field_name" : "original_id",
-                    "validation" : {"$type" : "string"}
+                    "field_name": "description",
+                    "validation": {
+                        "$type": "string"
+                    }
+                },
+                {
+                    "field_name": "release_date",
+                    "validation": {
+                        "$type": "timestamp"
+                    }
+                },
+                {
+                    "field_name": "url",
+                    "validation": {
+                        "$type": "string"
+                    }
+                },
+                {
+                    "field_name": "length",
+                    "validation": {
+                        "$type": "int"
+                    }
+                },
+                {
+                    "field_name": "original_id",
+                    "validation": {
+                        "$type": "string"
+                    }
                 }
             ],
-            "index" : 
-            [
+            "index": [
                 {
-                    "field" : "user_id",
-                    "order" : 1
+                    "field": "course_id",
+                    "order": 1
                 },
                 {
-                    "field" : "video_id",
-                    "order" : 1
+                    "field": "original_id",
+                    "order": 1
+                }
+            ]
+        },
+        {
+            "collection_name": "video_log",
+            "fields": [
+                {
+                    "field_name": "user_id",
+                    "validation": {
+                        "$type": "objectId"
+                    }
                 },
                 {
-                    "field" : "original_id",
-                    "order" : 1
+                    "field_name": "video_id",
+                    "validation": {
+                        "$type": "objectId"
+                    }
+                },
+                {
+                    "field_name": "timestamp",
+                    "validation": {
+                        "$type": "timestamp"
+                    }
+                },
+                {
+                    "field_name": "type",
+                    "validation": {
+                        "$in": [
+                            "TODO",
+                            "TODO"
+                        ]
+                    }
+                },
+                {
+                    "field_name": "metainfo",
+                    "validation": {
+                        "$type": "object"
+                    }
+                },
+                {
+                    "field_name": "original_id",
+                    "validation": {
+                        "$type": "string"
+                    }
+                }
+            ],
+            "index": [
+                {
+                    "field": "user_id",
+                    "order": 1
+                },
+                {
+                    "field": "video_id",
+                    "order": 1
+                },
+                {
+                    "field": "original_id",
+                    "order": 1
                 }
             ]
         }
