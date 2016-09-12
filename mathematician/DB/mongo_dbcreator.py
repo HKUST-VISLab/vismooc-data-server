@@ -11,8 +11,3 @@ def db_creater(db_configfile="./dbconfig.json"):
     for collection in config.db_collections:
         db.get_collection(collection.name)
         print(collection.name)
-
-if __name__ == '__main__':
-    db_creater()
-    
-    
