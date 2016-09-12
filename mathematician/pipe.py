@@ -12,7 +12,7 @@ class PipeModule(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def process(self, raw_data, raw_data_files = None):
+    def process(self, raw_data, raw_data_filenames=None):
         """Required.Process the raw data and return the processed data
 
         Args:
@@ -24,7 +24,7 @@ class PipeModule(metaclass=ABCMeta):
         pass
 
 
-class Pipe:
+class PipeLine:
     """A pipeline class, which is used to schedule the pipeline of
     data processing.
 
@@ -34,7 +34,7 @@ class Pipe:
     """
 
     def __init__(self):
-        self.__raw_data_files = []
+        self.__raw_data_filenames = []
         # self.__raw_data = None
         self._processed_data = None
         self._processors = []
@@ -55,13 +55,13 @@ class Pipe:
     def input_file(self, filename):
         if type(filename) is not str or len(filename) == 0:
             raise TypeError('filename should be a non-empty str')
-        self.__raw_data_files.append(filename)
+        self.__raw_data_filenames.append(filename)
         return self
 
     def input_files(self, filenames):
         if type(filenames) is not list:
             raise TypeError('filenames should be a non-empty list')
-        self.__raw_data_files += filenames
+        self.__raw_data_filenames += filenames
         return self
 
     def pipe(self, processor):
@@ -69,25 +69,24 @@ class Pipe:
             Chain the module one by one so that they will run sequentially
         """
         if isinstance(processor, PipeModule) is False:
-            return None
+            raise TypeError('processor must be an instance of PipeModule')
         self._processors.append(processor)
         return self
 
-    def concat(self, pipeline):
-        """
-            Concatenate another pipeline to this pipeline
-        """
-        return self
+    # def concat(self, pipeline):
+    #     """
+    #         Concatenate another pipeline to this pipeline
+    #     """
+    #     return self
 
     def output(self):
         """
             Excute all processor one by one and return the data after processing
         """
-        if self._processed_data is not None:
-            self._processed_data = {'created_date': datetime.now(), 'data': {}}
+        self._processed_data = {'created_date': datetime.now().timestamp(), 'data': {}}
 
-            for processor in self._processors:
-                self._processed_data = processor.process(self._processed_data, self.__raw_data_files)
-
-                self._processed_data['finished_date'] = datetime.now()
+        for processor in self._processors:
+            self._processed_data = processor.process(
+                self._processed_data, self.__raw_data_filenames)
+            self._processed_data['finished_date'] = datetime.now().timestamp()
         return self._processed_data
