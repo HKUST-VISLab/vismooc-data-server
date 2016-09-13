@@ -158,7 +158,6 @@ class FormatUserFile(PipeModule):
 
         return processed_data
 
-
 class FormatEnrollmentFile(PipeModule):
 
     order = 2
