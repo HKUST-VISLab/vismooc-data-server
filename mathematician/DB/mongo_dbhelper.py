@@ -1,5 +1,4 @@
-import pymongo
-from pymongo import MongoClient, IndexModel
+from pymongo import MongoClient
 from .base_dbhelper import BaseDB, BaseCollection
 
 class MongoDB(BaseDB):
