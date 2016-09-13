@@ -1,6 +1,5 @@
-import sys
 import json
-from .mongo_dbhelper import MongoDB, MongoCollection
+from .mongo_dbhelper import MongoDB
 
 def db_creater(db_configfile="./dbconfig.json"):
     with open(db_configfile, 'r') as db_config:
@@ -11,8 +10,3 @@ def db_creater(db_configfile="./dbconfig.json"):
     for collection in config.db_collections:
         db.get_collection(collection.name)
         print(collection.name)
-
-if __name__ == '__main__':
-    db_creater()
-    
-    

@@ -8,6 +8,8 @@ class PipeModule(metaclass=ABCMeta):
     to a pipline need to inherient
     """
 
+    order = 1
+
     def __init__(self):
         pass
 
@@ -35,22 +37,8 @@ class PipeLine:
 
     def __init__(self):
         self.__raw_data_filenames = []
-        # self.__raw_data = None
         self._processed_data = None
         self._processors = []
-
-    # def input(self, data):
-    #     """
-    #         input raw data for processing
-    #     """
-
-    #     self.__raw_data = {
-    #         "created_date": datetime.now(),
-    #         "data": data
-    #     }
-    #     # in the beginning both raw data and processed data are the same
-    #     self._processed_data = self.__raw_data
-    #     return self
 
     def input_file(self, filename):
         if type(filename) is not str or len(filename) == 0:
@@ -66,7 +54,8 @@ class PipeLine:
 
     def pipe(self, processor):
         """
-            Chain the module one by one so that they will run sequentially
+            Register the processor in this pipeline. All processors will be excuted one by one according to their order, which is default to 1. 
+            If no order is defined, all processors will be excuted in the order of their registration.
         """
         if isinstance(processor, PipeModule) is False:
             raise TypeError('processor must be an instance of PipeModule')
@@ -79,14 +68,27 @@ class PipeLine:
     #     """
     #     return self
 
+    def excute(self):
+        """
+            Excute all processor one by one
+
+        """
+        self._processed_data = {'created_date': datetime.now(
+        ).strftime('%Y-%m-%d %H:%M:%S'), 'data': {}}
+
+        for processor in sorted(self._processors, key=lambda d: d.order):
+            self._processed_data = processor.process(
+                self._processed_data, self.__raw_data_filenames)
+            self._processed_data['finished_date'] = datetime.now(
+            ).strftime('%Y-%m-%d %H:%M:%S')
+
+        return self
+
     def output(self):
         """
             Excute all processor one by one and return the data after processing
         """
-        self._processed_data = {'created_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'data': {}}
+        if self._processed_data is None:
+            self.excute()
 
-        for processor in self._processors:
-            self._processed_data = processor.process(
-                self._processed_data, self.__raw_data_filenames)
-            self._processed_data['finished_date'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         return self._processed_data
