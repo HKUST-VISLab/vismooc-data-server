@@ -11,7 +11,6 @@ class DBConfig:
     FIELD_GENERAL_NAME = "field_name"
     FIELD_GENERAL_VALIDATION = "validation"
     INDEX_GENERAL_INDEX_ORDER = "order"
-    
 
     COLLECTION_COURSE = "course"
     FIELD_COURSE_NAME = "name"
@@ -37,11 +36,11 @@ class DBConfig:
     FIELD_USER_COURSE_LIST = "course_list"
     FIELD_USER_DROPPED_COURSE_LIST = "dropped_course_list"
 
-    COLLECTION_ENROLL_HISTORY = "enroll_history"
-    FIELD_ENROLL_HISTORY_COURSE_ID = "course_id"
-    FIELD_ENROLL_HISTORY_USER_ID = "user_id"
-    FIELD_ENROLL_HISTORY_TIMESTAMP = "timestamp"
-    FIELD_ENROLL_HISTORY_ACTION = "action"
+    COLLECTION_ENROLLMENT = "enroll_history"
+    FIELD_ENROLLMENT_COURSE_ID = "course_id"
+    FIELD_ENROLLMENT_USER_ID = "user_id"
+    FIELD_ENROLLMENT_TIMESTAMP = "timestamp"
+    FIELD_ENROLLMENT_ACTION = "action"
 
     COLLECTION_VIDEO = "video"
     FIELD_VIDEO_COURSE_ID = "course_id"
@@ -62,11 +61,8 @@ class DBConfig:
     FIELD_VIDEO_LOG_TYPE = "type"
     FIELD_VIDEO_LOG_METAINFO = "metainfo"
     FIELD_VIDEO_LOG_ORIGINAL_ID = "original_id"
-    
 
-
-    CONFIG_JSON = \
-    {
+    CONFIG_JSON = {
         DB_HOST: "localhost",
         DB_PORT: 27017,
         DB_NAME: "vismooc_db",
@@ -185,30 +181,30 @@ class DBConfig:
                 ]
             },
             {
-                COLLECTION_GENERAL_NAME: COLLECTION_ENROLL_HISTORY,
+                COLLECTION_GENERAL_NAME: COLLECTION_ENROLLMENT,
                 COLLECTION_GENERAL_FIELDS:
                 [
                     {
-                        FIELD_GENERAL_NAME: FIELD_ENROLL_HISTORY_COURSE_ID,
+                        FIELD_GENERAL_NAME: FIELD_ENROLLMENT_COURSE_ID,
                         FIELD_GENERAL_VALIDATION: {"$type": "objectId"}
                     },
                     {
-                        FIELD_GENERAL_NAME: FIELD_ENROLL_HISTORY_USER_ID,
+                        FIELD_GENERAL_NAME: FIELD_ENROLLMENT_USER_ID,
                         FIELD_GENERAL_VALIDATION: {"$type": "objectId"}
                     },
                     {
-                        FIELD_GENERAL_NAME: FIELD_ENROLL_HISTORY_TIMESTAMP,
+                        FIELD_GENERAL_NAME: FIELD_ENROLLMENT_TIMESTAMP,
                         FIELD_GENERAL_VALIDATION: {"$type": "timestamp"}
                     },
                     {
-                        FIELD_GENERAL_NAME: FIELD_ENROLL_HISTORY_ACTION,
+                        FIELD_GENERAL_NAME: FIELD_ENROLLMENT_ACTION,
                         FIELD_GENERAL_VALIDATION: {"$in": ["TODO", "TODO"]}
                     }
                 ],
                 COLLECTION_GENERAL_INDEX:
                 [
                     {
-                        FIELD_GENERAL_NAME: FIELD_ENROLL_HISTORY_TIMESTAMP,
+                        FIELD_GENERAL_NAME: FIELD_ENROLLMENT_TIMESTAMP,
                         INDEX_GENERAL_INDEX_ORDER: 1
                     }
                 ]

@@ -4,7 +4,7 @@ from operator import itemgetter
 from bson import ObjectId
 from ..pipe import PipeModule
 from ..DB.mongo_dbhelper import MongoDB
-
+from ..DB.dbconfig import DBConfig
 
 class FormatCourseStructFile(PipeModule):
 
@@ -44,47 +44,48 @@ class FormatCourseStructFile(PipeModule):
                 video = {}
                 video_id = key[6:].split('/')
                 video_id = key[:3] + '-' + '-'.join(video_id)
-                video['courseId'] = None
-                video['name'] = value_metadata.get('display_name')
-                video['temproalHotness'] = None
-                video['metaInfo'] = {}
-                video['section'] = value_metadata.get('sub')
-                video['releaseDate'] = None
-                video['description'] = None
-                video['url'] = len(value_metadata.get('html5_sources')) and value_metadata.get(
+                
+                video[DBConfig.FIELD_VIDEO_COURSE_ID] = None
+                video[DBConfig.FIELD_VIDEO_NAME] = value_metadata.get('display_name')
+                video[DBConfig.FIELD_VIDEO_TEMPORAL_HOTNESS] = None
+                video[DBConfig.FIELD_VIDEO_METAINFO] = {}
+                video[DBConfig.FIELD_VIDEO_SECTION] = value_metadata.get('sub')
+                video[DBConfig.FIELD_VIDEO_RELEASE_DATE] = None
+                video[DBConfig.FIELD_VIDEO_DESCRIPTION] = None
+                video[DBConfig.FIELD_VIDEO_URL] = len(value_metadata.get('html5_sources')) and value_metadata.get(
                     'html5_sources')[0]
-                video['length'] = None
-                video['originalId'] = video_id
-                video['metaInfo']['youtube_id'] = value_metadata.get(
+                video[DBConfig.FIELD_VIDEO_LENGTH] = None
+                video[DBConfig.FIELD_VIDEO_ORIGINAL_ID] = video_id
+                video[DBConfig.FIELD_VIDEO_METAINFO]['youtube_id'] = value_metadata.get(
                     'youtube_id_1_0')
-                videos[video['originalId']] = video
+                videos[video[DBConfig.FIELD_VIDEO_ORIGINAL_ID]] = video
             elif value['category'] == 'course':
                 course_id = key[6:].split('/')
                 course_id = course_id[0] + '/' + \
                     course_id[1] + '/' + course_id[3]
-                course['name'] = value_metadata.get('display_name')
-                course['year'] = None
-                course['instructor'] = None
-                course['status'] = None
-                course['url'] = None
-                course['image'] = value_metadata.get('course_image')
-                course['description'] = None
-                course['metaInfo'] = {}
-                course['startDate'] = value_metadata.get('start')
-                course['endDate'] = value_metadata.get('end')
-                course['originalId'] = course_id
-                course['studentIds'] = set()
-                course['videoIds'] = set()
+                course[DBConfig.FIELD_COURSE_NAME] = value_metadata.get('display_name')
+                course[DBConfig.FIELD_COURSE_YEAR] = None
+                course[DBConfig.FIELD_COURSE_INSTRUCTOR] = None
+                course[DBConfig.FIELD_COURSE_STATUS] = None
+                course[DBConfig.FIELD_COURSE_URL] = None
+                course[DBConfig.FIELD_COURSE_IMAGE] = value_metadata.get('course_image')
+                course[DBConfig.FIELD_COURSE_DESCRIPTION] = None
+                course[DBConfig.FIELD_COURSE_METAINFO] = {}
+                course[DBConfig.FIELD_COURSE_STARTTIME] = value_metadata.get('start')
+                course[DBConfig.FIELD_COURSE_ENDTIME] = value_metadata.get('end')
+                course[DBConfig.FIELD_COURSE_ORIGINAL_ID] = course_id
+                course[DBConfig.FIELD_COURSE_STUDENT_LIST] = set()
+                course[DBConfig.FIELD_COURSE_VIDEO_LIST] = set()
 
         for video in videos.values():
             # video collection is completed
-            video['courseId'] = course['originalId']
+            video[DBConfig.FIELD_VIDEO_COURSE_ID] = course['originalId']
             # course collection needs studentIds
-            course['videoIds'].add(video['originalId'])
+            course[DBConfig.FIELD_COURSE_VIDEO_LIST].add(video['originalId'])
 
         processed_data = raw_data
-        processed_data['data']['videos'] = list(videos.values())
-        processed_data['data']['courses'] = [course]
+        processed_data['data'][DBConfig.COLLECTION_VIDEO] = list(videos.values())
+        processed_data['data'][DBConfig.COLLECTION_COURSE] = [course]
 
         return processed_data
 
@@ -142,19 +143,19 @@ class FormatUserFile(PipeModule):
             user = {}
             user_id = row[0]
             user_profile = self._userprofile.get(user_id)
-            user['gender'] = user_profile and user_profile[7]
-            user['courseIds'] = set()
-            user['droppedCourseIds'] = set()
-            user['age'] = row[16] or (user_profile and user_profile[9])
-            user['country'] = row[14] or (
+            user[DBConfig.FIELD_USER_GENDER] = user_profile and user_profile[7]
+            user[DBConfig.FIELD_USER_COURSE_LIST] = set()
+            user[DBConfig.FIELD_USER_DROPPED_COURSE_LIST] = set()
+            user[DBConfig.FIELD_USER_AGE] = row[16] or (user_profile and user_profile[9])
+            user[DBConfig.FIELD_USER_COUNTRY] = row[14] or (
                 user_profile and (user_profile[13] or user_profile[4]))
-            user['username'] = row[1]
-            user['originalId'] = user_id
-            users[user['originalId']] = user
+            user[DBConfig.FIELD_USER_NAME] = row[1]
+            user[DBConfig.FIELD_USER_ORIGINAL_ID] = user_id
+            users[user[DBConfig.FIELD_USER_ORIGINAL_ID]] = user
 
         processed_data = raw_data
         # user collection needs courseIds and droppedCourseIds
-        processed_data['data']['users'] = users
+        processed_data['data'][DBConfig.COLLECTION_USER] = users
 
         return processed_data
 
@@ -185,33 +186,33 @@ class FormatEnrollmentFile(PipeModule):
         data_to_be_processed = self.load_data(raw_data_filenames)
         if data_to_be_processed is None:
             return raw_data
-        course = raw_data['data']['courses'][0]
-        users = raw_data['data']['users']
+        course = raw_data['data'][DBConfig.COLLECTION_COURSE][0]
+        users = raw_data['data'][DBConfig.COLLECTION_USER]
 
         enrollments = []
         for row in sorted(data_to_be_processed, key=itemgetter(3)):
             row = row[:-1].split('\t')
             enrollment = {}
             user_id = row[1]
-            enrollment['courseId'] = row[2]
-            enrollment['userId'] = user_id
-            enrollment['timestamp'] = row[3]
-            enrollment['action'] = FormatEnrollmentFile.action.get(row[4])
+            enrollment[DBConfig.FIELD_ENROLLMENT_COURSE_ID] = row[2]
+            enrollment[DBConfig.FIELD_ENROLLMENT_USER_ID] = user_id
+            enrollment[DBConfig.FIELD_ENROLLMENT_TIMESTAMP] = row[3]
+            enrollment[DBConfig.FIELD_ENROLLMENT_ACTION] = FormatEnrollmentFile.action.get(row[4])
             enrollments.append(enrollment)
             # fill user collection
             if users.get(user_id) is not None:
-                users[user_id]['courseIds'].add(row[2])
+                users[user_id][DBConfig.FIELD_USER_COURSE_LIST].add(row[2])
             # fill course collection
-            if enrollment['action'] == 1:
-                course['studentIds'].add(row[1])
+            if enrollment[DBConfig.FIELD_ENROLLMENT_ACTION] == 1:
+                course[DBConfig.FIELD_COURSE_STUDENT_LIST].add(row[1])
             else:
-                course['studentIds'].discard(row[1])
-                users[row[1]]['droppedCourseIds'].add(row[2])
+                course[DBConfig.FIELD_COURSE_STUDENT_LIST].discard(row[1])
+                users[row[1]][DBConfig.FIELD_USER_DROPPED_COURSE_LIST].add(row[2])
 
         processed_data = raw_data
         # course and users collection are completed
-        processed_data['data']['enrollments'] = enrollments
-        processed_data['data']['users'] = list(users.values())
+        processed_data['data'][DBConfig.COLLECTION_ENROLLMENT] = enrollments
+        processed_data['data'][DBConfig.COLLECTION_USER] = list(users.values())
         return processed_data
 
 
@@ -286,18 +287,16 @@ class FormatLogFile(PipeModule):
                 event_json = json.loads(json_str)
                 event = {}
                 event_context = event_json.get('context')
-                event['userId'] = event_context and event_context['user_id']
-
-                event['videoId'] = event_json.get(
+                event[DBConfig.FIELD_VIDEO_LOG_USER_ID] = event_context and event_context['user_id']
+                event[DBConfig.FIELD_VIDEO_LOG_VIDEO_ID] = event_json.get(
                     'event') and event_json.get('event')['id']
-
-                event['timestamp'] = event_json.get('time')
-                event['type'] = event_json.get('event_type')
-                event['metaInfo'] = event_json.get('event')
+                event[DBConfig.FIELD_VIDEO_LOG_TIMESTAMP] = event_json.get('time')
+                event[DBConfig.FIELD_VIDEO_LOG_TYPE] = event_json.get('event_type')
+                event[DBConfig.FIELD_VIDEO_LOG_METAINFO] = event_json.get('event')
                 events.append(event)
 
         processed_data = raw_data
-        processed_data['data']['events'] = events
+        processed_data['data'][DBConfig.COLLECTION_VIDEO_LOG] = events
         return processed_data
 
 
@@ -311,13 +310,13 @@ class DumpToDB(PipeModule):
     def process(self, raw_data, raw_data_filenames=None):
         db_data = raw_data['data']
         # cast from set to list
-        course = db_data['courses'][0]
-        course['videoIds'] = list(course['videoIds'])
-        course['studentIds'] = list(course['studentIds'])
-        users = db_data['users']
+        course = db_data[DBConfig.COLLECTION_COURSE][0]
+        course[DBConfig.FIELD_COURSE_VIDEO_LIST] = list(course[DBConfig.FIELD_COURSE_VIDEO_LIST])
+        course[DBConfig.FIELD_COURSE_STUDENT_LIST] = list(course[DBConfig.FIELD_COURSE_STUDENT_LIST])
+        users = db_data[DBConfig.COLLECTION_USER]
         for user in users:
-            user['courseIds'] = list(user['courseIds'])
-            user['droppedCourseIds'] = list(user['droppedCourseIds'])
+            user[DBConfig.FIELD_USER_COURSE_LIST] = list(user[DBConfig.FIELD_USER_COURSE_LIST])
+            user[DBConfig.FIELD_USER_DROPPED_COURSE_LIST] = list(user[DBConfig.FIELD_USER_DROPPED_COURSE_LIST])
         # insert to db
         for collection_name in db_data:
             collection = self.db.get_collection(collection_name)
