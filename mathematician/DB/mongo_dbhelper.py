@@ -29,8 +29,6 @@ class MongoDB(BaseDB):
         self.__client.drop_database(self.__db)
     
     
-        
-
 class MongoCollection(BaseCollection):
 
     def __init__(self, db, collection):

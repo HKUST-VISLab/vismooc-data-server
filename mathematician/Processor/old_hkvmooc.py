@@ -2,7 +2,7 @@ import re
 import json
 from operator import itemgetter
 from ..pipe import PipeModule
-
+from ..DB.mongo_dbhelper import MongoDB
 
 class FormatCourseStructFile(PipeModule):
 
@@ -299,9 +299,22 @@ class FormatLogFile(PipeModule):
         return processed_data
 
 
+class DumpToDB(PipeModule):
+    order = 555
+    def __init__(self):
+        super().__init__()
+        self.db = MongoDB('localhost', 'test-vismooc-java')
+
+    def process(self, raw_data, raw_data_filenames=None):
+        for key in raw_data:
+            print(key)
+
+
 class SetEncoder(json.JSONEncoder):
     # pylint: disable=E0202
-    def default(self, obj): 
+
+    def default(self, obj):
+
         if type(obj) is set:
             return list(obj)
         return json.JSONEncoder.default(self, obj)
