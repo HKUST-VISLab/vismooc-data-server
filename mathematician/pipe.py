@@ -54,7 +54,8 @@ class PipeLine:
 
     def pipe(self, processor):
         """
-            Chain the module one by one so that they will run sequentially
+            Register the processor in this pipeline. All processors will be excuted one by one according to their order, which is default to 1. 
+            If no order is defined, all processors will be excuted in the order of their registration.
         """
         if isinstance(processor, PipeModule) is False:
             raise TypeError('processor must be an instance of PipeModule')
