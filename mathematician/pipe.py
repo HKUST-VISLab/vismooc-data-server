@@ -88,6 +88,7 @@ class PipeLine:
         """
             Excute all processor one by one and return the data after processing
         """
-        self.excute()
+        if self._processed_data is None:
+            self.excute()
 
         return self._processed_data
