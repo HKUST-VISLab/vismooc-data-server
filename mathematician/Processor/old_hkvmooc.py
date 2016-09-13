@@ -1,8 +1,10 @@
 import re
 import json
 from operator import itemgetter
+from bson import ObjectId
 from ..pipe import PipeModule
 from ..DB.mongo_dbhelper import MongoDB
+
 
 class FormatCourseStructFile(PipeModule):
 
@@ -20,7 +22,6 @@ class FormatCourseStructFile(PipeModule):
 
         if target_filename is not None:
             with open(target_filename, 'r', encoding='utf-8') as file:
-
                 raw_data = ''.join(file.readlines())
                 file.close()
                 return raw_data
@@ -30,7 +31,6 @@ class FormatCourseStructFile(PipeModule):
     def process(self, raw_data, raw_data_filenames=None):
 
         data_to_be_processed = self.load_data(raw_data_filenames)
-
         if data_to_be_processed is None:
             return raw_data
 
@@ -81,10 +81,12 @@ class FormatCourseStructFile(PipeModule):
             video['courseId'] = course['originalId']
             # course collection needs studentIds
             course['videoIds'].add(video['originalId'])
+        course['videoIds'] = list(course['videoIds'])  # cast from set to list
+
 
         processed_data = raw_data
-        processed_data['data']['videos'] = videos
-        processed_data['data']['course'] = course
+        processed_data['data']['videos'] = list(videos.values())
+        processed_data['data']['courses'] = [course]
 
         return processed_data
 
@@ -186,30 +188,43 @@ class FormatEnrollmentFile(PipeModule):
         data_to_be_processed = self.load_data(raw_data_filenames)
         if data_to_be_processed is None:
             return raw_data
-        course = raw_data['data']['course']
+        course = raw_data['data']['courses'][0]
         users = raw_data['data']['users']
 
         enrollments = []
         for row in sorted(data_to_be_processed, key=itemgetter(3)):
+            row = row[:-1].split('\t')
             enrollment = {}
+            user_id = row[1]
             enrollment['courseId'] = row[2]
-            enrollment['userId'] = row[1]
+            enrollment['userId'] = user_id
             enrollment['timestamp'] = row[3]
             enrollment['action'] = FormatEnrollmentFile.action.get(row[4])
             enrollments.append(enrollment)
             # fill user collection
-            users[row[1]]['courseIds'].add(row[2])
+            if users.get(user_id) is not None:
+                users[user_id]['courseIds'].add(row[2])
             # fill course collection
             if enrollment['action'] == 1:
                 course['studentIds'].add(row[1])
             else:
-                course['studentIds'].remove(row[1])
+                course['studentIds'].discard(row[1])
                 users[row[1]]['droppedCourseIds'].add(row[2])
 
         processed_data = raw_data
+
+        # cast from set to list
+        course['studentIds'] = list(course['studentIds'])
+        for user_id in users:
+            user = users[user_id]
+            user['courseIds'] = list(user['courseIds'])
+            user['droppedCourseIds'] = list(user['droppedCourseIds'])
+
+        print(type(processed_data['data']['courses'][0]['studentIds']))
+
         # course and users collection are completed
         processed_data['data']['enrollments'] = enrollments
-
+        processed_data['data']['users'] = list(users.values())
         return processed_data
 
 
@@ -301,13 +316,18 @@ class FormatLogFile(PipeModule):
 
 class DumpToDB(PipeModule):
     order = 555
+
     def __init__(self):
         super().__init__()
         self.db = MongoDB('localhost', 'test-vismooc-java')
 
     def process(self, raw_data, raw_data_filenames=None):
-        for key in raw_data:
-            print(key)
+        db_data = raw_data['data']
+        for collection_name in db_data:
+            collection = self.db.get_collection(collection_name)
+            collection.insert_many(db_data[collection_name])
+
+        return raw_data
 
 
 class SetEncoder(json.JSONEncoder):
@@ -317,6 +337,8 @@ class SetEncoder(json.JSONEncoder):
 
         if type(obj) is set:
             return list(obj)
+        elif isinstance(obj, ObjectId):
+            return str(obj)
         return json.JSONEncoder.default(self, obj)
 
 
