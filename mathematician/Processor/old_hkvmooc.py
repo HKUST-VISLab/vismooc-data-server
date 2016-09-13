@@ -81,8 +81,6 @@ class FormatCourseStructFile(PipeModule):
             video['courseId'] = course['originalId']
             # course collection needs studentIds
             course['videoIds'].add(video['originalId'])
-        course['videoIds'] = list(course['videoIds'])  # cast from set to list
-
 
         processed_data = raw_data
         processed_data['data']['videos'] = list(videos.values())
@@ -212,16 +210,6 @@ class FormatEnrollmentFile(PipeModule):
                 users[row[1]]['droppedCourseIds'].add(row[2])
 
         processed_data = raw_data
-
-        # cast from set to list
-        course['studentIds'] = list(course['studentIds'])
-        for user_id in users:
-            user = users[user_id]
-            user['courseIds'] = list(user['courseIds'])
-            user['droppedCourseIds'] = list(user['droppedCourseIds'])
-
-        print(type(processed_data['data']['courses'][0]['studentIds']))
-
         # course and users collection are completed
         processed_data['data']['enrollments'] = enrollments
         processed_data['data']['users'] = list(users.values())
@@ -315,7 +303,7 @@ class FormatLogFile(PipeModule):
 
 
 class DumpToDB(PipeModule):
-    order = 555
+    order = 998
 
     def __init__(self):
         super().__init__()
@@ -323,6 +311,15 @@ class DumpToDB(PipeModule):
 
     def process(self, raw_data, raw_data_filenames=None):
         db_data = raw_data['data']
+        # cast from set to list
+        course = db_data['courses'][0]
+        course['videoIds'] = list(course['videoIds'])
+        course['studentIds'] = list(course['studentIds'])
+        users = db_data['users']
+        for user in users:
+            user['courseIds'] = list(user['courseIds'])
+            user['droppedCourseIds'] = list(user['droppedCourseIds'])
+        # insert to db
         for collection_name in db_data:
             collection = self.db.get_collection(collection_name)
             collection.insert_many(db_data[collection_name])
