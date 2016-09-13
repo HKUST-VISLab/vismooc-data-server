@@ -13,7 +13,7 @@ class MongoDB(BaseDB):
                           read_concern=None, **kwargs):
         self.__db.create_collection(name,codec_options, read_preference,
                                     write_concern, read_concern, **kwargs)
-        return MongoCollection(self.__db, name)
+        return MongoCollection(self.__db, self.__db[name])
 
     def get_collection_names(self):
         return self.__db.collection_names()
@@ -22,7 +22,7 @@ class MongoDB(BaseDB):
         return MongoCollection(self.__db, self.__db[name])
 
     def add_user(self, user_name, passwd):
-        return self.__db.add_user(self, "user_name", passwd)
+        return self.__db.add_user(self, user_name, passwd)
     
     def clear(self):
         self.__client.drop_database(self.__db)
@@ -33,7 +33,7 @@ class MongoCollection(BaseCollection):
     def __init__(self, db, collection):
         super().__init__(db, collection)
         self.__db = db
-        self.__collection = db[collection]
+        self.__collection = collection
         self._index_names = None
 
     def insert_one(self, document):
