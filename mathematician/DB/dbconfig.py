@@ -1,5 +1,5 @@
 class DBConfig:
-    DB_LOCATION = "db_location"
+    DB_HOST = "db_location"
     DB_PORT = "db_port"
     DB_NAME = "db_name"
     DB_USER = "db_user"
