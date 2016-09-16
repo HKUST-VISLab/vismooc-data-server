@@ -1,10 +1,46 @@
 import re
 import json
+from datetime import timedelta
 from operator import itemgetter
 from bson import ObjectId
 from ..pipe import PipeModule
 from ..DB.mongo_dbhelper import MongoDB
-from ..config import DBConfig
+from ..config import DBConfig, ThirdPartyKeys
+from ..httphelper import HttpHelper
+
+ISO_8601_duration_rx = re.compile(
+    r"^(?P<sign>[+-])?"
+    r"P(?!\b)"
+    r"(?P<years>[0-9]+([,.][0-9]+)?Y)?"
+    r"(?P<months>[0-9]+([,.][0-9]+)?M)?"
+    r"(?P<weeks>[0-9]+([,.][0-9]+)?W)?"
+    r"(?P<days>[0-9]+([,.][0-9]+)?D)?"
+    r"((?P<separator>T)(?P<hours>[0-9]+([,.][0-9]+)?H)?"
+    r"(?P<minutes>[0-9]+([,.][0-9]+)?M)?"
+    r"(?P<seconds>[0-9]+([,.][0-9]+)?S)?)?$"
+)
+
+def parse_duration(datestring):
+    if not isinstance(datestring, str):
+        raise TypeError("Expecting a string %r" % datestring)
+    match = ISO_8601_duration_rx.match(datestring)
+    if not match:
+        raise BaseException("Unable to parse duration string %r" % datestring)
+    groups = match.groupdict()
+    for key, val in groups.items():
+        if key not in ('separator', 'sign'):
+            if val is None:
+                groups[key] = "0n"
+            groups[key] = float(groups[key][:-1].replace(',', '.'))
+    if groups["years"] == 0 and groups["months"] == 0:
+        ret = timedelta(days=groups["days"], hours=groups["hours"],
+                        minutes=groups["minutes"], seconds=groups["seconds"],
+                        weeks=groups["weeks"])
+        if groups["sign"] == '-':
+            ret = timedelta(0) - ret
+    else:
+        raise BaseException("there must be something woring in this time string")
+    return ret
 
 class FormatCourseStructFile(PipeModule):
 
@@ -12,6 +48,10 @@ class FormatCourseStructFile(PipeModule):
 
     def __init__(self):
         super().__init__()
+        youtube_api_host = 'https://www.googleapis.com/youtube/v3/videos'
+        params = 'part=contentDetails&key=' + ThirdPartyKeys.Youtube_key
+
+        self.youtube_api = youtube_api_host + '?' + params
 
     def load_data(self, data_filenames):
         target_filename = None
@@ -44,7 +84,7 @@ class FormatCourseStructFile(PipeModule):
                 video = {}
                 video_id = key[6:].split('/')
                 video_id = key[:3] + '-' + '-'.join(video_id)
-                
+
                 video[DBConfig.FIELD_VIDEO_COURSE_ID] = None
                 video[DBConfig.FIELD_VIDEO_NAME] = value_metadata.get('display_name')
                 video[DBConfig.FIELD_VIDEO_TEMPORAL_HOTNESS] = None
@@ -52,9 +92,9 @@ class FormatCourseStructFile(PipeModule):
                 video[DBConfig.FIELD_VIDEO_SECTION] = value_metadata.get('sub')
                 video[DBConfig.FIELD_VIDEO_RELEASE_DATE] = None
                 video[DBConfig.FIELD_VIDEO_DESCRIPTION] = None
-                video[DBConfig.FIELD_VIDEO_URL] = len(value_metadata.get('html5_sources')) and value_metadata.get(
-                    'html5_sources')[0]
-                video[DBConfig.FIELD_VIDEO_LENGTH] = None
+                video[DBConfig.FIELD_VIDEO_URL] = len(value_metadata.get(
+                    'html5_sources')) and value_metadata.get('html5_sources')[0]
+                video[DBConfig.FIELD_VIDEO_DURATION] = None
                 video[DBConfig.FIELD_VIDEO_ORIGINAL_ID] = video_id
                 video[DBConfig.FIELD_VIDEO_METAINFO]['youtube_id'] = value_metadata.get(
                     'youtube_id_1_0')
@@ -77,11 +117,26 @@ class FormatCourseStructFile(PipeModule):
                 course[DBConfig.FIELD_COURSE_STUDENT_LIST] = set()
                 course[DBConfig.FIELD_COURSE_VIDEO_LIST] = set()
 
+        video_youtube_ids = []
+        temp_youtube_id_video_dict = {}
         for video in videos.values():
             # video collection is completed
             video[DBConfig.FIELD_VIDEO_COURSE_ID] = course['originalId']
             # course collection needs studentIds
             course[DBConfig.FIELD_COURSE_VIDEO_LIST].add(video['originalId'])
+            youtube_id = video[DBConfig.FIELD_VIDEO_METAINFO]['youtube_id']
+            video_youtube_ids.append(youtube_id)
+            temp_youtube_id_video_dict[youtube_id] = video
+        
+        # fetch the video duration from youtube_api_v3
+        urls = [self.youtube_api + '&id=' +
+                youtube_id for youtube_id in video_youtube_ids]
+        results = HttpHelper.get_list(urls, limit=60)
+        for result in results:
+            video_id = result["items"][0]["id"]
+            video = temp_youtube_id_video_dict[video_id]
+            duration = parse_duration(result["items"][0]["contentDetails"]["duration"])
+            video[DBConfig.FIELD_VIDEO_DURATION] = int(duration.total_seconds())
 
         processed_data = raw_data
         processed_data['data'][DBConfig.COLLECTION_VIDEO] = list(videos.values())
@@ -124,7 +179,6 @@ class FormatUserFile(PipeModule):
 
         if auth_user_filename is not None:
             with open(auth_user_filename, 'r', encoding='utf-8') as file:
-
                 next(file)
                 raw_data = file.readlines()
                 file.close()
@@ -158,6 +212,7 @@ class FormatUserFile(PipeModule):
         processed_data['data'][DBConfig.COLLECTION_USER] = users
 
         return processed_data
+
 
 class FormatEnrollmentFile(PipeModule):
 
@@ -199,6 +254,7 @@ class FormatEnrollmentFile(PipeModule):
             enrollment[DBConfig.FIELD_ENROLLMENT_TIMESTAMP] = row[3]
             enrollment[DBConfig.FIELD_ENROLLMENT_ACTION] = FormatEnrollmentFile.action.get(row[4])
             enrollments.append(enrollment)
+
             # fill user collection
             if users.get(user_id) is not None:
                 users[user_id][DBConfig.FIELD_USER_COURSE_LIST].add(row[2])
@@ -293,6 +349,7 @@ class FormatLogFile(PipeModule):
                 event[DBConfig.FIELD_VIDEO_LOG_TIMESTAMP] = event_json.get('time')
                 event[DBConfig.FIELD_VIDEO_LOG_TYPE] = event_json.get('event_type')
                 event[DBConfig.FIELD_VIDEO_LOG_METAINFO] = event_json.get('event')
+
                 events.append(event)
 
         processed_data = raw_data
@@ -312,11 +369,14 @@ class DumpToDB(PipeModule):
         # cast from set to list
         course = db_data[DBConfig.COLLECTION_COURSE][0]
         course[DBConfig.FIELD_COURSE_VIDEO_LIST] = list(course[DBConfig.FIELD_COURSE_VIDEO_LIST])
-        course[DBConfig.FIELD_COURSE_STUDENT_LIST] = list(course[DBConfig.FIELD_COURSE_STUDENT_LIST])
+        course[DBConfig.FIELD_COURSE_STUDENT_LIST] = list(
+            course[DBConfig.FIELD_COURSE_STUDENT_LIST])
         users = db_data[DBConfig.COLLECTION_USER]
         for user in users:
             user[DBConfig.FIELD_USER_COURSE_LIST] = list(user[DBConfig.FIELD_USER_COURSE_LIST])
-            user[DBConfig.FIELD_USER_DROPPED_COURSE_LIST] = list(user[DBConfig.FIELD_USER_DROPPED_COURSE_LIST])
+            user[DBConfig.FIELD_USER_DROPPED_COURSE_LIST] = list(
+                user[DBConfig.FIELD_USER_DROPPED_COURSE_LIST])
+
         # insert to db
         for collection_name in db_data:
             collection = self.db.get_collection(collection_name)
