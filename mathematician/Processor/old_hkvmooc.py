@@ -4,7 +4,7 @@ from operator import itemgetter
 from bson import ObjectId
 from ..pipe import PipeModule
 from ..DB.mongo_dbhelper import MongoDB
-from ..DB.dbconfig import DBConfig
+from ..config import DBConfig
 
 class FormatCourseStructFile(PipeModule):
 
