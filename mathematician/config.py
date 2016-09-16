@@ -1,3 +1,6 @@
+class ThirdPartyKeys:
+    Youtube_key = "AIzaSyBvOV3z5LB78NB-yv1osqQQ4A9eY7Xg5r0"
+
 class DBConfig:
     DB_HOST = "db_host"
     DB_PORT = "db_port"
