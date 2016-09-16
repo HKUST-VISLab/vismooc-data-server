@@ -1,5 +1,5 @@
-import http.client
 import urllib.request
+import asyncio
 import aiohttp
 
 
@@ -29,9 +29,10 @@ class HttpHelper:
         else:
             raise Exception('too many arguments !')
 
-    def get(self, url, params=None):
+    @classmethod
+    def get(cls, url, params=None):
         """Send synchronous get request
-    
+
         """
         if params is not None:
             if type(params) is dict:
@@ -42,32 +43,31 @@ class HttpHelper:
             else:
                 raise Exception("The params should be dict type")
 
-        req = urllib.request.Request(
-            url=self.host + url, headers=self.http_header, method='GET')
+        req = urllib.request.Request(url=url, method='GET')
 
         with urllib.request.urlopen(req) as f:
             data = f.read()
             return data
 
-    def post(self, url, params=None):
+    @classmethod
+    def post(cls, url, params=None):
         """Send synchronous post request
     
         """
         if params is not None:
-            if type(params) is dict:
-                post_params = params
-            else:
+            if type(params) is not dict:
                 raise Exception("The params should be dict type")
 
-        req = urllib.request.Request(
-            url=self.host + url, data=post_params, headers=self.http_header, method='POST')
+        req = urllib.request.Request(url=url, data=params, method='POST')
 
         with urllib.request.urlopen(req) as f:
             data = f.read()
             return data
 
-    async def async_get(self, url, params=None):
-        """Send asynchronous get request
+    @classmethod
+    async def async_get(cls, url, params=None, session=aiohttp):
+        """Out of dated
+            Send asynchronous get request
             Example for use:
                 http_test = HttpHelper("http://www.google.com")
                 loop = asyncio.get_event_loop()
@@ -77,43 +77,57 @@ class HttpHelper:
                 loop.close()
         """
         if params is not None:
-            if type(params) is dict:
-                url = url + '?'
-                for key in params:
-                    url = url + key + '=' + params[key] + '&'
-                url = url[0: -1]
-            else:
+            if type(params) is not dict:
                 raise Exception("The params should be dict type")
 
-        url = self.host + url
-        async with aiohttp.ClientSession() as session:
-            with aiohttp.Timeout(10):
-                async with session.get(url, headers=self.http_header) as response:
-                    assert response.status == 200
-                    result = await response.read()
-                    return result
+        async with session.get(url, params=params) as response:
+            assert response.status == 200
+            result = await response.json()
+            return result
 
-    async def async_post(self, session, url, params=None):
-        """Send asynchronous post request
+    @classmethod
+    async def async_post(clf, url, params=None, session=aiohttp):
+        """Out of dated
+            Send asynchronous post request
 
             Example for use:
                 http_test = HttpHelper("http://www.google.com")
                 loop = asyncio.get_event_loop()
-
-                with aiohttp.ClientSession(loop=loop) as session:
-                    content = loop.run_until_complete(
-                        http_test.async_get(session, "/"))
-                    print(content)
-            loop.close()
+                content = loop.run_until_complete(
+                    http_test.async_get(session, "/"))
+                print(content)
+                loop.close()
         """
         if params is not None:
-            if type(params) is dict:
-                post_params = params
-            else:
+            if type(params) is not dict:
                 raise Exception("The params should be dict type")
-        url = self.host + url
-        with aiohttp.Timeout(10):
-            async with session.request("POST", url, body=post_params, headers=self.http_header) as response:
-                assert response.status == 200
-                result = await response.read()
-                return result
+
+        async with session.post(url, body=params) as response:
+            assert response.status == 200
+            result = await response.read()
+            return result
+
+    @classmethod
+    async def async_get_list(cls, urls, loop=None, params=None):
+        if type(urls) is not list:
+            raise Exception("The urls should be list type")
+
+        async with aiohttp.ClientSession(loop=loop) as session:
+            tasks = []
+            for url in urls:
+                task = asyncio.ensure_future(
+                    cls.async_get(url, session=session))
+                tasks.append(task)
+            responses = await asyncio.gather(*tasks)
+            return responses
+
+    @classmethod
+    def get_list(cls, urls, limit=30, params=None):
+        loop = asyncio.get_event_loop()
+        results = []
+        for i in range(0, len(urls), limit):
+            future = asyncio.ensure_future(
+                cls.async_get_list(urls[i:i + limit], params, loop))
+            loop.run_until_complete(future)
+            results += future.result()
+        return results
