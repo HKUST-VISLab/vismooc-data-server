@@ -1,12 +1,12 @@
 import re
 import json
+import mathematician.httphelper as httphelper
 from datetime import timedelta
 from operator import itemgetter
 from bson import ObjectId
 from ..pipe import PipeModule
 from ..DB.mongo_dbhelper import MongoDB
 from ..config import DBConfig, ThirdPartyKeys
-from ..httphelper import HttpHelper
 
 ISO_8601_duration_rx = re.compile(
     r"^(?P<sign>[+-])?"
@@ -131,7 +131,7 @@ class FormatCourseStructFile(PipeModule):
         # fetch the video duration from youtube_api_v3
         urls = [self.youtube_api + '&id=' +
                 youtube_id for youtube_id in video_youtube_ids]
-        results = HttpHelper.get_list(urls, limit=60)
+        results = httphelper.get_list(urls, limit=60)
         for result in results:
             video_id = result["items"][0]["id"]
             video = temp_youtube_id_video_dict[video_id]
