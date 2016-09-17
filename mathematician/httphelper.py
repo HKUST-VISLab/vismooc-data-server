@@ -2,6 +2,7 @@ import urllib.request
 import asyncio
 import aiohttp
 
+
 def get(url, headers=None, params=None):
     """Send synchronous get request
 
@@ -90,6 +91,7 @@ async def async_get_list(urls, headers=None, params=None, loop=None):
         responses = await asyncio.gather(*tasks)
         return responses
 
+
 def get_list(urls, limit=30, headers=None, params=None):
     loop = asyncio.get_event_loop()
     results = []
@@ -99,13 +101,14 @@ def get_list(urls, limit=30, headers=None, params=None):
         results += future.result()
     return results
 
+
 class HttpConnection:
     """This class is proposed to provide data-fetch interface
 
     """
 
     def __init__(self, host, headers=None):
-
+        # TODO maybe we need a session here
         self.__host = host
         self.__headers = headers or {}
 
@@ -126,6 +129,14 @@ class HttpConnection:
 
     def get(self, url, params=None):
         return get(self.__host + url, self.headers, params)
-    
-    def post(self,url, headers, params):
-        return post(self.__host + url, headers, params)
+
+    def post(self, url, params):
+        return post(self.__host + url, self.headers, params)
+
+    async def async_get(self, url, params):
+        result = await async_get(self.__host + url, self.headers, params)
+        return result
+
+    async def async_post(self, url, params):
+        result = await async_post(self.__host + url, self.headers, params)
+        return result
