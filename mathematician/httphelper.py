@@ -140,3 +140,4 @@ class HttpConnection:
     async def async_post(self, url, params):
         result = await async_post(self.__host + url, self.headers, params)
         return result
+        

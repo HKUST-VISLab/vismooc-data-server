@@ -92,8 +92,8 @@ ENV/
 # Rope project settings
 .ropeproject
 
-#Vscode settings
-.vscode/
+#vscode settings
+.vscode/settings.json
 
 #test data
 test-data
