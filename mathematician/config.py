@@ -1,3 +1,6 @@
+class ThirdPartyKeys:
+    Youtube_key = "AIzaSyBvOV3z5LB78NB-yv1osqQQ4A9eY7Xg5r0"
+
 class DBConfig:
     DB_HOST = "db_host"
     DB_PORT = "db_port"
@@ -11,9 +14,8 @@ class DBConfig:
     FIELD_GENERAL_NAME = "field_name"
     FIELD_GENERAL_VALIDATION = "validation"
     INDEX_GENERAL_INDEX_ORDER = "order"
-    
 
-    COLLECTION_COURSE = "course"
+    COLLECTION_COURSE = "courses"
     FIELD_COURSE_NAME = "name"
     FIELD_COURSE_YEAR = "year"
     FIELD_COURSE_INSTRUCTOR = "instructor"
@@ -21,52 +23,49 @@ class DBConfig:
     FIELD_COURSE_URL = "url"
     FIELD_COURSE_IMAGE = "image"
     FIELD_COURSE_DESCRIPTION = "description"
-    FIELD_COURSE_METAINFO = "metainfo"
-    FIELD_COURSE_ENDTIME = "endTime"
-    FIELD_COURSE_STARTTIME = "startTime"
-    FIELD_COURSE_ORIGINAL_ID = "original_id"
-    FIELD_COURSE_STUDENT_LIST = "student_list"
-    FIELD_COURSE_VIDEO_LIST = "video_list"
+    FIELD_COURSE_METAINFO = "metaInfo"
+    FIELD_COURSE_ENDTIME = "endDate"
+    FIELD_COURSE_STARTTIME = "startDate"
+    FIELD_COURSE_ORIGINAL_ID = "originalId"
+    FIELD_COURSE_STUDENT_LIST = "studentIds"
+    FIELD_COURSE_VIDEO_LIST = "videoIds"
 
-    COLLECTION_USER = "user"
+    COLLECTION_USER = "users"
     FIELD_USER_NAME = "username"
     FIELD_USER_AGE = "age"
     FIELD_USER_GENDER = "gender"
-    FIELD_USER_ORIGINAL_ID = "original_id"
+    FIELD_USER_ORIGINAL_ID = "originalId"
     FIELD_USER_COUNTRY = "country"
-    FIELD_USER_COURSE_LIST = "course_list"
-    FIELD_USER_DROPPED_COURSE_LIST = "dropped_course_list"
+    FIELD_USER_COURSE_LIST = "courseIds"
+    FIELD_USER_DROPPED_COURSE_LIST = "droppedCourseIds"
 
-    COLLECTION_ENROLL_HISTORY = "enroll_history"
-    FIELD_ENROLL_HISTORY_COURSE_ID = "course_id"
-    FIELD_ENROLL_HISTORY_USER_ID = "user_id"
-    FIELD_ENROLL_HISTORY_TIMESTAMP = "timestamp"
-    FIELD_ENROLL_HISTORY_ACTION = "action"
+    COLLECTION_ENROLLMENT = "enrollments"
+    FIELD_ENROLLMENT_COURSE_ID = "courseId"
+    FIELD_ENROLLMENT_USER_ID = "userId"
+    FIELD_ENROLLMENT_TIMESTAMP = "timestamp"
+    FIELD_ENROLLMENT_ACTION = "action"
 
-    COLLECTION_VIDEO = "video"
-    FIELD_VIDEO_COURSE_ID = "course_id"
+    COLLECTION_VIDEO = "videos"
+    FIELD_VIDEO_COURSE_ID = "courseId"
     FIELD_VIDEO_NAME = "name"
-    FIELD_VIDEO_TEMPORAL_HOTNESS = "temporal_hotness"
-    FIELD_VIDEO_METAINFO = "metainfo"
+    FIELD_VIDEO_TEMPORAL_HOTNESS = "temporalHotness"
+    FIELD_VIDEO_METAINFO = "metaInfo"
     FIELD_VIDEO_SECTION = "section"
     FIELD_VIDEO_DESCRIPTION = "description"
-    FIELD_VIDEO_RELEASE_DATE = "release_date"
+    FIELD_VIDEO_RELEASE_DATE = "releaseDate"
     FIELD_VIDEO_URL = "url"
-    FIELD_VIDEO_LENGTH = "length"
-    FIELD_VIDEO_ORIGINAL_ID = "original_id"
+    FIELD_VIDEO_DURATION = "duration"
+    FIELD_VIDEO_ORIGINAL_ID = "originalId"
 
-    COLLECTION_VIDEO_LOG = "video_log"
-    FIELD_VIDEO_LOG_USER_ID = "user_id"
-    FIELD_VIDEO_LOG_VIDEO_ID = "video_id"
+    COLLECTION_VIDEO_LOG = "videoLogs"
+    FIELD_VIDEO_LOG_USER_ID = "userId"
+    FIELD_VIDEO_LOG_VIDEO_ID = "videoId"
     FIELD_VIDEO_LOG_TIMESTAMP = "timestamp"
     FIELD_VIDEO_LOG_TYPE = "type"
-    FIELD_VIDEO_LOG_METAINFO = "metainfo"
-    FIELD_VIDEO_LOG_ORIGINAL_ID = "original_id"
-    
+    FIELD_VIDEO_LOG_METAINFO = "metaInfo"
+    FIELD_VIDEO_LOG_ORIGINAL_ID = "originalId"
 
-
-    CONFIG_JSON = \
-    {
+    CONFIG_JSON = {
         DB_HOST: "localhost",
         DB_PORT: 27017,
         DB_NAME: "vismooc_db",
@@ -185,30 +184,30 @@ class DBConfig:
                 ]
             },
             {
-                COLLECTION_GENERAL_NAME: COLLECTION_ENROLL_HISTORY,
+                COLLECTION_GENERAL_NAME: COLLECTION_ENROLLMENT,
                 COLLECTION_GENERAL_FIELDS:
                 [
                     {
-                        FIELD_GENERAL_NAME: FIELD_ENROLL_HISTORY_COURSE_ID,
+                        FIELD_GENERAL_NAME: FIELD_ENROLLMENT_COURSE_ID,
                         FIELD_GENERAL_VALIDATION: {"$type": "objectId"}
                     },
                     {
-                        FIELD_GENERAL_NAME: FIELD_ENROLL_HISTORY_USER_ID,
+                        FIELD_GENERAL_NAME: FIELD_ENROLLMENT_USER_ID,
                         FIELD_GENERAL_VALIDATION: {"$type": "objectId"}
                     },
                     {
-                        FIELD_GENERAL_NAME: FIELD_ENROLL_HISTORY_TIMESTAMP,
+                        FIELD_GENERAL_NAME: FIELD_ENROLLMENT_TIMESTAMP,
                         FIELD_GENERAL_VALIDATION: {"$type": "timestamp"}
                     },
                     {
-                        FIELD_GENERAL_NAME: FIELD_ENROLL_HISTORY_ACTION,
+                        FIELD_GENERAL_NAME: FIELD_ENROLLMENT_ACTION,
                         FIELD_GENERAL_VALIDATION: {"$in": ["TODO", "TODO"]}
                     }
                 ],
                 COLLECTION_GENERAL_INDEX:
                 [
                     {
-                        FIELD_GENERAL_NAME: FIELD_ENROLL_HISTORY_TIMESTAMP,
+                        FIELD_GENERAL_NAME: FIELD_ENROLLMENT_TIMESTAMP,
                         INDEX_GENERAL_INDEX_ORDER: 1
                     }
                 ]
@@ -250,7 +249,7 @@ class DBConfig:
                         FIELD_GENERAL_VALIDATION: {"$type": "string"}
                     },
                     {
-                        FIELD_GENERAL_NAME: FIELD_VIDEO_LENGTH,
+                        FIELD_GENERAL_NAME: FIELD_VIDEO_DURATION,
                         FIELD_GENERAL_VALIDATION: {"$type": "int"}
                     },
                     {
