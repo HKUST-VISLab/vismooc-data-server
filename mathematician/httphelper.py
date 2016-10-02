@@ -1,6 +1,7 @@
 import urllib.request
 import asyncio
 import aiohttp
+import os
 
 
 def get(url, headers=None, params=None):
@@ -53,8 +54,9 @@ async def async_get(url, headers=None, params=None, session=aiohttp):
             raise Exception("The params should be dict type")
 
     async with session.get(url, headers=headers, params=params) as response:
-        assert response.status == 200
-        result = await response.json()
+        assert response.status >= 200 and response.status < 300
+        #change "result = await response.json()" to "result = await response.read()"
+        result = await response.read()
         return result
 
 async def async_post(url, headers=None, params=None, session=aiohttp):
@@ -100,6 +102,43 @@ def get_list(urls, limit=30, headers=None, params=None):
         loop.run_until_complete(future)
         results += future.result()
     return results
+
+async def download_part(url, start, end, file_path, params, headers=None, loop=None):
+    """Download the given part, which is defined by start and end"""
+    headers = {"Range" : "bytes={}-{}".format(start, end)}
+
+    result = await async_get(url, headers=headers, params=params)
+    with open(file_path, 'wb+') as f:
+        f.seek(start, 0)
+        f.write(result)
+
+def download(url, file_path, file_slice=1024*1024, start=0, end=None, headers=None, params=None):
+    req = urllib.request.Request(url, data=params, headers=headers, method='HEAD')
+    with urllib.request.urlopen(req) as f:
+        length = f.info()["Content-Length"]
+    file_size = int(length)
+    if not os.path.exists(file_path):
+        with open(file_path, 'w') as f:
+            f.write('\0' * file_size)
+            f.flush()
+    tasks = []
+    for i in range(0, file_size, file_slice):
+        part_end = i+file_slice if i+file_slice < file_size else file_size-1
+        future = asyncio.ensure_future(download_part(url, i, part_end, file_path, headers, params))
+        print(part_end)
+        tasks.append(future)
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(asyncio.wait(tasks))
+    
+
+
+
+class Download_thread:
+    def __init__(self, start, end):
+        self.start = start
+        self.end = end
+
+
 
 
 class HttpConnection:
