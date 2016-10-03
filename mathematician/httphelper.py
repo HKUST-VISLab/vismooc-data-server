@@ -103,29 +103,35 @@ def get_list(urls, limit=30, headers=None, params=None):
         results += future.result()
     return results
 
-async def download_part(url, start, end, file_path, params, headers=None, loop=None):
+async def download_part(url, start, end, file_path, params, headers={}, loop=None):
     """Download the given part, which is defined by start and end"""
+    tmp = "bytes={}-{}".format(start, end)
     headers = {"Range" : "bytes={}-{}".format(start, end)}
-
     result = await async_get(url, headers=headers, params=params)
     with open(file_path, 'wb+') as f:
         f.seek(start, 0)
         f.write(result)
 
-def download(url, file_path, file_slice=1024*1024, start=0, end=None, headers=None, params=None):
+def download(url, file_path, file_slice=1024*1024, start=0, end=None, headers={}, params=None):
     req = urllib.request.Request(url, data=params, headers=headers, method='HEAD')
     with urllib.request.urlopen(req) as f:
         length = f.info()["Content-Length"]
     file_size = int(length)
-    if not os.path.exists(file_path):
-        with open(file_path, 'w') as f:
-            f.write('\0' * file_size)
-            f.flush()
+    # if just download part of file
+    if start != 0 or (end and end < file_size-1):
+        if not os.path.exists(file_path):
+            raise Exception("File does not exist")
+    else:
+        end = file_size - 1
+        if not os.path.exists(file_path):
+            with open(file_path, 'w') as f:
+                f.write('\0' * file_size)
+                f.flush()
+    download_size = end - start + 1
     tasks = []
-    for i in range(0, file_size, file_slice):
-        part_end = i+file_slice if i+file_slice < file_size else file_size-1
-        future = asyncio.ensure_future(download_part(url, i, part_end, file_path, headers, params))
-        print(part_end)
+    for part_start in range(0, download_size, file_slice):
+        part_end = part_start+file_slice if part_start+file_slice < download_size else download_size-1
+        future = asyncio.ensure_future(download_part(url, part_start, part_end, file_path, headers, params))
         tasks.append(future)
     loop = asyncio.get_event_loop()
     loop.run_until_complete(asyncio.wait(tasks))
