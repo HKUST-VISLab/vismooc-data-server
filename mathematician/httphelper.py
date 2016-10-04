@@ -103,9 +103,8 @@ def get_list(urls, limit=30, headers=None, params=None):
         results += future.result()
     return results
 
-async def download_part(url, start, end, file_path, params, headers={}, loop=None):
+async def async_download_part(url, start, end, file_path, params, headers={}, loop=None):
     """Download the given part, which is defined by start and end"""
-    tmp = "bytes={}-{}".format(start, end)
     headers = {"Range" : "bytes={}-{}".format(start, end)}
     result = await async_get(url, headers=headers, params=params)
     with open(file_path, 'wb+') as f:
@@ -131,21 +130,10 @@ def download(url, file_path, file_slice=1024*1024, start=0, end=None, headers={}
     tasks = []
     for part_start in range(0, download_size, file_slice):
         part_end = part_start+file_slice if part_start+file_slice < download_size else download_size-1
-        future = asyncio.ensure_future(download_part(url, part_start, part_end, file_path, headers, params))
+        future = asyncio.ensure_future(async_download_part(url, part_start, part_end, file_path, headers, params))
         tasks.append(future)
     loop = asyncio.get_event_loop()
     loop.run_until_complete(asyncio.wait(tasks))
-    
-
-
-
-class Download_thread:
-    def __init__(self, start, end):
-        self.start = start
-        self.end = end
-
-
-
 
 class HttpConnection:
     """This class is proposed to provide data-fetch interface
