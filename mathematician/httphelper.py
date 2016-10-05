@@ -121,22 +121,17 @@ def download_single_file(url, file_path, file_slice=10*1024*1024, start=0, end=N
         length = f.info()["Content-Length"]
     file_size = int(length)
     # if just download part of file
-    if start != 0 or (end and end < file_size-1):
-        if not os.path.exists(file_path):
-            raise Exception("File does not exist")
-    else:
-        end = file_size - 1
-        if not os.path.exists(file_path):
-            with open(file_path, 'w') as f:
-                f.write('\0' * file_size)
-                f.flush()
+    end = end or (file_size - 1)
     download_size = end - start + 1
+    if not os.path.exists(file_path):
+        with open(file_path, 'w') as f:
+            f.write('\0' * download_size)
+            f.flush()
     tasks = []
     for part_start in range(0, download_size, file_slice):
         part_end = part_start+file_slice if part_start+file_slice < download_size else download_size-1
         future = asyncio.ensure_future(async_download_file_part(url, part_start, part_end, file_path, headers, params))
         tasks.append(future)
-    
     loop = asyncio.get_event_loop()
     loop.run_until_complete(asyncio.wait(tasks))
 
