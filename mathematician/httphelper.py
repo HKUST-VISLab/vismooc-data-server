@@ -2,6 +2,7 @@ import urllib.request
 import asyncio
 import aiohttp
 import os
+import multiprocessing
 
 
 def get(url, headers=None, params=None):
@@ -103,15 +104,18 @@ def get_list(urls, limit=30, headers=None, params=None):
         results += future.result()
     return results
 
-async def async_download_part(url, start, end, file_path, params, headers={}, loop=None):
+async def async_download_file_part(url, start, end, file_path, params, headers={}, loop=None):
     """Download the given part, which is defined by start and end"""
+    #print("here")
+    tmp = "bytes={}-{}".format(start, end)
     headers = {"Range" : "bytes={}-{}".format(start, end)}
     result = await async_get(url, headers=headers, params=params)
-    with open(file_path, 'wb+') as f:
+    #print(start)
+    with open(file_path, 'rb+') as f:
         f.seek(start, 0)
         f.write(result)
 
-def download(url, file_path, file_slice=1024*1024, start=0, end=None, headers={}, params=None):
+def download_single_file(url, file_path, file_slice=10*1024*1024, start=0, end=None, headers={}, params=None):
     req = urllib.request.Request(url, data=params, headers=headers, method='HEAD')
     with urllib.request.urlopen(req) as f:
         length = f.info()["Content-Length"]
@@ -130,10 +134,23 @@ def download(url, file_path, file_slice=1024*1024, start=0, end=None, headers={}
     tasks = []
     for part_start in range(0, download_size, file_slice):
         part_end = part_start+file_slice if part_start+file_slice < download_size else download_size-1
-        future = asyncio.ensure_future(async_download_part(url, part_start, part_end, file_path, headers, params))
+        future = asyncio.ensure_future(async_download_file_part(url, part_start, part_end, file_path, headers, params))
         tasks.append(future)
+    
     loop = asyncio.get_event_loop()
     loop.run_until_complete(asyncio.wait(tasks))
+
+def download_multi_file(urls, save_dir, process_pool_size=(os.cpu_count() or 1)):
+    if type(urls) is not list:
+        raise Exception("The urls should be list type")
+    if not os.path.exists(save_dir):
+        raise Exception("The directory not exists")
+    pool = multiprocessing.Pool(processes = process_pool_size)
+    for url in urls:
+        file_path = os.path.join(os.path.abspath(save_dir), url[url.rindex("/")+1 : ])
+        pool.apply_async(download_single_file, (url, file_path, ))
+    pool.close()
+    pool.join()
 
 class HttpConnection:
     """This class is proposed to provide data-fetch interface
