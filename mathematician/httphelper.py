@@ -23,7 +23,9 @@ def get(url, headers={}, params=None):
     with urllib.request.urlopen(req) as f:
         assert f.getcode() >= 200 and f.getcode() < 300
         data = f.read()
-        return data
+        response_headers = f.info()
+        return_code = f.getcode()
+        return HttpResponse(return_code, response_headers, data)
 
 
 def post(url, headers={}, params=None):
@@ -39,7 +41,9 @@ def post(url, headers={}, params=None):
     with urllib.request.urlopen(req) as f:
         assert f.getcode() >= 200 and f.getcode() < 300
         data = f.read()
-        return data
+        response_headers = f.info()
+        return_code = f.getcode()
+        return HttpResponse(return_code, response_headers, data)
 
 
 async def async_get(url, headers=None, params=None, session=aiohttp):
@@ -60,8 +64,8 @@ async def async_get(url, headers=None, params=None, session=aiohttp):
     async with session.get(url, headers=headers, params=params) as response:
         assert response.status >= 200 and response.status < 300
         #change "result = await response.json()" to "result = await response.read()"
-        result = await response.read()
-        return result
+        data = await response.read()
+        return HttpResponse(response.status, response.headers, data)
 
 async def async_post(url, headers=None, params=None, session=aiohttp):
     """Out of dated
@@ -81,8 +85,8 @@ async def async_post(url, headers=None, params=None, session=aiohttp):
 
     async with session.post(url, headers=headers, body=params) as response:
         assert response.status == 200
-        result = await response.read()
-        return result
+        data = await response.read()
+        return HttpResponse(response.status, response.headers, data)
 
 
 async def async_get_list(urls, headers=None, params=None, loop=None):
@@ -105,6 +109,8 @@ def get_list(urls, limit=30, headers=None, params=None):
         future = asyncio.ensure_future(async_get_list(urls[i:i + limit], headers, params, loop))
         loop.run_until_complete(future)
         results += future.result()
+    for result in results:
+        result = result.get_content()
     return results
 
 async def async_download_file_part(url, start, end, file_path, params, headers={}, loop=None):
@@ -113,6 +119,7 @@ async def async_download_file_part(url, start, end, file_path, params, headers={
     """
     headers = {"Range" : "bytes={}-{}".format(start, end)}
     result = await async_get(url, headers=headers, params=params)
+    result = result.get_content()
     with open(file_path, 'rb+') as f:
         f.seek(start, 0)
         f.write(result)
@@ -155,7 +162,6 @@ class HttpConnection:
     """
 
     def __init__(self, host, headers=None):
-        self.__session = aiohttp.ClientSession()
         self.__host = host
         self.__headers = headers or {}
 
@@ -175,18 +181,28 @@ class HttpConnection:
         self.__headers[key] = value
 
     def get(self, url, params=None):
-        return get(self.__host + url, self.headers, params)
+        response = get(self.__host + url, self.headers, params)
+        if response.get_headers().get("Set-Cookie") is not None:
+            self.headers({"Cookie" : response.get_headers().get("Set-Cookie")})
+        return response
 
     def post(self, url, params):
-        return post(self.__host + url, self.headers, params)
+        response = post(self.__host + url, self.headers, params)
+        if response.get_headers().get("Set-Cookie") is not None:
+            self.headers({"Cookie" : response.get_headers().get("Set-Cookie")})
+        return response
 
     async def async_get(self, url, params):
-        result = await async_get(self.__host + url, self.headers, params, session=self.__session)
-        return result
+        response = await async_get(self.__host + url, self.headers, params)
+        if response.get_headers().get("Set-Cookie") is not None:
+            self.headers({"Cookie" : response.get_headers().get("Set-Cookie")})
+        return response
 
     async def async_post(self, url, params):
-        result = await async_post(self.__host + url, self.headers, params, session=self.__session)
-        return result
+        response = await async_post(self.__host + url, self.headers, params)
+        if response.get_headers().get("Set-Cookie") is not None:
+            self.headers({"Cookie" : response.get_headers().get("Set-Cookie")})
+        return response
 
 class DownloadFileFromServer():
     def __init__(self, api_key):
@@ -197,6 +213,17 @@ class DownloadFileFromServer():
         response = self.__http_connection.post("/resources/access_token", {"API_Key" : self.__api_key})
         response_json = json.loads(response)
         self.__token = response_json.get("collection").get("items")[0].get("access_token")
-    
+
+class HttpResponse():
+    def __init__(self, return_code, headers, content):
+        self.__return_code = return_code
+        self.__headers = headers
+        self.__content = content
+    def get_headers(self):
+        return self.__headers
+    def get_content(self):
+        return self.__content
+    def get_return_code(self):
+        return self.__return_code    
 
         
