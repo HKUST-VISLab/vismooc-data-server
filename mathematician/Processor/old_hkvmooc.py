@@ -131,9 +131,13 @@ class FormatCourseStructFile(PipeModule):
         # fetch the video duration from youtube_api_v3
         urls = [self.youtube_api + '&id=' +
                 youtube_id for youtube_id in video_youtube_ids]
+        broken_youtube_id = set([youtube_id for youtube_id in video_youtube_ids])
         results = httphelper.get_list(urls, limit=60)
         for result in results:
+            if len(result["items"]) == 0:
+                continue
             video_id = result["items"][0]["id"]
+            broken_youtube_id.discard(video_id)
             video = temp_youtube_id_video_dict[video_id]
             duration = parse_duration(result["items"][0]["contentDetails"]["duration"])
             video[DBConfig.FIELD_VIDEO_DURATION] = int(duration.total_seconds())
@@ -142,6 +146,8 @@ class FormatCourseStructFile(PipeModule):
         processed_data['data'][DBConfig.COLLECTION_VIDEO] = list(videos.values())
         processed_data['data'][DBConfig.COLLECTION_COURSE] = [course]
 
+        with open("/vismooc-test-data/broken_youtube_id.log", "w+") as f:
+            f.write(str(broken_youtube_id))
         return processed_data
 
 
@@ -380,7 +386,8 @@ class DumpToDB(PipeModule):
         # insert to db
         for collection_name in db_data:
             collection = self.db.get_collection(collection_name)
-            collection.insert_many(db_data[collection_name])
+            if db_data[collection_name] is not None:
+                collection.insert_many(db_data[collection_name])
 
         return raw_data
 

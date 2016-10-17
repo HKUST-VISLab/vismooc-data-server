@@ -153,7 +153,7 @@ class HttpConnection:
     """
 
     def __init__(self, host, headers=None):
-        # TODO maybe we need a session here
+        self._session = aiohttp.ClientSession()
         self.__host = host
         self.__headers = headers or {}
 
@@ -179,10 +179,10 @@ class HttpConnection:
         return post(self.__host + url, self.headers, params)
 
     async def async_get(self, url, params):
-        result = await async_get(self.__host + url, self.headers, params)
+        result = await async_get(self.__host + url, self.headers, params, session=self._session)
         return result
 
     async def async_post(self, url, params):
-        result = await async_post(self.__host + url, self.headers, params)
+        result = await async_post(self.__host + url, self.headers, params, session=self._session)
         return result
         
