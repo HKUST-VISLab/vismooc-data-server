@@ -1,14 +1,14 @@
 import re
 import json
-from datetime import timedelta
+from datetime import timedelta, datetime
 from operator import itemgetter
 import mathematician.httphelper as httphelper
 from bson import ObjectId
 from ..pipe import PipeModule
 from ..DB.mongo_dbhelper import MongoDB
-from ..config import DBConfig, ThirdPartyKeys
+from ..config import DBConfig as DBc, ThirdPartyKeys
 
-ISO_8601_duration_rx = re.compile(
+re_ISO_8601_duration = re.compile(
     r"^(?P<sign>[+-])?"
     r"P(?!\b)"
     r"(?P<years>[0-9]+([,.][0-9]+)?Y)?"
@@ -23,7 +23,7 @@ ISO_8601_duration_rx = re.compile(
 def parse_duration(datestring):
     if not isinstance(datestring, str):
         raise TypeError("Expecting a string %r" % datestring)
-    match = ISO_8601_duration_rx.match(datestring)
+    match = re_ISO_8601_duration.match(datestring)
     if not match:
         raise BaseException("Unable to parse duration string %r" % datestring)
     groups = match.groupdict()
@@ -66,7 +66,6 @@ class FormatCourseStructFile(PipeModule):
         if target_filename is not None:
             with open(target_filename, 'r', encoding='utf-8') as file:
                 raw_data = ''.join(file.readlines())
-                file.close()
                 return raw_data
 
         return None
@@ -80,69 +79,74 @@ class FormatCourseStructFile(PipeModule):
         course_structure_info = json.loads(data_to_be_processed)
         videos = {}
         course = {}
+        pattern_time = "%Y-%m-%dT%H:%M:%SZ"
         for key in course_structure_info:
             value = course_structure_info[key]
-            value_metadata = value.get('metadata') or {}
+            metadata = value.get('metadata') or {}
             if value['category'] == 'video':
                 video = {}
                 video_id = key[6:].split('/')
                 video_id = key[:3] + '-' + '-'.join(video_id)
 
-                video[DBConfig.FIELD_VIDEO_COURSE_ID] = None
-                video[DBConfig.FIELD_VIDEO_NAME] = value_metadata.get('display_name')
-                video[DBConfig.FIELD_VIDEO_TEMPORAL_HOTNESS] = None
-                video[DBConfig.FIELD_VIDEO_METAINFO] = {}
-                video[DBConfig.FIELD_VIDEO_SECTION] = value_metadata.get('sub')
-                video[DBConfig.FIELD_VIDEO_RELEASE_DATE] = None
-                video[DBConfig.FIELD_VIDEO_DESCRIPTION] = None
-                video[DBConfig.FIELD_VIDEO_URL] = len(value_metadata.get(
-                    'html5_sources')) and value_metadata.get('html5_sources')[0]
-                video[DBConfig.FIELD_VIDEO_DURATION] = None
-                video[DBConfig.FIELD_VIDEO_ORIGINAL_ID] = video_id
-                video[DBConfig.FIELD_VIDEO_METAINFO]['youtube_id'] = value_metadata.get(
+                video[DBc.FIELD_VIDEO_COURSE_ID] = None
+                video[DBc.FIELD_VIDEO_NAME] = metadata.get('display_name')
+                video[DBc.FIELD_VIDEO_TEMPORAL_HOTNESS] = {}
+                video[DBc.FIELD_VIDEO_METAINFO] = {}
+                video[DBc.FIELD_VIDEO_SECTION] = metadata.get('sub')
+                video[DBc.FIELD_VIDEO_RELEASE_DATE] = None
+                video[DBc.FIELD_VIDEO_DESCRIPTION] = None
+                video[DBc.FIELD_VIDEO_URL] = len(metadata.get(
+                    'html5_sources')) and metadata.get('html5_sources')[0]
+                video[DBc.FIELD_VIDEO_DURATION] = None
+                video[DBc.FIELD_VIDEO_ORIGINAL_ID] = video_id
+                video[DBc.FIELD_VIDEO_METAINFO]['youtube_id'] = metadata.get(
                     'youtube_id_1_0')
-                videos[video[DBConfig.FIELD_VIDEO_ORIGINAL_ID]] = video
+                videos[video[DBc.FIELD_VIDEO_ORIGINAL_ID]] = video
             elif value['category'] == 'course':
                 course_id = key[6:].split('/')
                 course_id = course_id[0] + '/' + course_id[1] + '/' + course_id[3]
-                course[DBConfig.FIELD_COURSE_ORIGINAL_ID] = course_id
-                course[DBConfig.FIELD_COURSE_NAME] = value_metadata.get('display_name')
-                course[DBConfig.FIELD_COURSE_YEAR] = None #can be calculate from start time
-                course[DBConfig.FIELD_COURSE_INSTRUCTOR] = None
-                course[DBConfig.FIELD_COURSE_STATUS] = None
-                course[DBConfig.FIELD_COURSE_URL] = None
-                course[DBConfig.FIELD_COURSE_IMAGE] = value_metadata.get('course_image')
-                course[DBConfig.FIELD_COURSE_DESCRIPTION] = None
-                course[DBConfig.FIELD_COURSE_METAINFO] = {}
-                course[DBConfig.FIELD_COURSE_STARTTIME] = value_metadata.get('start')
-                course[DBConfig.FIELD_COURSE_ENDTIME] = value_metadata.get('end')
-                course[DBConfig.FIELD_COURSE_STUDENT_LIST] = set()
-                course[DBConfig.FIELD_COURSE_VIDEO_LIST] = set()
+                start_time = metadata.get('start')
+                end_time = metadata.get('end')
+                start_time = datetime.strptime(start_time, pattern_time) if start_time else None
+                end_time = datetime.strptime(end_time, pattern_time) if end_time else None
+                course[DBc.FIELD_COURSE_ORIGINAL_ID] = course_id
+                course[DBc.FIELD_COURSE_NAME] = metadata.get('display_name')
+                course[DBc.FIELD_COURSE_YEAR] = start_time and start_time.year
+                course[DBc.FIELD_COURSE_INSTRUCTOR] = None
+                course[DBc.FIELD_COURSE_STATUS] = None
+                course[DBc.FIELD_COURSE_URL] = None
+                course[DBc.FIELD_COURSE_IMAGE] = metadata.get('course_image')
+                course[DBc.FIELD_COURSE_DESCRIPTION] = None
+                course[DBc.FIELD_COURSE_METAINFO] = {}
+                course[DBc.FIELD_COURSE_STARTTIME] = start_time and start_time.timestamp()
+                course[DBc.FIELD_COURSE_ENDTIME] = end_time and end_time.timestamp()
+                course[DBc.FIELD_COURSE_STUDENT_IDS] = set()
+                course[DBc.FIELD_COURSE_VIDEO_IDS] = set()
 
         video_youtube_ids = []
-        temp_youtube_id_video_dict = {}
+        temp_video_dict = {}
         for video in videos.values():
             # video collection is completed
-            video[DBConfig.FIELD_VIDEO_COURSE_ID] = course['originalId']
+            video[DBc.FIELD_VIDEO_COURSE_ID] = course['originalId']
             # course collection needs studentIds
-            course[DBConfig.FIELD_COURSE_VIDEO_LIST].add(video['originalId'])
-            youtube_id = video[DBConfig.FIELD_VIDEO_METAINFO]['youtube_id']
+            course[DBc.FIELD_COURSE_VIDEO_IDS].add(video['originalId'])
+            youtube_id = video[DBc.FIELD_VIDEO_METAINFO]['youtube_id']
             video_youtube_ids.append(youtube_id)
-            temp_youtube_id_video_dict[youtube_id] = video
-        
+            temp_video_dict[youtube_id] = video
+
         # fetch the video duration from youtube_api_v3
         urls = [self.youtube_api + '&id=' +
                 youtube_id for youtube_id in video_youtube_ids]
         results = httphelper.get_list(urls, limit=60)
         for result in results:
             video_id = result["items"][0]["id"]
-            video = temp_youtube_id_video_dict[video_id]
+            video = temp_video_dict[video_id]
             duration = parse_duration(result["items"][0]["contentDetails"]["duration"])
-            video[DBConfig.FIELD_VIDEO_DURATION] = int(duration.total_seconds())
+            video[DBc.FIELD_VIDEO_DURATION] = int(duration.total_seconds())
 
         processed_data = raw_data
-        processed_data['data'][DBConfig.COLLECTION_VIDEO] = list(videos.values())
-        processed_data['data'][DBConfig.COLLECTION_COURSE] = [course]
+        processed_data['data'][DBc.COLLECTION_VIDEO] = list(videos.values())
+        processed_data['data'][DBc.COLLECTION_COURSE] = [course]
 
         return processed_data
 
@@ -186,7 +190,6 @@ class FormatUserFile(PipeModule):
             with open(auth_user_filename, 'r', encoding='utf-8') as file:
                 next(file)
                 raw_data = file.readlines()
-                file.close()
                 return raw_data
         return None
 
@@ -202,19 +205,19 @@ class FormatUserFile(PipeModule):
             user = {}
             user_id = row[0]
             user_profile = self._userprofile.get(user_id)
-            user[DBConfig.FIELD_USER_GENDER] = user_profile and user_profile[7]
-            user[DBConfig.FIELD_USER_COURSE_LIST] = set()
-            user[DBConfig.FIELD_USER_DROPPED_COURSE_LIST] = set()
-            user[DBConfig.FIELD_USER_AGE] = row[16] or (user_profile and user_profile[9])
-            user[DBConfig.FIELD_USER_COUNTRY] = row[14] or (
+            user[DBc.FIELD_USER_GENDER] = user_profile and user_profile[7]
+            user[DBc.FIELD_USER_COURSE_IDS] = set()
+            user[DBc.FIELD_USER_DROPPED_COURSE_IDS] = set()
+            user[DBc.FIELD_USER_AGE] = row[16] or (user_profile and user_profile[9])
+            user[DBc.FIELD_USER_COUNTRY] = row[14] or (
                 user_profile and (user_profile[13] or user_profile[4]))
-            user[DBConfig.FIELD_USER_NAME] = row[1]
-            user[DBConfig.FIELD_USER_ORIGINAL_ID] = user_id
-            users[user[DBConfig.FIELD_USER_ORIGINAL_ID]] = user
+            user[DBc.FIELD_USER_NAME] = row[1]
+            user[DBc.FIELD_USER_ORIGINAL_ID] = user_id
+            users[user[DBc.FIELD_USER_ORIGINAL_ID]] = user
 
         processed_data = raw_data
         # user collection needs courseIds and droppedCourseIds
-        processed_data['data'][DBConfig.COLLECTION_USER] = users
+        processed_data['data'][DBc.COLLECTION_USER] = users
 
         return processed_data
 
@@ -222,7 +225,9 @@ class FormatUserFile(PipeModule):
 class FormatEnrollmentFile(PipeModule):
 
     order = 2
-    action = {1: 'enroll', 0: 'unenroll'}
+    ENROLL = "enroll"
+    UNENROLL = "unenroll"
+    action = {'1': ENROLL, '0': UNENROLL}
 
     def __init__(self):
         super().__init__()
@@ -241,7 +246,6 @@ class FormatEnrollmentFile(PipeModule):
             with open(target_filename, 'r', encoding='utf-8') as file:
                 next(file)
                 raw_data = file.readlines()
-                file.close()
                 return raw_data
         return None
 
@@ -249,36 +253,36 @@ class FormatEnrollmentFile(PipeModule):
         data_to_be_processed = self.load_data(raw_data_filenames)
         if data_to_be_processed is None:
             return raw_data
-        course = raw_data['data'][DBConfig.COLLECTION_COURSE][0]
-        users = raw_data['data'][DBConfig.COLLECTION_USER]
+        course = raw_data['data'][DBc.COLLECTION_COURSE][0]
+        users = raw_data['data'][DBc.COLLECTION_USER]
 
         enrollments = []
+        pattern_time = "%Y-%m-%d %H:%M:%S"
         for row in sorted(data_to_be_processed, key=itemgetter(3)):
             row = row[:-1].split('\t')
             enrollment = {}
             user_id = row[1]
-            enrollment[DBConfig.FIELD_ENROLLMENT_COURSE_ID] = row[2]
-            enrollment[DBConfig.FIELD_ENROLLMENT_USER_ID] = user_id
-            enrollment[DBConfig.FIELD_ENROLLMENT_TIMESTAMP] = row[3]
-            enrollment[DBConfig.FIELD_ENROLLMENT_ACTION] = FormatEnrollmentFile.action.get(row[4])
+            enrollment[DBc.FIELD_ENROLLMENT_COURSE_ID] = row[2]
+            enrollment[DBc.FIELD_ENROLLMENT_USER_ID] = user_id
+            enrollment[DBc.FIELD_ENROLLMENT_TIMESTAMP] = datetime.strptime(row[3], pattern_time)
+            enrollment[DBc.FIELD_ENROLLMENT_ACTION] = FormatEnrollmentFile.action.get(row[4])
             enrollments.append(enrollment)
 
             # fill user collection
             if users.get(user_id) is not None:
-                users[user_id][DBConfig.FIELD_USER_COURSE_LIST].add(row[2])
+                users[user_id][DBc.FIELD_USER_COURSE_IDS].add(row[2])
             # fill course collection
-            if enrollment[DBConfig.FIELD_ENROLLMENT_ACTION] == 1:
-                course[DBConfig.FIELD_COURSE_STUDENT_LIST].add(row[1])
+            if enrollment[DBc.FIELD_ENROLLMENT_ACTION] == FormatEnrollmentFile.ENROLL:
+                course[DBc.FIELD_COURSE_STUDENT_IDS].add(row[1])
             else:
-                course[DBConfig.FIELD_COURSE_STUDENT_LIST].discard(row[1])
-                users[row[1]][DBConfig.FIELD_USER_DROPPED_COURSE_LIST].add(row[2])
+                course[DBc.FIELD_COURSE_STUDENT_IDS].discard(row[1])
+                users[row[1]][DBc.FIELD_USER_DROPPED_COURSE_IDS].add(row[2])
 
         processed_data = raw_data
         # course and users collection are completed
-        processed_data['data'][DBConfig.COLLECTION_ENROLLMENT] = enrollments
-        processed_data['data'][DBConfig.COLLECTION_USER] = list(users.values())
+        processed_data['data'][DBc.COLLECTION_ENROLLMENT] = enrollments
+        processed_data['data'][DBc.COLLECTION_USER] = list(users.values())
         return processed_data
-
 
 class FormatLogFile(PipeModule):
 
@@ -300,7 +304,6 @@ class FormatLogFile(PipeModule):
         if target_filename is not None:
             with open(target_filename, 'r', encoding='utf-8') as file:
                 raw_data = file.readlines()
-                file.close()
                 return raw_data
         return None
 
@@ -310,68 +313,82 @@ class FormatLogFile(PipeModule):
         if data_to_be_processed is None:
             return raw_data
 
-        wrong_username_pattern = r'"username"\s*:\s*"",'
-        right_eventsource_pattern = r'"event_source"\s*:\s*"browser"'
-        right_match_eventtype_pattern = r'"event_type"\s*:\s*"(hide_transcript|load_video|' + \
+        pattern_wrong_username = r'"username"\s*:\s*"",'
+        pattern_right_eventsource = r'"event_source"\s*:\s*"browser"'
+        pattern_right_eventtype = r'"event_type"\s*:\s*"(hide_transcript|load_video|' + \
             r'pause_video|play_video|seek_video|show_transcript|speed_change_video|stop_video|'+ \
             r'video_hide_cc_menu|video_show_cc_menu)"'
 
-        match_context_pattern = r',?\s*("context"\s*:\s*{[^}]*})'
-        match_event_pattern = r',?\s*("event"\s*:\s*"([^"]|\\")*(?<!\\)")'
-        match_username_pattern = r',?\s*("username"\s*:\s*"[^"]*")'
-        match_time_pattern = r',?\s*("time"\s*:\s*"[^"]*")'
-        match_event_json_escape_pattern = r'"(?={)|"$'
-        re_filter_wrong_pattern = re.compile(wrong_username_pattern)
-        re_search_right_eventsource_pattern = re.compile(right_eventsource_pattern)
-        re_search_right_eventtype_pattern = re.compile(right_match_eventtype_pattern)
-        re_search_context_pattern = re.compile(match_context_pattern)
-        re_search_event_pattern = re.compile(match_event_pattern)
-        re_search_username_pattern = re.compile(match_username_pattern)
-        re_search_time_pattern = re.compile(match_time_pattern)
-        re_search_event_json_escape_pattern = re.compile(match_event_json_escape_pattern)
+        pattern_context = r',?\s*("context"\s*:\s*{[^}]*})'
+        pattern_event = r',?\s*("event"\s*:\s*"([^"]|\\")*(?<!\\)")'
+        pattern_username = r',?\s*("username"\s*:\s*"[^"]*")'
+        pattern_time = r',?\s*("time"\s*:\s*"[^"]*")'
+        pattern_event_json_escape_ = r'"(?={)|"$'
+
+        re_wrong_username = re.compile(pattern_wrong_username)
+        re_right_eventsource = re.compile(pattern_right_eventsource)
+        re_right_eventtype = re.compile(pattern_right_eventtype)
+        re_context = re.compile(pattern_context)
+        re_event = re.compile(pattern_event)
+        re_username = re.compile(pattern_username)
+        re_time = re.compile(pattern_time)
+        re_event_json_escape = re.compile(pattern_event_json_escape_)
+
+        temp_video_dict = {video[DBc.FIELD_VIDEO_ORIGINAL_ID]: video for video in raw_data[
+            'data'][DBc.COLLECTION_VIDEO]}
 
         events = []
+        pattern_time = "%Y-%m-%dT%H:%M:%S.%f+00:00"
         for line in data_to_be_processed:
-            event_type = re_search_right_eventtype_pattern.search(line)
-            if re_filter_wrong_pattern.search(line) is None and re_search_right_eventsource_pattern.search(line) is not None and event_type is not None:
-                context = re_search_context_pattern.search(line)
-                event_field = re_search_event_pattern.search(line)
-                username = re_search_username_pattern.search(line)
-                timestamp = re_search_time_pattern.search(line)
-                temp_array = [event_type.group()]
+            event_type = re_right_eventtype.search(line)
+            if re_wrong_username.search(line) is None and \
+               re_right_eventsource.search(line) is not None and \
+               event_type is not None:
+
+                context = re_context.search(line)
+                event_field = re_event.search(line)
+                username = re_username.search(line)
+                timestamp = re_time.search(line)
+                temp_data = [event_type.group()]
                 if context is not None:
-                    temp_array.append(context.group(1))
+                    temp_data.append(context.group(1))
                 if event_field is not None:
-                    temp_array.append(re_search_event_json_escape_pattern.sub(
+                    temp_data.append(re_event_json_escape.sub(
                         '', event_field.group(1).replace('\\', '')))
                 if username is not None:
-                    temp_array.append(username.group(1))
+                    temp_data.append(username.group(1))
                 if timestamp is not None:
-                    temp_array.append(timestamp.group(1))
+                    temp_data.append(timestamp.group(1))
 
-                json_str = "{" + ",".join(temp_array) + "}"
-                event_json = json.loads(json_str)
+                temp_data = json.loads("{" + ",".join(temp_data) + "}")
                 event = {}
-                event_context = event_json.get('context') or {}
-                event_event = event_json.get('event') or {}
-                target_event_attribute = {'path', 'code', 'currentTime', 'new_time', 'old_time',
-                                          'new_speed', 'old_speed'}
+                event_context = temp_data.get('context') or {}
+                event_event = temp_data.get('event') or {}
 
-                event[DBConfig.FIELD_VIDEO_LOG_USER_ID] = event_context.get('user_id')
-                event[DBConfig.FIELD_VIDEO_LOG_VIDEO_ID] = event_event.get('id')
-                event[DBConfig.FIELD_VIDEO_COURSE_ID] = event_context.get('course_id')
-                event[DBConfig.FIELD_VIDEO_LOG_TIMESTAMP] = event_json.get('time')
-                event[DBConfig.FIELD_VIDEO_LOG_TYPE] = event_json.get('event_type')
-                event[DBConfig.FIELD_VIDEO_LOG_METAINFO] = {'path':event_context.get('path')}
-                for k in target_event_attribute:
-                    value = event_event.get(k)
-                    if value is not None:
-                        event[DBConfig.FIELD_VIDEO_LOG_METAINFO][k] = value
+                video_id = event_event.get('id')
+                event_time = datetime.strptime(temp_data.get('time'), pattern_time)
+                event[DBc.FIELD_VIDEO_LOG_USER_ID] = event_context.get('user_id')
+                event[DBc.FIELD_VIDEO_LOG_VIDEO_ID] = video_id
+                event[DBc.FIELD_VIDEO_COURSE_ID] = event_context.get('course_id')
+                event[DBc.FIELD_VIDEO_LOG_TIMESTAMP] = event_time.timestamp()
+                event[DBc.FIELD_VIDEO_LOG_TYPE] = temp_data.get('event_type')
 
+                target_attrs = {'path', 'code', 'currentTime', 'new_time', 'old_time',
+                                'new_speed', 'old_speed'}
+                event[DBc.FIELD_VIDEO_LOG_METAINFO] = {k: event_event.get(
+                    k) for k in target_attrs if event_event.get(k) is not None}
+                event[DBc.FIELD_VIDEO_LOG_METAINFO]['path'] = event_context.get('path')
+
+                date_time = str(event_time.date())
+                temporal_hotness = temp_video_dict[video_id][DBc.FIELD_VIDEO_TEMPORAL_HOTNESS]
+
+                if date_time not in temporal_hotness:
+                    temporal_hotness[date_time] = 0
+                temporal_hotness[date_time] += 1
                 events.append(event)
 
         processed_data = raw_data
-        processed_data['data'][DBConfig.COLLECTION_VIDEO_LOG] = events
+        processed_data['data'][DBc.COLLECTION_VIDEO_LOG] = events
         return processed_data
 
 
@@ -385,15 +402,14 @@ class DumpToDB(PipeModule):
     def process(self, raw_data, raw_data_filenames=None):
         db_data = raw_data['data']
         # cast from set to list
-        course = db_data[DBConfig.COLLECTION_COURSE][0]
-        course[DBConfig.FIELD_COURSE_VIDEO_LIST] = list(course[DBConfig.FIELD_COURSE_VIDEO_LIST])
-        course[DBConfig.FIELD_COURSE_STUDENT_LIST] = list(
-            course[DBConfig.FIELD_COURSE_STUDENT_LIST])
-        users = db_data[DBConfig.COLLECTION_USER]
+        course = db_data[DBc.COLLECTION_COURSE][0]
+        course[DBc.FIELD_COURSE_VIDEO_IDS] = list(course[DBc.FIELD_COURSE_VIDEO_IDS])
+        course[DBc.FIELD_COURSE_STUDENT_IDS] = list(course[DBc.FIELD_COURSE_STUDENT_IDS])
+        users = db_data[DBc.COLLECTION_USER]
         for user in users:
-            user[DBConfig.FIELD_USER_COURSE_LIST] = list(user[DBConfig.FIELD_USER_COURSE_LIST])
-            user[DBConfig.FIELD_USER_DROPPED_COURSE_LIST] = list(
-                user[DBConfig.FIELD_USER_DROPPED_COURSE_LIST])
+            user[DBc.FIELD_USER_COURSE_IDS] = list(user[DBc.FIELD_USER_COURSE_IDS])
+            user[DBc.FIELD_USER_DROPPED_COURSE_IDS] = list(
+                user[DBc.FIELD_USER_DROPPED_COURSE_IDS])
 
         # insert to db
         for collection_name in db_data:
