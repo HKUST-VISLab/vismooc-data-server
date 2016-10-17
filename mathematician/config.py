@@ -27,8 +27,8 @@ class DBConfig:
     FIELD_COURSE_METAINFO = "metaInfo"
     FIELD_COURSE_STARTTIME = "startDate"
     FIELD_COURSE_ENDTIME = "endDate"
-    FIELD_COURSE_STUDENT_LIST = "studentIds"
-    FIELD_COURSE_VIDEO_LIST = "videoIds"
+    FIELD_COURSE_STUDENT_IDS = "studentIds"
+    FIELD_COURSE_VIDEO_IDS = "videoIds"
 
     COLLECTION_USER = "users"
     FIELD_USER_ORIGINAL_ID = "originalId"
@@ -36,8 +36,8 @@ class DBConfig:
     FIELD_USER_AGE = "age"
     FIELD_USER_GENDER = "gender"
     FIELD_USER_COUNTRY = "country"
-    FIELD_USER_COURSE_LIST = "courseIds"
-    FIELD_USER_DROPPED_COURSE_LIST = "droppedCourseIds"
+    FIELD_USER_COURSE_IDS = "courseIds"
+    FIELD_USER_DROPPED_COURSE_IDS = "droppedCourseIds"
 
     COLLECTION_ENROLLMENT = "enrollments"
     FIELD_ENROLLMENT_COURSE_ID = "courseId"
@@ -122,11 +122,11 @@ class DBConfig:
                         FIELD_GENERAL_VALIDATION: {"$type": "string"}
                     },
                     {
-                        FIELD_GENERAL_NAME: FIELD_COURSE_STUDENT_LIST,
+                        FIELD_GENERAL_NAME: FIELD_COURSE_STUDENT_IDS,
                         FIELD_GENERAL_VALIDATION: {"$type": "array"}
                     },
                     {
-                        FIELD_GENERAL_NAME: FIELD_COURSE_VIDEO_LIST,
+                        FIELD_GENERAL_NAME: FIELD_COURSE_VIDEO_IDS,
                         FIELD_GENERAL_VALIDATION: {"$type": "array"}
                     }
                 ],
@@ -167,11 +167,11 @@ class DBConfig:
                         FIELD_GENERAL_VALIDATION: {"$type": "string"}
                     },
                     {
-                        FIELD_GENERAL_NAME: FIELD_USER_COURSE_LIST,
+                        FIELD_GENERAL_NAME: FIELD_USER_COURSE_IDS,
                         FIELD_GENERAL_VALIDATION: {"$type": "array"}
                     },
                     {
-                        FIELD_GENERAL_NAME: FIELD_USER_DROPPED_COURSE_LIST,
+                        FIELD_GENERAL_NAME: FIELD_USER_DROPPED_COURSE_IDS,
                         FIELD_GENERAL_VALIDATION: {"$type": "array"}
                     }
                 ],
