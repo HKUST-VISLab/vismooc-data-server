@@ -1,8 +1,8 @@
 import re
 import json
-import mathematician.httphelper as httphelper
 from datetime import timedelta
 from operator import itemgetter
+import mathematician.httphelper as httphelper
 from bson import ObjectId
 from ..pipe import PipeModule
 from ..DB.mongo_dbhelper import MongoDB
@@ -54,6 +54,9 @@ class FormatCourseStructFile(PipeModule):
         self.youtube_api = youtube_api_host + '?' + params
 
     def load_data(self, data_filenames):
+        '''
+        Load target file
+        '''
         target_filename = None
         for filename in data_filenames:
             if '-course_structure-' in filename:
@@ -101,10 +104,10 @@ class FormatCourseStructFile(PipeModule):
                 videos[video[DBConfig.FIELD_VIDEO_ORIGINAL_ID]] = video
             elif value['category'] == 'course':
                 course_id = key[6:].split('/')
-                course_id = course_id[0] + '/' + \
-                    course_id[1] + '/' + course_id[3]
+                course_id = course_id[0] + '/' + course_id[1] + '/' + course_id[3]
+                course[DBConfig.FIELD_COURSE_ORIGINAL_ID] = course_id
                 course[DBConfig.FIELD_COURSE_NAME] = value_metadata.get('display_name')
-                course[DBConfig.FIELD_COURSE_YEAR] = None
+                course[DBConfig.FIELD_COURSE_YEAR] = None #can be calculate from start time
                 course[DBConfig.FIELD_COURSE_INSTRUCTOR] = None
                 course[DBConfig.FIELD_COURSE_STATUS] = None
                 course[DBConfig.FIELD_COURSE_URL] = None
@@ -113,7 +116,6 @@ class FormatCourseStructFile(PipeModule):
                 course[DBConfig.FIELD_COURSE_METAINFO] = {}
                 course[DBConfig.FIELD_COURSE_STARTTIME] = value_metadata.get('start')
                 course[DBConfig.FIELD_COURSE_ENDTIME] = value_metadata.get('end')
-                course[DBConfig.FIELD_COURSE_ORIGINAL_ID] = course_id
                 course[DBConfig.FIELD_COURSE_STUDENT_LIST] = set()
                 course[DBConfig.FIELD_COURSE_VIDEO_LIST] = set()
 
@@ -154,6 +156,9 @@ class FormatUserFile(PipeModule):
         self._userprofile = {}
 
     def load_data(self, data_filenames):
+        '''
+        Load target file
+        '''
         auth_user_filename = None
         auth_userprofile_filename = None
         for filename in data_filenames:
@@ -223,6 +228,9 @@ class FormatEnrollmentFile(PipeModule):
         super().__init__()
 
     def load_data(self, data_filenames):
+        '''
+        Load target file
+        '''
         target_filename = None
         for filename in data_filenames:
             if '-student_courseenrollment-' in filename:
@@ -280,6 +288,9 @@ class FormatLogFile(PipeModule):
         super().__init__()
 
     def load_data(self, data_filenames):
+        '''
+        Load target file
+        '''
         target_filename = None
         for filename in data_filenames:
             if '-events-' in filename:
@@ -301,7 +312,9 @@ class FormatLogFile(PipeModule):
 
         wrong_username_pattern = r'"username"\s*:\s*"",'
         right_eventsource_pattern = r'"event_source"\s*:\s*"browser"'
-        right_match_eventtype_pattern = r'"event_type"\s*:\s*"(hide_transcript|load_video|pause_video|play_video|seek_video|show_transcript|speed_change_video|stop_video|video_hide_cc_menu|video_show_cc_menu)"'
+        right_match_eventtype_pattern = r'"event_type"\s*:\s*"(hide_transcript|load_video|' + \
+            r'pause_video|play_video|seek_video|show_transcript|speed_change_video|stop_video|'+ \
+            r'video_hide_cc_menu|video_show_cc_menu)"'
 
         match_context_pattern = r',?\s*("context"\s*:\s*{[^}]*})'
         match_event_pattern = r',?\s*("event"\s*:\s*"([^"]|\\")*(?<!\\)")'
@@ -309,16 +322,13 @@ class FormatLogFile(PipeModule):
         match_time_pattern = r',?\s*("time"\s*:\s*"[^"]*")'
         match_event_json_escape_pattern = r'"(?={)|"$'
         re_filter_wrong_pattern = re.compile(wrong_username_pattern)
-        re_search_right_eventsource_pattern = re.compile(
-            right_eventsource_pattern)
-        re_search_right_eventtype_pattern = re.compile(
-            right_match_eventtype_pattern)
+        re_search_right_eventsource_pattern = re.compile(right_eventsource_pattern)
+        re_search_right_eventtype_pattern = re.compile(right_match_eventtype_pattern)
         re_search_context_pattern = re.compile(match_context_pattern)
         re_search_event_pattern = re.compile(match_event_pattern)
         re_search_username_pattern = re.compile(match_username_pattern)
         re_search_time_pattern = re.compile(match_time_pattern)
-        re_search_event_json_escape_pattern = re.compile(
-            match_event_json_escape_pattern)
+        re_search_event_json_escape_pattern = re.compile(match_event_json_escape_pattern)
 
         events = []
         for line in data_to_be_processed:
@@ -342,13 +352,21 @@ class FormatLogFile(PipeModule):
                 json_str = "{" + ",".join(temp_array) + "}"
                 event_json = json.loads(json_str)
                 event = {}
-                event_context = event_json.get('context')
-                event[DBConfig.FIELD_VIDEO_LOG_USER_ID] = event_context and event_context['user_id']
-                event[DBConfig.FIELD_VIDEO_LOG_VIDEO_ID] = event_json.get(
-                    'event') and event_json.get('event')['id']
+                event_context = event_json.get('context') or {}
+                event_event = event_json.get('event') or {}
+                target_event_attribute = {'path', 'code', 'currentTime', 'new_time', 'old_time',
+                                          'new_speed', 'old_speed'}
+
+                event[DBConfig.FIELD_VIDEO_LOG_USER_ID] = event_context.get('user_id')
+                event[DBConfig.FIELD_VIDEO_LOG_VIDEO_ID] = event_event.get('id')
+                event[DBConfig.FIELD_VIDEO_COURSE_ID] = event_context.get('course_id')
                 event[DBConfig.FIELD_VIDEO_LOG_TIMESTAMP] = event_json.get('time')
                 event[DBConfig.FIELD_VIDEO_LOG_TYPE] = event_json.get('event_type')
-                event[DBConfig.FIELD_VIDEO_LOG_METAINFO] = event_json.get('event')
+                event[DBConfig.FIELD_VIDEO_LOG_METAINFO] = {'path':event_context.get('path')}
+                for k in target_event_attribute:
+                    value = event_event.get(k)
+                    if value is not None:
+                        event[DBConfig.FIELD_VIDEO_LOG_METAINFO][k] = value
 
                 events.append(event)
 
