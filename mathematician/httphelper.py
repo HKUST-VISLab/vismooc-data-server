@@ -3,9 +3,10 @@ import asyncio
 import aiohttp
 import os
 import multiprocessing
+import json
 
 
-def get(url, headers=None, params=None):
+def get(url, headers={}, params=None):
     """Send synchronous get request
 
     """
@@ -20,11 +21,12 @@ def get(url, headers=None, params=None):
 
     req = urllib.request.Request(url=url, headers=headers, method='GET')
     with urllib.request.urlopen(req) as f:
+        assert f.getcode() >= 200 and f.getcode() < 300
         data = f.read()
         return data
 
 
-def post(url, headers=None, params=None):
+def post(url, headers={}, params=None):
     """Send synchronous post request
 
     """
@@ -35,6 +37,7 @@ def post(url, headers=None, params=None):
     req = urllib.request.Request(url=url, headers=headers, data=params, method='POST')
 
     with urllib.request.urlopen(req) as f:
+        assert f.getcode() >= 200 and f.getcode() < 300
         data = f.read()
         return data
 
@@ -105,12 +108,11 @@ def get_list(urls, limit=30, headers=None, params=None):
     return results
 
 async def async_download_file_part(url, start, end, file_path, params, headers={}, loop=None):
-    """Download the given part, which is defined by start and end"""
-    #print("here")
-    tmp = "bytes={}-{}".format(start, end)
+    """Download the given part, which is defined by start and end
+    
+    """
     headers = {"Range" : "bytes={}-{}".format(start, end)}
     result = await async_get(url, headers=headers, params=params)
-    #print(start)
     with open(file_path, 'rb+') as f:
         f.seek(start, 0)
         f.write(result)
@@ -153,7 +155,7 @@ class HttpConnection:
     """
 
     def __init__(self, host, headers=None):
-        self._session = aiohttp.ClientSession()
+        self.__session = aiohttp.ClientSession()
         self.__host = host
         self.__headers = headers or {}
 
@@ -179,10 +181,22 @@ class HttpConnection:
         return post(self.__host + url, self.headers, params)
 
     async def async_get(self, url, params):
-        result = await async_get(self.__host + url, self.headers, params, session=self._session)
+        result = await async_get(self.__host + url, self.headers, params, session=self.__session)
         return result
 
     async def async_post(self, url, params):
-        result = await async_post(self.__host + url, self.headers, params, session=self._session)
+        result = await async_post(self.__host + url, self.headers, params, session=self.__session)
         return result
+
+class DownloadFileFromServer():
+    def __init__(self, api_key):
+        self.__api_key = api_key
+        self.__token = None
+        self.__http_connection = HttpConnection("https://dataapi.hkmooc.hk/")
+    def get_token_from_server(self):
+        response = self.__http_connection.post("/resources/access_token", {"API_Key" : self.__api_key})
+        response_json = json.loads(response)
+        self.__token = response_json.get("collection").get("items")[0].get("access_token")
+    
+
         
