@@ -137,9 +137,13 @@ class FormatCourseStructFile(PipeModule):
         # fetch the video duration from youtube_api_v3
         urls = [self.youtube_api + '&id=' +
                 youtube_id for youtube_id in video_youtube_ids]
+        broken_youtube_id = set([youtube_id for youtube_id in video_youtube_ids])
         results = httphelper.get_list(urls, limit=60)
         for result in results:
+            if len(result["items"]) == 0:
+                continue
             video_id = result["items"][0]["id"]
+            broken_youtube_id.discard(video_id)
             video = temp_video_dict[video_id]
             duration = parse_duration(result["items"][0]["contentDetails"]["duration"])
             video[DBc.FIELD_VIDEO_DURATION] = int(duration.total_seconds())
@@ -148,6 +152,8 @@ class FormatCourseStructFile(PipeModule):
         processed_data['data'][DBc.COLLECTION_VIDEO] = list(videos.values())
         processed_data['data'][DBc.COLLECTION_COURSE] = [course]
 
+        with open("/vismooc-test-data/broken_youtube_id.log", "w+") as f:
+            f.write(str(broken_youtube_id))
         return processed_data
 
 
@@ -414,7 +420,8 @@ class DumpToDB(PipeModule):
         # insert to db
         for collection_name in db_data:
             collection = self.db.get_collection(collection_name)
-            collection.insert_many(db_data[collection_name])
+            if db_data[collection_name] is not None:
+                collection.insert_many(db_data[collection_name])
 
         return raw_data
 
@@ -432,6 +439,8 @@ class SetEncoder(json.JSONEncoder):
 
 
 class OutputFile(PipeModule):
+
+
     order = 999
 
     def __init__(self):
@@ -442,3 +451,39 @@ class OutputFile(PipeModule):
         write_file.write(json.dumps(raw_data, cls=SetEncoder))
         write_file.close()
         return raw_data
+class PreprocessFormatLogFile():
+
+    order = 3
+
+    def __init__(self):
+        super().__init__()
+
+    def load_data(self, data_filenames):
+        for filename in data_filenames:
+            if '-events-' in filename:
+                with open(filename, 'r', encoding='utf-8') as file:
+                    raw_data = file.readlines()
+                    file.close()
+                    yield raw_data
+
+    def process(self, raw_data_filenames=None):
+        wrong_username_pattern = r'"username"\s*:\s*"",'
+        right_eventsource_pattern = r'"event_source"\s*:\s*"browser"'
+        right_match_eventtype_pattern = r'"event_type"\s*:\s*"(hide_transcript|load_video|pause_video|play_video|seek_video|show_transcript|speed_change_video|stop_video|video_hide_cc_menu|video_show_cc_menu)"'
+
+        re_filter_wrong_pattern = re.compile(wrong_username_pattern)
+        re_search_right_eventsource_pattern = re.compile(
+            right_eventsource_pattern)
+        re_search_right_eventtype_pattern = re.compile(
+            right_match_eventtype_pattern)
+        results = []
+
+
+        data_to_be_processed = self.load_data(raw_data_filenames)
+
+        for single_file in data_to_be_processed:       
+            for line in single_file:
+                event_type = re_search_right_eventtype_pattern.search(line)
+                if re_filter_wrong_pattern.search(line) is None and re_search_right_eventsource_pattern.search(line) is not None and event_type is not None:
+                    results.append(line)
+        return results
