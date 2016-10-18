@@ -301,6 +301,15 @@ class FormatLogFile(PipeModule):
     def __init__(self):
         super().__init__()
 
+    def try_parsing_date(self, text):
+        pattern_time = {"%Y-%m-%dT%H:%M:%S.%f+00:00","%Y-%m-%dT%H:%M:%S+00:00"}
+        for pattern in pattern_time:
+            try:
+                return datetime.strptime(text, pattern)
+            except ValueError:
+                pass
+        raise ValueError('no valid date format found')
+
     def load_data(self, data_filenames):
         '''
         Load target file
@@ -348,7 +357,6 @@ class FormatLogFile(PipeModule):
             'data'][DBc.COLLECTION_VIDEO]}
 
         events = []
-        pattern_time = "%Y-%m-%dT%H:%M:%S.%f+00:00"
         for line in data_to_be_processed:
             event_type = re_right_eventtype.search(line)
             if re_wrong_username.search(line) is None and \
@@ -376,7 +384,7 @@ class FormatLogFile(PipeModule):
                 event_event = temp_data.get('event') or {}
 
                 video_id = event_event.get('id')
-                event_time = datetime.strptime(temp_data.get('time'), pattern_time)
+                event_time = self.try_parsing_date(temp_data.get('time'))
                 event[DBc.FIELD_VIDEO_LOG_USER_ID] = event_context.get('user_id')
                 event[DBc.FIELD_VIDEO_LOG_VIDEO_ID] = video_id
                 event[DBc.FIELD_VIDEO_COURSE_ID] = event_context.get('course_id')
@@ -421,6 +429,12 @@ class DumpToDB(PipeModule):
             user[DBc.FIELD_USER_COURSE_IDS] = list(user[DBc.FIELD_USER_COURSE_IDS])
             user[DBc.FIELD_USER_DROPPED_COURSE_IDS] = list(
                 user[DBc.FIELD_USER_DROPPED_COURSE_IDS])
+
+        for video in db_data[DBc.COLLECTION_VIDEO]:
+            temp_hotness = video[DBc.FIELD_VIDEO_TEMPORAL_HOTNESS]
+            video[DBc.FIELD_VIDEO_TEMPORAL_HOTNESS] = [
+                {"date": k, "value": v} for k, v in temp_hotness.items()]
+
 
         # insert to db
         for collection_name in db_data:
