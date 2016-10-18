@@ -20,6 +20,7 @@ re_ISO_8601_duration = re.compile(
     r"(?P<seconds>[0-9]+([,.][0-9]+)?S)?)?$"
 )
 
+
 def parse_duration(datestring):
     if not isinstance(datestring, str):
         raise TypeError("Expecting a string %r" % datestring)
@@ -41,6 +42,7 @@ def parse_duration(datestring):
     else:
         raise BaseException("there must be something woring in this time string")
     return ret
+
 
 class FormatCourseStructFile(PipeModule):
 
@@ -152,8 +154,8 @@ class FormatCourseStructFile(PipeModule):
         processed_data['data'][DBc.COLLECTION_VIDEO] = list(videos.values())
         processed_data['data'][DBc.COLLECTION_COURSE] = [course]
 
-        with open("/vismooc-test-data/broken_youtube_id.log", "w+") as f:
-            f.write(str(broken_youtube_id))
+        # with open("/vismooc-test-data/broken_youtube_id.log", "w+") as f:
+        #     f.write(str(broken_youtube_id))
         return processed_data
 
 
@@ -290,6 +292,7 @@ class FormatEnrollmentFile(PipeModule):
         processed_data['data'][DBc.COLLECTION_USER] = list(users.values())
         return processed_data
 
+
 class FormatLogFile(PipeModule):
 
     order = 3
@@ -322,7 +325,7 @@ class FormatLogFile(PipeModule):
         pattern_wrong_username = r'"username"\s*:\s*"",'
         pattern_right_eventsource = r'"event_source"\s*:\s*"browser"'
         pattern_right_eventtype = r'"event_type"\s*:\s*"(hide_transcript|load_video|' + \
-            r'pause_video|play_video|seek_video|show_transcript|speed_change_video|stop_video|'+ \
+            r'pause_video|play_video|seek_video|show_transcript|speed_change_video|stop_video|' + \
             r'video_hide_cc_menu|video_show_cc_menu)"'
 
         pattern_context = r',?\s*("context"\s*:\s*{[^}]*})'
@@ -379,15 +382,16 @@ class FormatLogFile(PipeModule):
                 event[DBc.FIELD_VIDEO_LOG_TIMESTAMP] = event_time.timestamp()
                 event[DBc.FIELD_VIDEO_LOG_TYPE] = temp_data.get('event_type')
 
-                target_attrs = {'path', 'code', 'currentTime', 'new_time', 'old_time',
-                                'new_speed', 'old_speed'}
-                event[DBc.FIELD_VIDEO_LOG_METAINFO] = {k: event_event.get(
-                    k) for k in target_attrs if event_event.get(k) is not None}
+                target_attrs = {'path': 'path', 'code': 'code', 'currentTime': 'currentTime',
+                                'new_time': 'newTime', 'old_time': 'oldTime',
+                                'new_speed': 'newSpeed', 'old_speed': 'oldSpeed'}
+
+                event[DBc.FIELD_VIDEO_LOG_METAINFO] = {nk: event_event.get(
+                    k) for k, nk in target_attrs if event_event.get(k) is not None}
                 event[DBc.FIELD_VIDEO_LOG_METAINFO]['path'] = event_context.get('path')
 
                 date_time = str(event_time.date())
                 temporal_hotness = temp_video_dict[video_id][DBc.FIELD_VIDEO_TEMPORAL_HOTNESS]
-
                 if date_time not in temporal_hotness:
                     temporal_hotness[date_time] = 0
                 temporal_hotness[date_time] += 1
@@ -440,7 +444,6 @@ class SetEncoder(json.JSONEncoder):
 
 class OutputFile(PipeModule):
 
-
     order = 999
 
     def __init__(self):
@@ -451,6 +454,8 @@ class OutputFile(PipeModule):
         write_file.write(json.dumps(raw_data, cls=SetEncoder))
         write_file.close()
         return raw_data
+
+
 class PreprocessFormatLogFile():
 
     order = 3
@@ -478,10 +483,9 @@ class PreprocessFormatLogFile():
             right_match_eventtype_pattern)
         results = []
 
-
         data_to_be_processed = self.load_data(raw_data_filenames)
 
-        for single_file in data_to_be_processed:       
+        for single_file in data_to_be_processed:
             for line in single_file:
                 event_type = re_search_right_eventtype_pattern.search(line)
                 if re_filter_wrong_pattern.search(line) is None and re_search_right_eventsource_pattern.search(line) is not None and event_type is not None:
