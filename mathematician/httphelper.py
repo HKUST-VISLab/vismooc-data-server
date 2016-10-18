@@ -166,8 +166,7 @@ def download_multi_file(urls, save_dir, process_pool_size=(os.cpu_count() or 1))
     pool = multiprocessing.Pool(processes=process_pool_size)
 
     for url in urls:
-        file_path = os.path.join(os.path.abspath(
-            save_dir), url[url.rindex("/") + 1:])
+        file_path = os.path.join(os.path.abspath(save_dir), url[url.rindex("/") + 1:])
 
         pool.apply_async(download_single_file, (url, file_path, ))
     pool.close()
