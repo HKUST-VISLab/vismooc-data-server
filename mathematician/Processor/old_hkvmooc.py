@@ -358,6 +358,7 @@ class FormatLogFile(PipeModule):
 
         events = []
         broken_event = []
+        print('ready to process log file')
         for line in data_to_be_processed:
             event_type = re_right_eventtype.search(line)
             if re_wrong_username.search(line) is None and \
@@ -415,6 +416,7 @@ class FormatLogFile(PipeModule):
 
         processed_data = raw_data
         processed_data['data'][DBc.COLLECTION_VIDEO_LOG] = events
+        print('finish format log file')
         return processed_data
 
 
@@ -441,8 +443,9 @@ class DumpToDB(PipeModule):
             temp_hotness = video[DBc.FIELD_VIDEO_TEMPORAL_HOTNESS]
             video[DBc.FIELD_VIDEO_TEMPORAL_HOTNESS] = [
                 {"date": k, "value": v} for k, v in temp_hotness.items()]
-
+        
         # insert to db
+        print('ready to dump to db')
         for collection_name in db_data:
             collection = self.db.get_collection(collection_name)
             if db_data[collection_name] is not None:
