@@ -379,7 +379,7 @@ class FormatLogFile(PipeModule):
                 if timestamp is not None:
                     temp_data.append(timestamp.group(1))
 
-                temp_data = json.loads("{" + ",".join(temp_data) + "}")
+                temp_data = json.loads("{" + (",".join(temp_data)).replace('.,', ',') + "}")
                 event = {}
                 event_context = temp_data.get('context') or {}
                 event_event = temp_data.get('event') or {}
