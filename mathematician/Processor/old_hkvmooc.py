@@ -142,6 +142,7 @@ class FormatCourseStructFile(PipeModule):
         broken_youtube_id = set([youtube_id for youtube_id in video_youtube_ids])
         results = httphelper.get_list(urls, limit=60)
         for result in results:
+            result = json.loads(result.decode('utf-8'))
             if len(result["items"]) == 0:
                 continue
             video_id = result["items"][0]["id"]
