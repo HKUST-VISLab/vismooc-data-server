@@ -155,8 +155,8 @@ class FormatCourseStructFile(PipeModule):
         processed_data['data'][DBc.COLLECTION_VIDEO] = list(videos.values())
         processed_data['data'][DBc.COLLECTION_COURSE] = [course]
 
-        # with open("/vismooc-test-data/broken_youtube_id.log", "w+") as f:
-        #     f.write(str(broken_youtube_id))
+        with open("/vismooc-test-data/broken_youtube_id.log", "w+") as f:
+            f.write(str(broken_youtube_id))
         return processed_data
 
 
@@ -357,6 +357,7 @@ class FormatLogFile(PipeModule):
             'data'][DBc.COLLECTION_VIDEO]}
 
         events = []
+        broken_event = []
         for line in data_to_be_processed:
             event_type = re_right_eventtype.search(line)
             if re_wrong_username.search(line) is None and \
@@ -400,11 +401,17 @@ class FormatLogFile(PipeModule):
                 event[DBc.FIELD_VIDEO_LOG_METAINFO]['path'] = event_context.get('path')
 
                 date_time = str(event_time.date())
-                temporal_hotness = temp_video_dict[video_id][DBc.FIELD_VIDEO_TEMPORAL_HOTNESS]
-                if date_time not in temporal_hotness:
-                    temporal_hotness[date_time] = 0
-                temporal_hotness[date_time] += 1
+
+                try:
+                    temporal_hotness = temp_video_dict[video_id][DBc.FIELD_VIDEO_TEMPORAL_HOTNESS]
+                    if date_time not in temporal_hotness:
+                        temporal_hotness[date_time] = 0
+                    temporal_hotness[date_time] += 1
+                except KeyError:
+                    broken_event.append(json.dumps(event))
                 events.append(event)
+        with open("/vismooc-test-data/broken_event.log", "w+") as f:
+            f.write(str(broken_event))
 
         processed_data = raw_data
         processed_data['data'][DBc.COLLECTION_VIDEO_LOG] = events
@@ -434,7 +441,6 @@ class DumpToDB(PipeModule):
             temp_hotness = video[DBc.FIELD_VIDEO_TEMPORAL_HOTNESS]
             video[DBc.FIELD_VIDEO_TEMPORAL_HOTNESS] = [
                 {"date": k, "value": v} for k, v in temp_hotness.items()]
-
 
         # insert to db
         for collection_name in db_data:
