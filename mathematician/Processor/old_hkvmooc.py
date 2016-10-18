@@ -388,7 +388,7 @@ class FormatLogFile(PipeModule):
                                 'new_speed': 'newSpeed', 'old_speed': 'oldSpeed'}
 
                 event[DBc.FIELD_VIDEO_LOG_METAINFO] = {nk: event_event.get(
-                    k) for k, nk in target_attrs if event_event.get(k) is not None}
+                    k) for k, nk in target_attrs.items() if event_event.get(k) is not None}
                 event[DBc.FIELD_VIDEO_LOG_METAINFO]['path'] = event_context.get('path')
 
                 date_time = str(event_time.date())
