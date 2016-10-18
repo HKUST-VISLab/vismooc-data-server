@@ -67,8 +67,7 @@ async def async_get(url, headers=None, params=None, session=aiohttp):
         assert response.status >= 200 and response.status < 300
         # change "result = await response.json()" to "result = await
         # response.read()"
-
-        data = await response.read()
+        data = await response.json()
         return HttpResponse(response.status, response.headers, data)
 
 async def async_post(url, headers=None, params=None, session=aiohttp):
