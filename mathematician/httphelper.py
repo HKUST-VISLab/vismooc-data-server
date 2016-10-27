@@ -138,18 +138,22 @@ def download_single_file(url, file_path, file_slice=10*1024*1024, start=0, end=N
             f.flush()
     tasks = []
     for part_start in range(0, download_size, file_slice):
-        part_end = part_start+file_slice if part_start+file_slice < download_size else download_size-1
-        future = asyncio.ensure_future(async_download_file_part(url, part_start, part_end, file_path, headers, params))
+        part_end = part_start+file_slice if part_start+file_slice < download_size \
+            else download_size-1
+        future = asyncio.ensure_future(async_download_file_part(url, part_start, \
+            part_end, file_path, headers, params))
         tasks.append(future)
     loop = asyncio.get_event_loop()
     loop.run_until_complete(asyncio.wait(tasks))
 
 def download_multi_file(urls, save_dir, process_pool_size=(os.cpu_count() or 1)):
-    if type(urls) is not list:
+    """ Use multiprocess to download multiple files one time
+    """
+    if isinstance(urls, list):
         raise Exception("The urls should be list type")
     if not os.path.exists(save_dir):
         raise Exception("The directory not exists")
-    pool = multiprocessing.Pool(processes = process_pool_size)
+    pool = multiprocessing.Pool(processes=process_pool_size)
     for url in urls:
         file_path = os.path.join(os.path.abspath(save_dir), url[url.rindex("/")+1 : ])
         pool.apply_async(download_single_file, (url, file_path, ))
@@ -171,7 +175,7 @@ class HttpConnection:
 
     @headers.setter
     def headers(self, headers):
-        if type(headers) is not dict:
+        if isinstance(headers, dict):
             raise TypeError('The headers require a dict variable !')
         self.__headers = headers
 
@@ -183,47 +187,84 @@ class HttpConnection:
     def get(self, url, params=None):
         response = get(self.__host + url, self.headers, params)
         if response.get_headers().get("Set-Cookie") is not None:
-            self.headers({"Cookie" : response.get_headers().get("Set-Cookie")})
+            self.headers = {"Cookie" : response.get_headers().get("Set-Cookie")}
         return response
 
     def post(self, url, params):
         response = post(self.__host + url, self.headers, params)
         if response.get_headers().get("Set-Cookie") is not None:
-            self.headers({"Cookie" : response.get_headers().get("Set-Cookie")})
+            self.headers = {"Cookie" : response.get_headers().get("Set-Cookie")}
         return response
+    
+    def download_files(self, urls, save_dir):
+        return download_multi_file(urls, save_dir)
 
     async def async_get(self, url, params):
         response = await async_get(self.__host + url, self.headers, params)
         if response.get_headers().get("Set-Cookie") is not None:
-            self.headers({"Cookie" : response.get_headers().get("Set-Cookie")})
+            self.headers = {"Cookie" : response.get_headers().get("Set-Cookie")}
         return response
 
     async def async_post(self, url, params):
         response = await async_post(self.__host + url, self.headers, params)
         if response.get_headers().get("Set-Cookie") is not None:
-            self.headers({"Cookie" : response.get_headers().get("Set-Cookie")})
+            self.headers = {"Cookie" : response.get_headers().get("Set-Cookie")}
         return response
 
 class DownloadFileFromServer():
     def __init__(self, api_key):
         self.__api_key = api_key
         self.__token = None
-        self.__http_connection = HttpConnection("https://dataapi.hkmooc.hk/")
+        self.__http_connection = HttpConnection("https://dataapi2.hkmooc.hk")
     def get_token_from_server(self):
-        response = self.__http_connection.post("/resources/access_token", {"API_Key" : self.__api_key})
-        response_json = json.loads(response)
-        self.__token = response_json.get("collection").get("items")[0].get("access_token")
+        """ Get the Access Token from server using API Key
+        """
+        self.__http_connection.headers = {"Authorization" : "Token{ " + self.__api_key + " }"}
+        response = self.__http_connection.post("/resources/access_tokens", None)
+        assert response.get_return_code() == 200
+        response_json = response.get_content_json()
+        self.__token = response_json.get("collection").get("items")[0].get("accessToken")
+        return self.__token
+    def get_click_stream(self, start, end, save_dir):
+        """Get click stream from server
+        """
+        if self.__token is None:
+            self.get_token_from_server()
+        self.__http_connection.headers = {"Authorization" : "Token " + self.__token}
+        response = self.__http_connection.get("/resources/clickstreams", \
+            {"since": start, "end": end})
+        assert response.get_return_code() == 200
+        items = response.get_content_json()
+        file_md5 = {}
+        file_urls = []
+        for item in items:
+            file_urls.append(item.href)
+            item_id = item.href[item.href.rindex("/")+1:]
+            file_md5[item_id] = item.md5
+        self.__http_connection.download_files(file_urls, save_dir)
+
+
 
 class HttpResponse():
+    """ Encapsulate http response headers, content, and status code in this class
+    """
     def __init__(self, return_code, headers, content):
         self.__return_code = return_code
         self.__headers = headers
         self.__content = content
     def get_headers(self):
+        """ return the response headers
+        """
         return self.__headers
     def get_content(self):
+        """ return the response content in bytes
+        """
         return self.__content
     def get_return_code(self):
-        return self.__return_code    
-
-        
+        """ return the response status code
+        """
+        return self.__return_code
+    def get_content_json(self, encode="UTF-8"):
+        """ return the response content in json
+        """
+        return json.loads(str(self.__content, encode))
