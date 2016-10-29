@@ -1,10 +1,11 @@
 import urllib.request
 import asyncio
-import aiohttp
 import os
 import multiprocessing
 import json
-
+import gzip
+import hashlib
+import aiohttp
 
 def get(url, headers={}, params=None):
     """Send synchronous get request
@@ -19,6 +20,7 @@ def get(url, headers={}, params=None):
         else:
             raise Exception("The params should be dict type")
 
+    # print(url)
     req = urllib.request.Request(url=url, headers=headers, method='GET')
     with urllib.request.urlopen(req) as f:
         assert f.getcode() >= 200 and f.getcode() < 300
@@ -149,7 +151,7 @@ def download_single_file(url, file_path, file_slice=10*1024*1024, start=0, end=N
 def download_multi_file(urls, save_dir, process_pool_size=(os.cpu_count() or 1)):
     """ Use multiprocess to download multiple files one time
     """
-    if isinstance(urls, list):
+    if not isinstance(urls, list):
         raise Exception("The urls should be list type")
     if not os.path.exists(save_dir):
         raise Exception("The directory not exists")
@@ -175,7 +177,7 @@ class HttpConnection:
 
     @headers.setter
     def headers(self, headers):
-        if isinstance(headers, dict):
+        if not isinstance(headers, dict):
             raise TypeError('The headers require a dict variable !')
         self.__headers = headers
 
@@ -226,22 +228,40 @@ class DownloadFileFromServer():
         self.__token = response_json.get("collection").get("items")[0].get("accessToken")
         return self.__token
     def get_click_stream(self, start, end, save_dir):
-        """Get click stream from server
+        """Get click stream from server, the parameters start
+           and end should be unix timestamp in millisecond
         """
         if self.__token is None:
             self.get_token_from_server()
         self.__http_connection.headers = {"Authorization" : "Token " + self.__token}
         response = self.__http_connection.get("/resources/clickstreams", \
-            {"since": start, "end": end})
+            {"since": str(start), "before": str(end)})
         assert response.get_return_code() == 200
-        items = response.get_content_json()
+        items = response.get_content_json().get('collection').get('items')
+        # print(items)
         file_md5 = {}
         file_urls = []
         for item in items:
-            file_urls.append(item.href)
-            item_id = item.href[item.href.rindex("/")+1:]
-            file_md5[item_id] = item.md5
+            file_urls.append(item['href'])
+            item_id = item['href'][item['href'].rindex("/")+1:]
+            file_md5[item_id] = item['md5']
         self.__http_connection.download_files(file_urls, save_dir)
+        self.verify_and_decompress_files(save_dir, file_md5)
+
+    def verify_and_decompress_files(self, save_dir, file_md5):
+        """ use md5 to verify files' data intergrity
+        """
+        file_names = [os.path.join(save_dir, file_name) for file_name \
+            in os.listdir(save_dir) if os.path.isfile(os.path.join(save_dir, file_name))]
+        for file_name in file_names:
+            with open(file_name, 'rb') as file:
+                file_data = file.read()
+                actual_md5 = hashlib.md5(file_data).hexdigest()
+                assert str(actual_md5) == file_md5.get(\
+                    file_name[file_name.rindex("\\")+1 :])
+            with open(file_name, 'wb') as file:
+                decompass_data = gzip.decompress(file_data)
+                file.write(decompass_data)
 
 
 
@@ -268,3 +288,4 @@ class HttpResponse():
         """ return the response content in json
         """
         return json.loads(str(self.__content, encode))
+
