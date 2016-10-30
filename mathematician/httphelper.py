@@ -91,30 +91,13 @@ async def async_post(url, headers=None, params=None, session=aiohttp):
         data = await response.read()
         return HttpResponse(response.status, response.headers, data)
 
-
-async def async_get_list(urls, headers=None, params=None, loop=None):
-    if type(urls) is not list:
-        raise Exception("The urls should be list type")
-
-    async with aiohttp.ClientSession(loop=loop) as session:
-        tasks = []
-        for url in urls:
-            task = asyncio.ensure_future(
-                async_get(url, headers, params, session))
-
-            tasks.append(task)
-        responses = await asyncio.gather(*tasks)
-        return responses
-
-
 def get_list(urls, limit=30, headers=None, params=None):
     loop = asyncio.get_event_loop()
     results = []
-    for i in range(0, len(urls), limit):
-        future = asyncio.ensure_future(async_get_list(urls[i:i + limit], headers, params, loop))
-
-        loop.run_until_complete(future)
-        results += future.result()
+    with aiohttp.ClientSession(loop=loop) as session:
+        for i in range(0, len(urls), limit):
+            tasks = [ asyncio.ensure_future(async_get(url, headers, params, session)) for url in urls[i:i+limit]]
+            results += loop.run_until_complete(asyncio.gather(*tasks))
     return [result.get_content() for result in results]
 
 async def async_download_file_part(url, start, end, file_path, params, headers={}, loop=None):
