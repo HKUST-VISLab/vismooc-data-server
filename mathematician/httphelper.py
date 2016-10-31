@@ -251,6 +251,7 @@ class DownloadFileFromServer():
     def verify_and_decompress_files(self, save_dir, file_md5):
         """ use md5 to verify files' data intergrity
         """
+        
         file_names = [os.path.join(save_dir, file_name) for file_name \
             in os.listdir(save_dir) if os.path.isfile(os.path.join(save_dir, file_name))]
         for file_name in file_names:
