@@ -3,17 +3,15 @@ import asyncio
 import os
 import multiprocessing
 import json
-import gzip
 import hashlib
 import aiohttp
-import tarfile
 
 def get(url, headers={}, params=None):
     """Send synchronous get request
 
     """
     if params is not None:
-        if type(params) is dict:
+        if isinstance(params, dict):
             url = url + '?'
             for key in params:
                 url = url + key + '=' + params[key] + '&'
@@ -123,9 +121,9 @@ async def async_download_file_part(url, start, end, file_path, params, headers={
     headers = {"Range" : "bytes={}-{}".format(start, end)}
     result = await async_get(url, headers=headers, params=params)
     result = result.get_content()
-    with open(file_path, 'rb+') as f:
-        f.seek(start, 0)
-        f.write(result)
+    with open(file_path, 'rb+') as file:
+        file.seek(start, 0)
+        file.write(result)
 
 def download_single_file(url, file_path, headers, file_slice=10*1024*1024, start=0, end=None, params=None):
     req = urllib.request.Request(url, data=params, headers=headers, method='HEAD')
@@ -138,10 +136,13 @@ def download_single_file(url, file_path, headers, file_slice=10*1024*1024, start
     # if just download part of file
     end = end or (file_size - 1)
     download_size = end - start + 1
+    print(download_size)
     if not os.path.exists(file_path):
         with open(file_path, 'w') as f:
-            f.write('\0' * download_size)
+            f.seek(download_size - 1)
+            f.write('\0')
             f.flush()
+        print("Successfully generate file")
     tasks = []
     for part_start in range(0, download_size, file_slice):
         part_end = part_start+file_slice if part_start+file_slice < download_size \
@@ -151,11 +152,18 @@ def download_single_file(url, file_path, headers, file_slice=10*1024*1024, start
         tasks.append(future)
     loop = asyncio.get_event_loop()
     loop.run_until_complete(asyncio.wait(tasks))
-    with open(file_path, 'r') as file:
+    with open(file_path, 'rb') as file:
         file_data = file.read()
         actual_md5 = hashlib.md5(file_data).hexdigest()
         assert str(actual_md5) == md5_value
 
+def download_single_file_one_thread(url, file_path, headers, params=None):
+    """Download file using one thread
+    """
+    result = get(url, headers=headers, params=params)
+    result = result.get_content()
+    with open(file_path, 'wb+') as file:
+        file.write(result)
 
 def download_multi_file(urls, save_dir, headers={}, process_pool_size=(os.cpu_count() or 1)):
     """ Use multiprocess to download multiple files one time
@@ -167,7 +175,8 @@ def download_multi_file(urls, save_dir, headers={}, process_pool_size=(os.cpu_co
     pool = multiprocessing.Pool(processes=process_pool_size)
     for url in urls:
         file_path = os.path.join(os.path.abspath(save_dir), url[url.rindex("/")+1 : ])
-        pool.apply_async(download_single_file, (url, file_path, headers))
+        # pool.apply_async(download_single_file, (url, file_path, headers))
+        pool.apply_async(download_single_file_one_thread, (url, file_path, headers))
     pool.close()
     pool.join()
 
@@ -221,77 +230,6 @@ class HttpConnection:
         if response.get_headers().get("Set-Cookie") is not None:
             self.headers = {"Cookie" : response.get_headers().get("Set-Cookie")}
         return response
-
-class DownloadFileFromServer():
-    """Download file from server"""
-    def __init__(self, api_key, host="https://dataapi2.hkmooc.hk"):
-        self.__api_key = api_key
-        self.__token = None
-        self.__host = host
-        self.__http_connection = HttpConnection(self.__host)
-    def get_token_from_server(self):
-        """ Get the Access Token from server using API Key
-        """
-        self.__http_connection.headers = {"Authorization" : "Token " + self.__api_key}
-        response = self.__http_connection.post("/resources/access_tokens", None)
-        assert response.get_return_code() == 200
-        response_json = response.get_content_json()
-        self.__token = response_json.get("collection").get("items")[0].get("accessToken")
-        return self.__token
-    def get_click_stream(self, start, end, save_dir):
-        """Get click stream from server, the parameters start
-           and end should be unix timestamp in millisecond
-        """
-        if self.__token is None:
-            self.get_token_from_server()
-        self.__http_connection.headers = {"Authorization" : "Token " + self.__token}
-        response = self.__http_connection.get("/resources/clickstreams", \
-            {"since": str(start), "before": str(end)})
-        assert response.get_return_code() == 200
-        items = response.get_content_json().get('collection').get('items')
-        file_urls = []
-        file_names = []
-        for item in items:
-            file_urls.append(item['href'])
-            item_id = item['href'][item['href'].rindex("/")+1:]
-            file_names.append(item_id)
-        self.__http_connection.download_files(file_urls, save_dir)
-        file_paths = [os.path.join(save_dir, file_name) for file_name in file_names]
-        self.decompress_files(file_paths, "gzip")
-
-    def get_mongo_and_mysql_sanpshot(self, save_dir):
-        """ Download mongodb and mysql snapshot
-        """
-        if self.__token is None:
-            self.get_token_from_server()
-        db_list = ["dbsnapshots_mongodb", "dbsnapshots_mysqldb"]
-        self.__http_connection.headers = {"Authorization" : "Token " + self.__token}
-        # self.__http_connection.download_files(file_urls, save_dir,)
-        urls = [self.__host + "/resources/" + db_name for \
-               db_name in db_list]
-        self.__http_connection.download_files(urls, save_dir)
-        file_paths = [os.path.join(save_dir, file_name) for file_name in db_list]
-        self.decompress_files(file_paths, "gtar")
-
-    def decompress_files(self, file_paths, compress_algorithm):
-        """ This method is to verify and decompress file using specified algorithm
-            use md5 to verify files' data intergrity
-            the parameter `file_md5` is a dict in which key is file name you want
-            to check and value is md5 value
-        """
-        if compress_algorithm not in ["gzip", "gtar"]:
-            raise Exception("Unsupported compress algorithm " + compress_algorithm)
-
-        for file_path in file_paths:
-            if compress_algorithm == "gzip":
-                with open(file_path, 'rb') as file:
-                    file_data = file.read()
-                with open(file_path, 'wb') as file:
-                    decompass_data = gzip.decompress(file_data)
-                    file.write(decompass_data)
-            elif compress_algorithm == "gtar":
-                with tarfile.open(file_path, 'r') as tar:
-                    tar.extractall(path=os.path.dirname(file_path))
 
 class HttpResponse():
     """ Encapsulate http response headers, content, and status code in this class
