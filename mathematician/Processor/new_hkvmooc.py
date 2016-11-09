@@ -52,10 +52,12 @@ class FormatCourseStructFile(PipeModule):
         self.video_duration = {}
         self.video_url = {}
         self.edx_videos = {}
+        self.course_overview = {}
     def load_data(self, raw_data):
         '''
         Load target file
         '''
+        self.course_overview = raw_data['course_overviews_courseoverview']
         self.edx_videos = raw_data['edxval_video']
         edx_course_videos = raw_data['edxval_coursevideo']
         video_encode = raw_data['edxval_encodedvideo']
@@ -75,6 +77,7 @@ class FormatCourseStructFile(PipeModule):
 
         self.load_data(raw_data)
         videos = {}
+        courses = {}
         for video_item in self.edx_videos:
             video = {}
             video_records = video_item.split(',')
@@ -89,6 +92,12 @@ class FormatCourseStructFile(PipeModule):
             video[DBc.FIELD_VIDEO_COURSE_ID] = self.course_video[video_original_id]
             video[DBc.FIELD_VIDEO_URL] = self.video_url[video_original_id]
             videos[video_original_id] = video
+        for course_item in self.course_overview:
+            course = {}
+            course_records = course_item.split(',')
+            course_original_id = course_records[3]
+            course[DBc.FIELD_COURSE_ORIGINAL_ID] = course_original_id
+
         
 
 
