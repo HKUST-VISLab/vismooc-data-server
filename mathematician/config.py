@@ -19,21 +19,33 @@ class DBConfig:
     FIELD_COURSE_ORIGINAL_ID = "originalId"
     FIELD_COURSE_NAME = "name"
     FIELD_COURSE_YEAR = "year"
+    FIELD_COURSE_ORG = "org"
+    FIELD_COURSE_ADVERTISED_START = "advertisedStart"
     FIELD_COURSE_INSTRUCTOR = "instructor"
     FIELD_COURSE_STATUS = "status"
     FIELD_COURSE_URL = "url"
-    FIELD_COURSE_IMAGE = "image"
+    FIELD_COURSE_IMAGE_URL = "courseImageUrl"
+    FIELD_COURSE_LOWEST_PASSING_GRADE = "lowest_passing_grade"
+    FIELD_COURSE_MOBILE_AVAILABLE = "mobileAvailable"
     FIELD_COURSE_DESCRIPTION = "description"
     FIELD_COURSE_METAINFO = "metaInfo"
     FIELD_COURSE_STARTTIME = "startDate"
     FIELD_COURSE_ENDTIME = "endDate"
+    FIELD_COURSE_ENROLLMENT_START = "enrollmentStart"
+    FIELD_COURSE_ENROLLMENT_END = "enrollmentEnd"
     FIELD_COURSE_STUDENT_IDS = "studentIds"
     FIELD_COURSE_VIDEO_IDS = "videoIds"
+    FIELD_COURSE_DISPLAY_NUMBER_WITH_DEFAULT = "displayNumberWithDefault"
 
     COLLECTION_USER = "users"
     FIELD_USER_ORIGINAL_ID = "originalId"
-    FIELD_USER_NAME = "username"
-    FIELD_USER_AGE = "age"
+    FIELD_USER_USER_NAME = "username"
+    FIELD_USER_NAME = "name"
+    FIELD_USER_LANGUAGE = "language"
+    FIELD_USER_LOCATION = "location"
+    FIELD_USER_BIRTH_DATE = "birthDate"
+    FIELD_USER_EDUCATION_LEVEL = "educationLevel"
+    FIELD_USER_BIO = "bio"
     FIELD_USER_GENDER = "gender"
     FIELD_USER_COUNTRY = "country"
     FIELD_USER_COURSE_IDS = "courseIds"
@@ -78,12 +90,28 @@ class DBConfig:
                 COLLECTION_GENERAL_FIELDS:
                 [
                     {
-                        FIELD_GENERAL_NAME: FIELD_COURSE_YEAR,
+                        FIELD_GENERAL_NAME: FIELD_COURSE_NAME,
                         FIELD_GENERAL_VALIDATION: {"$type": "string"}
                     },
                     {
                         FIELD_GENERAL_NAME: FIELD_COURSE_YEAR,
                         FIELD_GENERAL_VALIDATION: {"$regex": "/[1-9]{4}/"}
+                    },
+                    {
+                        FIELD_GENERAL_NAME: FIELD_COURSE_ORG,
+                        FIELD_GENERAL_VALIDATION: {"$type": "string"}
+                    },
+                    {
+                        FIELD_GENERAL_NAME: FIELD_COURSE_ADVERTISED_START,
+                        FIELD_GENERAL_VALIDATION: {"$type": "timestamp"}
+                    },
+                    {
+                        FIELD_GENERAL_NAME: FIELD_COURSE_LOWEST_PASSING_GRADE,
+                        FIELD_GENERAL_VALIDATION: {"$type": "string"}
+                    },
+                    {
+                        FIELD_GENERAL_NAME: FIELD_COURSE_MOBILE_AVAILABLE,
+                        FIELD_GENERAL_VALIDATION: {"$type": "boolean"}
                     },
                     {
                         FIELD_GENERAL_NAME: FIELD_COURSE_INSTRUCTOR,
@@ -98,7 +126,7 @@ class DBConfig:
                         FIELD_GENERAL_VALIDATION: {"$type": "string"}
                     },
                     {
-                        FIELD_GENERAL_NAME: FIELD_COURSE_IMAGE,
+                        FIELD_GENERAL_NAME: FIELD_COURSE_IMAGE_URL,
                         FIELD_GENERAL_VALIDATION: {"$type": "string"}
                     },
                     {
@@ -118,7 +146,19 @@ class DBConfig:
                         FIELD_GENERAL_VALIDATION: {"$type": "timestamp"}
                     },
                     {
+                        FIELD_GENERAL_NAME: FIELD_COURSE_ENROLLMENT_START,
+                        FIELD_GENERAL_VALIDATION: {"$type": "timestamp"}
+                    },
+                    {
+                        FIELD_GENERAL_NAME: FIELD_COURSE_ENROLLMENT_END,
+                        FIELD_GENERAL_VALIDATION: {"$type": "timestamp"}
+                    },
+                    {
                         FIELD_GENERAL_NAME: FIELD_COURSE_ORIGINAL_ID,
+                        FIELD_GENERAL_VALIDATION: {"$type": "string"}
+                    },
+                    {
+                        FIELD_GENERAL_NAME: FIELD_COURSE_DISPLAY_NUMBER_WITH_DEFAULT,
                         FIELD_GENERAL_VALIDATION: {"$type": "string"}
                     },
                     {
@@ -151,8 +191,28 @@ class DBConfig:
                         FIELD_GENERAL_VALIDATION: {"$type": "string"}
                     },
                     {
-                        FIELD_GENERAL_NAME: FIELD_USER_AGE,
-                        FIELD_GENERAL_VALIDATION: {"$gt": 0, "$lt": 120}
+                        FIELD_GENERAL_NAME: FIELD_USER_USER_NAME,
+                        FIELD_GENERAL_VALIDATION: {"$type": "string"}
+                    },
+                    {
+                        FIELD_GENERAL_NAME: FIELD_USER_LANGUAGE,
+                        FIELD_GENERAL_VALIDATION: {"$type": "string"}
+                    },
+                    {
+                        FIELD_GENERAL_NAME: FIELD_USER_LOCATION,
+                        FIELD_GENERAL_VALIDATION: {"$type": "string"}
+                    },
+                    {
+                        FIELD_GENERAL_NAME: FIELD_USER_BIRTH_DATE,
+                        FIELD_GENERAL_VALIDATION: {"$type": "timestamp"}
+                    },
+                    {
+                        FIELD_GENERAL_NAME: FIELD_USER_EDUCATION_LEVEL,
+                        FIELD_GENERAL_VALIDATION: {"$type": "string"}
+                    },
+                    {
+                        FIELD_GENERAL_NAME: FIELD_USER_BIO,
+                        FIELD_GENERAL_VALIDATION: {"$type": "string"}
                     },
                     {
                         FIELD_GENERAL_NAME: FIELD_USER_GENDER,

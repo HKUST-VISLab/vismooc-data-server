@@ -48,33 +48,49 @@ class FormatCourseStructFile(PipeModule):
 
     def __init__(self):
         super().__init__()
-        youtube_api_host = 'https://www.googleapis.com/youtube/v3/videos'
-        params = 'part=contentDetails&key=' + ThirdPartyKeys.Youtube_key
-
-        self.youtube_api = youtube_api_host + '?' + params
-
-    def load_data(self, data_filenames):
+        self.course_video = {}
+        self.video_duration = {}
+        self.video_url = {}
+        self.edx_videos = {}
+    def load_data(self, raw_data):
         '''
         Load target file
         '''
-        target_filename = None
-        for filename in data_filenames:
-            if '-course_structure-' in filename:
-                target_filename = filename
-                break
+        self.edx_videos = raw_data['edxval_video']
+        edx_course_videos = raw_data['edxval_coursevideo']
+        video_encode = raw_data['edxval_encodedvideo']
 
-        if target_filename is not None:
-            with open(target_filename, 'r', encoding='utf-8') as file:
-                raw_data = ''.join(file.readlines())
-                return raw_data
+        for video_encode_item in video_encode:
+            video_id = video_encode_item[7]
+            video_url = video_encode_item[3]
+            self.video_url[video_id] = video_url
 
-        return None
+        for row in edx_course_videos:
+            records = row.split(',')
+            course_id = records[1]
+            video_id = records[2]
+            self.course_video[video_id] = course_id
 
     def process(self, raw_data, raw_data_filenames=None):
 
-        data_to_be_processed = self.load_data(raw_data_filenames)
-        if data_to_be_processed is None:
-            return raw_data
+        self.load_data(raw_data)
+        videos = {}
+        for video_item in self.edx_videos:
+            video = {}
+            video_records = video_item.split(',')
+            video_original_id = video_records[0]
+            video[DBc.FIELD_VIDEO_ORIGINAL_ID] = video_original_id
+            video[DBc.FIELD_VIDEO_NAME] = video_item[2]
+            video[DBc.FIELD_VIDEO_SECTION] = video_item[3]
+            video[DBc.FIELD_VIDEO_DESCRIPTION] = video_item[3]
+            video[DBc.FIELD_VIDEO_RELEASE_DATE] = video_item[1]
+            video[DBc.FIELD_VIDEO_DURATION] = video_item[4]
+            video[DBc.FIELD_VIDEO_METAINFO] = None
+            video[DBc.FIELD_VIDEO_COURSE_ID] = self.course_video[video_original_id]
+            video[DBc.FIELD_VIDEO_URL] = self.video_url[video_original_id]
+            videos[video_original_id] = video
+        
+
 
         course_structure_info = json.loads(data_to_be_processed)
         videos = {}
@@ -199,9 +215,8 @@ class FormatUserFile(PipeModule):
             else:
                 age = 0
             user[DBc.FIELD_USER_AGE] = age
-            user[DBc.FIELD_USER_COUNTRY] = user_profile and user_profile[11] or (
-                user_profile and (user_profile[13] or user_profile[4]))
-            user[DBc.FIELD_USER_NAME] = row[1]
+            user[DBc.FIELD_USER_COUNTRY] = user_profile and user_profile[11] or user_profile[5]
+            user[DBc.FIELD_USER_NAME] = user_fields[4]
             user[DBc.FIELD_USER_ORIGINAL_ID] = user_id
             users[user[DBc.FIELD_USER_ORIGINAL_ID]] = user
 
@@ -446,9 +461,7 @@ class ExtractRawData(PipeModule):
 
 
     def process(self, raw_data, raw_data_filenames=None):
-        pattern_insert = r'^INSERT INTO `(?P<table_name>auth_user|' + \
-            r'course_overviews_courseoverview|student_courseenrollment|' + \
-            r'auth_userprofile)`'
+        pattern_insert = r'^INSERT INTO `(?P<table_name>\w*)`'
         pattern_create_db = r'^USE `(?P<db_name>\w*)`;$'
         re_pattern_insert_table = re.compile(pattern_insert)
         re_pattern_create_db = re.compile(pattern_create_db)
