@@ -55,6 +55,18 @@ class DownloadFileFromServer():
         self.decompress_files([os.path.join(save_dir, "dbsnapshots_mongodb"),], "gtar")
         self.decompress_files([os.path.join(save_dir, "dbsnapshots_mysqldb"),], "gzip")
 
+    def get_mysqldb_snapshot(self, save_dir):
+        """ Download mongodb and mysql snapshot
+        """
+        if self.__token is None:
+            self.get_token_from_server()
+        self.__http_connection.headers = {"Authorization" : "Token " + self.__token}
+        # self.__http_connection.download_files(file_urls, save_dir,)
+        urls = [self.__host + "/resources/dbsnapshots_mysqldb",]
+        self.__http_connection.download_files(urls, save_dir)
+        # file_paths = [os.path.join(save_dir, file_name) for file_name in db_list]
+        self.decompress_files([os.path.join(save_dir, "dbsnapshots_mysqldb"),], "gzip")
+
     def decompress_files(self, file_paths, compress_algorithm):
         """ This method is to verify and decompress file using specified algorithm
             use md5 to verify files' data intergrity
