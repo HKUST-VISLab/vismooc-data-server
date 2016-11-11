@@ -51,7 +51,7 @@ class FormatCourseStructFile(PipeModule):
         self.course_video_videokey = {}
         self.course_video_coursekey = {}
         self.video_duration = {}
-        self.video_url = {}
+        self.video_url_dict = {}
         self.edx_videos = {}
         self.course_overview = {}
         self.course_instructor = {}
@@ -66,28 +66,39 @@ class FormatCourseStructFile(PipeModule):
         course_access_role = raw_data['student_courseaccessrole']
 
         for video_encode_item in video_encode:
+            video_encode_item = video_encode_item.split(',')
+            self.remove_quotation_mark(video_encode_item)
             video_id = video_encode_item[7]
             video_url = video_encode_item[3]
-            self.video_url[video_id] = video_url
+            if "http" not in video_url:
+                video_url = "https://www.youtube.com/watch?v=" + video_url
+            self.video_url_dict[video_id] = video_url
+        # print(self.video_url_dict)
 
         for row in edx_course_videos:
             records = row.split(',')
+            self.remove_quotation_mark(records)
             course_id = records[1]
             video_id = records[2]
             self.course_video_videokey[video_id] = course_id
             self.course_video_coursekey.setdefault(course_id, []).append(video_id)
+        # print("course_video_videokey is " + str(self.course_video_videokey))
+        # print("course_video_coursekey is " + str(self.course_video_coursekey))
 
         for one_access_role in course_access_role:
             records = one_access_role.split(',')
+            self.remove_quotation_mark(records)
             if records[3] != 'instructor':
                 continue
             course_id = records[2]
-            course_one_instructor = records[3]
+            course_one_instructor = records[4]
             self.course_instructor.setdefault(course_id, []).append(course_one_instructor)
+        # print(self.course_instructor)
 
     def process(self, raw_data, raw_data_filenames=None):
+        print("Processing FormatCourseStructFile")
         COURSE_YEAR_NAME = 'course_year'
-        pattern_time = '%Y-%m-%d %H:%M:%S.%f'
+        pattern_time = "%Y-%m-%d %H:%M:%S.%f"
         self.load_data(raw_data)
         course_year_pattern = r'^course-[\w|:|\+]+(?P<' + COURSE_YEAR_NAME + r'>[0-9]{4})\w*'
         re_course_year = re.compile(course_year_pattern)
@@ -96,26 +107,30 @@ class FormatCourseStructFile(PipeModule):
         for video_item in self.edx_videos:
             video = {}
             video_records = video_item.split(',')
+            self.remove_quotation_mark(video_records)
             video_original_id = video_records[0]
-            create_date = datetime.strptime(video_item[1], pattern_time) if video_item[1] else None
+            create_date = datetime.strptime(video_records[1], pattern_time) if video_records[1] else None
             video[DBc.FIELD_VIDEO_ORIGINAL_ID] = video_original_id
-            video[DBc.FIELD_VIDEO_NAME] = video_item[2]
-            video[DBc.FIELD_VIDEO_SECTION] = video_item[3]
-            video[DBc.FIELD_VIDEO_DESCRIPTION] = video_item[3]
+            video[DBc.FIELD_VIDEO_NAME] = video_records[2]
+            video[DBc.FIELD_VIDEO_SECTION] = video_records[3]
+            video[DBc.FIELD_VIDEO_DESCRIPTION] = video_records[3]
             video[DBc.FIELD_VIDEO_RELEASE_DATE] = create_date and create_date.timestamp()
-            video[DBc.FIELD_VIDEO_DURATION] = video_item[4]
+            video[DBc.FIELD_VIDEO_DURATION] = video_records[4]
             video[DBc.FIELD_VIDEO_METAINFO] = None
             video[DBc.FIELD_VIDEO_COURSE_ID] = self.course_video_videokey[video_original_id]
-            video[DBc.FIELD_VIDEO_URL] = self.video_url[video_original_id]
+            video[DBc.FIELD_VIDEO_URL] = self.video_url_dict.get(video_original_id)
             videos[video_original_id] = video
         for course_item in self.course_overview:
             course = {}
+            print(course_item)
             course_records = course_item.split(',')
-            course_start_time = datetime.strptime(course_records[8], pattern_time) if course_records[8] else None
-            course_end_time = datetime.strptime(course_records[9], pattern_time) if course_records[9] else None
-            advertised_start_time = datetime.strptime(course_records[10], pattern_time) if course_records[10] else None
-            enrollment_start_time = datetime.strptime(course_records[26], pattern_time) if course_records[26] else None
-            enrollment_end_time = datetime.strptime(course_records[27], pattern_time) if course_records[27] else None
+            self.remove_quotation_mark(course_records)
+            print(course_records)
+            course_start_time = datetime.strptime(course_records[8], pattern_time) if course_records[8]!="NULL" else None
+            course_end_time = datetime.strptime(course_records[9], pattern_time) if course_records[9]!="NULL" else None
+            advertised_start_time = datetime.strptime(course_records[10], pattern_time) if course_records[10]!="NULL" else None
+            enrollment_start_time = datetime.strptime(course_records[26], pattern_time) if course_records[26]!="NULL" else None
+            enrollment_end_time = datetime.strptime(course_records[27], pattern_time) if course_records[27]!="NULL" else None
             course_original_id = course_records[3]
             course[DBc.FIELD_COURSE_ORIGINAL_ID] = course_original_id
             course[DBc.FIELD_COURSE_NAME] = course_records[5]
@@ -133,7 +148,7 @@ class FormatCourseStructFile(PipeModule):
             course[DBc.FIELD_COURSE_ENROLLMENT_START] = enrollment_start_time and enrollment_start_time.timestamp()
             course[DBc.FIELD_COURSE_ENROLLMENT_END] = enrollment_end_time and enrollment_end_time.timestamp()
             course[DBc.FIELD_COURSE_STUDENT_IDS] = set()
-            course[DBc.FIELD_COURSE_VIDEO_IDS] = self.course_video_coursekey[course_original_id]
+            course[DBc.FIELD_COURSE_VIDEO_IDS] = self.course_video_coursekey.get(course_original_id)
             course[DBc.FIELD_COURSE_METAINFO] = None
             course[DBc.FIELD_COURSE_ORG] = course_records[36]
             course[DBc.FIELD_COURSE_ADVERTISED_START] = advertised_start_time and advertised_start_time.timestamp()
@@ -145,6 +160,13 @@ class FormatCourseStructFile(PipeModule):
         processed_data['data'][DBc.COLLECTION_VIDEO] = videos
         processed_data['data'][DBc.COLLECTION_COURSE] = courses
         return processed_data
+
+    def remove_quotation_mark(self, data):
+        if not isinstance(data, list):
+            raise Exception("The type of data must be list")
+        for i in range(len(data)):
+            if data[i].startswith("'"):
+                data[i] = data[i][1:-1]
 
 
 class FormatUserFile(PipeModule):
@@ -171,16 +193,18 @@ class FormatUserFile(PipeModule):
         return None
 
     def process(self, raw_data, raw_data_filenames=None):
+        print("Processing FormatUserFile")
         user_info = self.load_data(raw_data)
         if user_info is None:
             return raw_data
         users = {}
         for record in user_info:
             user_fields = record.split(',')
+            self.remove_quotation_mark(user_fields)
             user = {}
             user_id = user_fields[0]
             user_profile = self._userprofile.get(user_id)
-            birth_year = datetime.strptime(user_profile[6], '%Y') if user_profile[6] else None
+            birth_year = datetime.strptime(user_profile[6], '%Y') if user_profile[6]!="NULL" else None
             user[DBc.FIELD_USER_USER_NAME] = user_fields[4]
             user[DBc.FIELD_USER_LANGUAGE] = user_profile[4]
             user[DBc.FIELD_USER_LOCATION] = user_profile[5]
@@ -201,6 +225,13 @@ class FormatUserFile(PipeModule):
 
         return processed_data
 
+    def remove_quotation_mark(self, data):
+        if not isinstance(data, list):
+            raise Exception("The type of data must be list")
+        for i in range(len(data)):
+            if data[i].startswith("'"):
+                data[i] = data[i][1:-1]
+
 
 class FormatEnrollmentFile(PipeModule):
 
@@ -220,10 +251,11 @@ class FormatEnrollmentFile(PipeModule):
         self.course_enrollment = raw_data['student_courseenrollment']
 
     def process(self, raw_data, raw_data_filenames=None):
+        print("Processing FormatEnrollmentFile")
         self.load_data(raw_data)
         if self.course_enrollment is None:
             return raw_data
-        pattern_time = '%Y-%m-%d %H:%M:%S.%f'
+        pattern_time = "%Y-%m-%d %H:%M:%S.%f"
         courses = raw_data['data'][DBc.COLLECTION_COURSE]
         users = raw_data['data'][DBc.COLLECTION_USER]
 
@@ -231,9 +263,10 @@ class FormatEnrollmentFile(PipeModule):
         for enroll_item in self.course_enrollment:
             enrollment = {}
             records = enroll_item.split(',')
+            self.remove_quotation_mark(records)
             user_id = records[5]
             course_id = records[1]
-            enrollment_time = datetime.strptime(records[2], pattern_time) if records[2] else None
+            enrollment_time = datetime.strptime(records[2], pattern_time) if records[2]!="NULL" else None
             enrollment[DBc.FIELD_ENROLLMENT_USER_ID] = user_id
             enrollment[DBc.FIELD_ENROLLMENT_COURSE_ID] = course_id
             enrollment[DBc.FIELD_ENROLLMENT_TIMESTAMP] = enrollment_time and enrollment_time.timestamp()
@@ -255,6 +288,12 @@ class FormatEnrollmentFile(PipeModule):
         # processed_data['data'][DBc.COLLECTION_USER] = list(users.values())
         # processed_data['data'][DBc.COLLECTION_COURSE] = list(courses.value())
         return processed_data
+    def remove_quotation_mark(self, data):
+        if not isinstance(data, list):
+            raise Exception("The type of data must be list")
+        for i in range(len(data)):
+            if data[i].startswith("'"):
+                data[i] = data[i][1:-1]
 
 class FormatLogFile(PipeModule):
 
@@ -267,6 +306,7 @@ class FormatLogFile(PipeModule):
         '''
         Load target file
         '''
+        print("Processing FormatLogFile")
         for filename in data_filenames:
             if 'dbsnapshots_mysqldb' in filename:
                 continue
@@ -449,6 +489,8 @@ class ExtractRawData(PipeModule):
         re_pattern_create_db = re.compile(pattern_create_db)
         current_db = None
 
+        print("Processing ExtractRawData")
+
         for filename in raw_data_filenames:
             if 'dbsnapshots_mysqldb' in filename:
                 target_filename = filename
@@ -467,10 +509,11 @@ class ExtractRawData(PipeModule):
                     if match_table is None:
                         continue
                     # remove first '(' and last ';)'
-                    line = line[line.index('(')+1, -2]
+                    line = line[line.index('(')+1: -2]
                     records = line.split('),(')
                     table_name = match_table.group("table_name")
                     raw_data[table_name] = records
+        return raw_data
 
 class PreprocessFormatLogFile():
 
