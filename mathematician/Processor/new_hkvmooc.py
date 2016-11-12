@@ -7,6 +7,7 @@ from bson import ObjectId
 from ..pipe import PipeModule
 from ..DB.mongo_dbhelper import MongoDB
 from ..config import DBConfig as DBc, ThirdPartyKeys
+from .utils import Utility
 
 re_ISO_8601_duration = re.compile(
     r"^(?P<sign>[+-])?"
@@ -66,18 +67,21 @@ class FormatCourseStructFile(PipeModule):
         course_access_role = raw_data['student_courseaccessrole']
 
         for video_encode_item in video_encode:
-            video_encode_item = video_encode_item.split(',')
-            self.remove_quotation_mark(video_encode_item)
-            video_id = video_encode_item[7]
-            video_url = video_encode_item[3]
+            # print(video_encode_item)
+            video_encode_items = Utility.split_comma(video_encode_item)
+            # print(video_encode_items)
+            video_encode_items = Utility.remove_quotation_mark(video_encode_items)
+            # print(video_encode_items)
+            video_id = video_encode_items[7]
+            video_url = video_encode_items[3]
             if "http" not in video_url:
                 video_url = "https://www.youtube.com/watch?v=" + video_url
             self.video_url_dict[video_id] = video_url
         # print(self.video_url_dict)
 
         for row in edx_course_videos:
-            records = row.split(',')
-            self.remove_quotation_mark(records)
+            records = Utility.split_comma(row)
+            records = Utility.remove_quotation_mark(records)
             course_id = records[1]
             video_id = records[2]
             self.course_video_videokey[video_id] = course_id
@@ -86,8 +90,8 @@ class FormatCourseStructFile(PipeModule):
         # print("course_video_coursekey is " + str(self.course_video_coursekey))
 
         for one_access_role in course_access_role:
-            records = one_access_role.split(',')
-            self.remove_quotation_mark(records)
+            records = Utility.split_comma(one_access_role)
+            records = Utility.remove_quotation_mark(records)
             if records[3] != 'instructor':
                 continue
             course_id = records[2]
@@ -106,10 +110,11 @@ class FormatCourseStructFile(PipeModule):
         courses = {}
         for video_item in self.edx_videos:
             video = {}
-            video_records = video_item.split(',')
-            self.remove_quotation_mark(video_records)
+            video_records = Utility.split_comma(video_item)
+            video_records = Utility.remove_quotation_mark(video_records)
             video_original_id = video_records[0]
-            create_date = datetime.strptime(video_records[1], pattern_time) if video_records[1] else None
+            create_date = datetime.strptime(video_records[1], pattern_time) \
+                if video_records[1] else None
             video[DBc.FIELD_VIDEO_ORIGINAL_ID] = video_original_id
             video[DBc.FIELD_VIDEO_NAME] = video_records[2]
             video[DBc.FIELD_VIDEO_SECTION] = video_records[3]
@@ -122,15 +127,20 @@ class FormatCourseStructFile(PipeModule):
             videos[video_original_id] = video
         for course_item in self.course_overview:
             course = {}
-            print(course_item)
-            course_records = course_item.split(',')
-            self.remove_quotation_mark(course_records)
-            print(course_records)
-            course_start_time = datetime.strptime(course_records[8], pattern_time) if course_records[8]!="NULL" else None
-            course_end_time = datetime.strptime(course_records[9], pattern_time) if course_records[9]!="NULL" else None
-            advertised_start_time = datetime.strptime(course_records[10], pattern_time) if course_records[10]!="NULL" else None
-            enrollment_start_time = datetime.strptime(course_records[26], pattern_time) if course_records[26]!="NULL" else None
-            enrollment_end_time = datetime.strptime(course_records[27], pattern_time) if course_records[27]!="NULL" else None
+            # print(course_item)
+            course_records = Utility.split_comma(course_item)
+            course_records = Utility.remove_quotation_mark(course_records)
+            # print(course_records)
+            course_start_time = datetime.strptime(
+                course_records[8], pattern_time) if course_records[8] != "NULL" else None
+            course_end_time = datetime.strptime(
+                course_records[9], pattern_time) if course_records[9] != "NULL" else None
+            advertised_start_time = datetime.strptime(
+                course_records[10], pattern_time) if course_records[10] != "NULL" else None
+            enrollment_start_time = datetime.strptime(
+                course_records[26], pattern_time) if course_records[26] != "NULL" else None
+            enrollment_end_time = datetime.strptime(
+                course_records[27], pattern_time) if course_records[27] != "NULL" else None
             course_original_id = course_records[3]
             course[DBc.FIELD_COURSE_ORIGINAL_ID] = course_original_id
             course[DBc.FIELD_COURSE_NAME] = course_records[5]
@@ -145,13 +155,16 @@ class FormatCourseStructFile(PipeModule):
             course[DBc.FIELD_COURSE_DESCRIPTION] = course_records[35]
             course[DBc.FIELD_COURSE_STARTTIME] = course_start_time and course_start_time.timestamp()
             course[DBc.FIELD_COURSE_ENDTIME] = course_end_time and course_end_time.timestamp()
-            course[DBc.FIELD_COURSE_ENROLLMENT_START] = enrollment_start_time and enrollment_start_time.timestamp()
-            course[DBc.FIELD_COURSE_ENROLLMENT_END] = enrollment_end_time and enrollment_end_time.timestamp()
+            course[DBc.FIELD_COURSE_ENROLLMENT_START] = enrollment_start_time \
+                and enrollment_start_time.timestamp()
+            course[DBc.FIELD_COURSE_ENROLLMENT_END] = enrollment_end_time \
+                and enrollment_end_time.timestamp()
             course[DBc.FIELD_COURSE_STUDENT_IDS] = set()
             course[DBc.FIELD_COURSE_VIDEO_IDS] = self.course_video_coursekey.get(course_original_id)
             course[DBc.FIELD_COURSE_METAINFO] = None
             course[DBc.FIELD_COURSE_ORG] = course_records[36]
-            course[DBc.FIELD_COURSE_ADVERTISED_START] = advertised_start_time and advertised_start_time.timestamp()
+            course[DBc.FIELD_COURSE_ADVERTISED_START] = advertised_start_time \
+                and advertised_start_time.timestamp()
             course[DBc.FIELD_COURSE_LOWEST_PASSING_GRADE] = course_records[21]
             course[DBc.FIELD_COURSE_MOBILE_AVAILABLE] = course_records[23]
             course[DBc.FIELD_COURSE_DISPLAY_NUMBER_WITH_DEFAULT] = course_records[6]
@@ -160,13 +173,6 @@ class FormatCourseStructFile(PipeModule):
         processed_data['data'][DBc.COLLECTION_VIDEO] = videos
         processed_data['data'][DBc.COLLECTION_COURSE] = courses
         return processed_data
-
-    def remove_quotation_mark(self, data):
-        if not isinstance(data, list):
-            raise Exception("The type of data must be list")
-        for i in range(len(data)):
-            if data[i].startswith("'"):
-                data[i] = data[i][1:-1]
 
 
 class FormatUserFile(PipeModule):
@@ -184,7 +190,8 @@ class FormatUserFile(PipeModule):
         user_profile = raw_data['auth_userprofile']
         if user_profile is not None:
             for record in user_profile:
-                fields = record.split(',')
+                fields = Utility.split_comma(record)
+                fields = Utility.remove_quotation_mark(fields)
                 self._userprofile[fields[16]] = fields
 
         user_info = raw_data['auth_user']
@@ -199,22 +206,25 @@ class FormatUserFile(PipeModule):
             return raw_data
         users = {}
         for record in user_info:
-            user_fields = record.split(',')
-            self.remove_quotation_mark(user_fields)
+            user_fields = Utility.split_comma(record)
+            user_fields = Utility.remove_quotation_mark(user_fields)
             user = {}
             user_id = user_fields[0]
+            # print(user_id)
             user_profile = self._userprofile.get(user_id)
-            birth_year = datetime.strptime(user_profile[6], '%Y') if user_profile[6]!="NULL" else None
+            birth_year = datetime.strptime(user_profile[6], '%Y')\
+                 if (user_profile and (user_profile[6] != "NULL" and \
+                 len(user_profile[6]) == 4)) else None
             user[DBc.FIELD_USER_USER_NAME] = user_fields[4]
-            user[DBc.FIELD_USER_LANGUAGE] = user_profile[4]
-            user[DBc.FIELD_USER_LOCATION] = user_profile[5]
+            user[DBc.FIELD_USER_LANGUAGE] = user_profile and user_profile[4]
+            user[DBc.FIELD_USER_LOCATION] = user_profile and user_profile[5]
             user[DBc.FIELD_USER_BIRTH_DATE] = birth_year and birth_year.timestamp()
-            user[DBc.FIELD_USER_EDUCATION_LEVEL] = user_profile[8]
+            user[DBc.FIELD_USER_EDUCATION_LEVEL] = user_profile and user_profile[8]
             user[DBc.FIELD_USER_GENDER] = user_profile and user_profile[7]
             user[DBc.FIELD_USER_COURSE_IDS] = set()
             user[DBc.FIELD_USER_DROPPED_COURSE_IDS] = set()
-            user[DBc.FIELD_USER_BIO] = user_profile[14]
-            user[DBc.FIELD_USER_COUNTRY] = user_profile and user_profile[11] or user_profile[5]
+            user[DBc.FIELD_USER_BIO] = user_profile and user_profile[14]
+            user[DBc.FIELD_USER_COUNTRY] = user_profile and (user_profile[11] or user_profile[5])
             user[DBc.FIELD_USER_NAME] = user_fields[5] + user_fields[6]
             user[DBc.FIELD_USER_ORIGINAL_ID] = user_id
             users[user[DBc.FIELD_USER_ORIGINAL_ID]] = user
@@ -224,13 +234,6 @@ class FormatUserFile(PipeModule):
         processed_data['data'][DBc.COLLECTION_USER] = users
 
         return processed_data
-
-    def remove_quotation_mark(self, data):
-        if not isinstance(data, list):
-            raise Exception("The type of data must be list")
-        for i in range(len(data)):
-            if data[i].startswith("'"):
-                data[i] = data[i][1:-1]
 
 
 class FormatEnrollmentFile(PipeModule):
@@ -262,14 +265,16 @@ class FormatEnrollmentFile(PipeModule):
         enrollments = []
         for enroll_item in self.course_enrollment:
             enrollment = {}
-            records = enroll_item.split(',')
-            self.remove_quotation_mark(records)
+            records = Utility.split_comma(enroll_item)
+            records = Utility.remove_quotation_mark(records)
             user_id = records[5]
             course_id = records[1]
-            enrollment_time = datetime.strptime(records[2], pattern_time) if records[2]!="NULL" else None
+            enrollment_time = datetime.strptime(records[2], pattern_time) \
+                if records[2] != "NULL" else None
             enrollment[DBc.FIELD_ENROLLMENT_USER_ID] = user_id
             enrollment[DBc.FIELD_ENROLLMENT_COURSE_ID] = course_id
-            enrollment[DBc.FIELD_ENROLLMENT_TIMESTAMP] = enrollment_time and enrollment_time.timestamp()
+            enrollment[DBc.FIELD_ENROLLMENT_TIMESTAMP] = enrollment_time \
+                and enrollment_time.timestamp()
             enrollment[DBc.FIELD_ENROLLMENT_ACTION] = FormatEnrollmentFile.action.get(records[3])
             enrollments.append(enrollment)
             # fill in user collection
@@ -288,12 +293,6 @@ class FormatEnrollmentFile(PipeModule):
         # processed_data['data'][DBc.COLLECTION_USER] = list(users.values())
         # processed_data['data'][DBc.COLLECTION_COURSE] = list(courses.value())
         return processed_data
-    def remove_quotation_mark(self, data):
-        if not isinstance(data, list):
-            raise Exception("The type of data must be list")
-        for i in range(len(data)):
-            if data[i].startswith("'"):
-                data[i] = data[i][1:-1]
 
 class FormatLogFile(PipeModule):
 
@@ -508,8 +507,8 @@ class ExtractRawData(PipeModule):
                     match_table = re_pattern_insert_table.search(line)
                     if match_table is None:
                         continue
-                    # remove first '(' and last ';)'
-                    line = line[line.index('(')+1: -2]
+                    # remove first '(' and last ';)\n' pay attention to '\n'
+                    line = line[line.index('(')+1: -3]
                     records = line.split('),(')
                     table_name = match_table.group("table_name")
                     raw_data[table_name] = records
