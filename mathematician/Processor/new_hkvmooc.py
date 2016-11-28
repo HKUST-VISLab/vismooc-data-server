@@ -7,7 +7,6 @@ from bson import ObjectId
 from ..pipe import PipeModule
 from ..DB.mongo_dbhelper import MongoDB
 from ..config import DBConfig as DBc, ThirdPartyKeys
-from .utils import Utility
 
 re_ISO_8601_duration = re.compile(
     r"^(?P<sign>[+-])?"
@@ -43,6 +42,25 @@ def parse_duration(datestring):
         raise BaseException("there must be something woring in this time string")
     return ret
 
+def split_comma(string, separator=','):
+    """split a string with `separtor`"""
+    tmp_stack = []
+    results = []
+    quota_number = 0
+    for i, letter in enumerate(string):
+        if letter == "'" and string[i-1] != "\\":
+            quota_number += 1
+        elif letter == separator and (quota_number == 2 or quota_number == 0):
+            results.append("".join(tmp_stack))
+            tmp_stack = []
+            quota_number = 0
+        else:
+            tmp_stack.append(letter)
+
+        if i == len(string)-1:
+            results.append("".join(tmp_stack))
+            return results
+
 class FormatCourseStructFile(PipeModule):
 
     order = 1
@@ -67,37 +85,27 @@ class FormatCourseStructFile(PipeModule):
         course_access_role = raw_data['student_courseaccessrole']
 
         for video_encode_item in video_encode:
-            # print(video_encode_item)
-            video_encode_items = Utility.split_comma(video_encode_item)
-            # print(video_encode_items)
-            video_encode_items = Utility.remove_quotation_mark(video_encode_items)
-            # print(video_encode_items)
+            video_encode_items = split_comma(video_encode_item)
             video_id = video_encode_items[7]
             video_url = video_encode_items[3]
             if "http" not in video_url:
                 video_url = "https://www.youtube.com/watch?v=" + video_url
             self.video_url_dict[video_id] = video_url
-        # print(self.video_url_dict)
 
         for row in edx_course_videos:
-            records = Utility.split_comma(row)
-            records = Utility.remove_quotation_mark(records)
+            records = split_comma(row)
             course_id = records[1]
             video_id = records[2]
             self.course_video_videokey[video_id] = course_id
             self.course_video_coursekey.setdefault(course_id, []).append(video_id)
-        # print("course_video_videokey is " + str(self.course_video_videokey))
-        # print("course_video_coursekey is " + str(self.course_video_coursekey))
 
         for one_access_role in course_access_role:
-            records = Utility.split_comma(one_access_role)
-            records = Utility.remove_quotation_mark(records)
+            records = split_comma(one_access_role)
             if records[3] != 'instructor':
                 continue
             course_id = records[2]
             course_one_instructor = records[4]
             self.course_instructor.setdefault(course_id, []).append(course_one_instructor)
-        # print(self.course_instructor)
 
     def process(self, raw_data, raw_data_filenames=None):
         print("Processing FormatCourseStructFile")
@@ -110,8 +118,7 @@ class FormatCourseStructFile(PipeModule):
         courses = {}
         for video_item in self.edx_videos:
             video = {}
-            video_records = Utility.split_comma(video_item)
-            video_records = Utility.remove_quotation_mark(video_records)
+            video_records = split_comma(video_item)
             video_original_id = video_records[0]
             create_date = datetime.strptime(video_records[1], pattern_time) \
                 if video_records[1] else None
@@ -127,10 +134,7 @@ class FormatCourseStructFile(PipeModule):
             videos[video_original_id] = video
         for course_item in self.course_overview:
             course = {}
-            # print(course_item)
-            course_records = Utility.split_comma(course_item)
-            course_records = Utility.remove_quotation_mark(course_records)
-            # print(course_records)
+            course_records = split_comma(course_item)
             course_start_time = datetime.strptime(
                 course_records[8], pattern_time) if course_records[8] != "NULL" else None
             course_end_time = datetime.strptime(
@@ -190,8 +194,7 @@ class FormatUserFile(PipeModule):
         user_profile = raw_data['auth_userprofile']
         if user_profile is not None:
             for record in user_profile:
-                fields = Utility.split_comma(record)
-                fields = Utility.remove_quotation_mark(fields)
+                fields = split_comma(record)
                 self._userprofile[fields[16]] = fields
 
         user_info = raw_data['auth_user']
@@ -206,8 +209,7 @@ class FormatUserFile(PipeModule):
             return raw_data
         users = {}
         for record in user_info:
-            user_fields = Utility.split_comma(record)
-            user_fields = Utility.remove_quotation_mark(user_fields)
+            user_fields = split_comma(record)
             user = {}
             user_id = user_fields[0]
             # print(user_id)
@@ -265,8 +267,7 @@ class FormatEnrollmentFile(PipeModule):
         enrollments = []
         for enroll_item in self.course_enrollment:
             enrollment = {}
-            records = Utility.split_comma(enroll_item)
-            records = Utility.remove_quotation_mark(records)
+            records = split_comma(enroll_item)
             user_id = records[5]
             course_id = records[1]
             enrollment_time = datetime.strptime(records[2], pattern_time) \
@@ -385,12 +386,12 @@ class FormatLogFile(PipeModule):
                         k) for k in target_attrs if event_event.get(k) is not None}
                     event[DBc.FIELD_VIDEO_LOG_METAINFO]['path'] = event_context.get('path')
 
-                    date_time = str(event_time.date())
-                    temporal_hotness = temp_video_dict[video_id][DBc.FIELD_VIDEO_TEMPORAL_HOTNESS]
+                    # date_time = str(event_time.date())
+                    # temporal_hotness = temp_video_dict[video_id][DBc.FIELD_VIDEO_TEMPORAL_HOTNESS]
 
-                    if date_time not in temporal_hotness:
-                        temporal_hotness[date_time] = 0
-                    temporal_hotness[date_time] += 1
+                    # if date_time not in temporal_hotness:
+                    #     temporal_hotness[date_time] = 0
+                    # temporal_hotness[date_time] += 1
                     events.append(event)
 
         processed_data = raw_data
@@ -403,9 +404,10 @@ class DumpToDB(PipeModule):
 
     def __init__(self):
         super().__init__()
-        self.db = MongoDB('localhost', 'test-vismooc-java')
+        self.db = MongoDB('localhost', 'test-vismooc-newData')
 
     def process(self, raw_data, raw_data_filenames=None):
+        print("Insert data to DB")
         db_data = raw_data['data']
         # cast from set to list
         courses = db_data[DBc.COLLECTION_COURSE]
@@ -418,9 +420,9 @@ class DumpToDB(PipeModule):
             user[DBc.FIELD_USER_DROPPED_COURSE_IDS] = list(
                 user[DBc.FIELD_USER_DROPPED_COURSE_IDS])
         # from dictory to list, removing id index
-        for value in db_data.values():
+        for (key, value) in db_data.items():
             if isinstance(value, dict):
-                value = list(value.values())
+                db_data[key] = list(value.values())
 
         # insert to db
         for collection_name in db_data:
@@ -464,10 +466,10 @@ class OutputFile(PipeModule):
             user[DBc.FIELD_USER_DROPPED_COURSE_IDS] = list(
                 user[DBc.FIELD_USER_DROPPED_COURSE_IDS])
         # from dictory to list, removing id index
-        for value in db_data.values():
+        for (key, value) in db_data.items():
             if isinstance(value, dict):
-                value = list(value.values())
-        write_file = open('./test-data/processed_data.json', 'w')
+                db_data[key] = list(value.values())
+        write_file = open('/vismooc-test-data/newData/processed_data.json', 'w')
         write_file.write(json.dumps(db_data, cls=SetEncoder))
         write_file.close()
         return raw_data

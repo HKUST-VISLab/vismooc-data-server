@@ -34,8 +34,7 @@ class DownloadFileFromServer():
         file_names = []
         for item in items:
             file_urls.append(item['href'])
-            item_id = item['href'][item['href'].rindex("/")+1:]
-            file_names.append(item_id)
+            file_names.append(item['href'][item['href'].rindex("/")+1:])
         self.__http_connection.download_files(file_urls, save_dir)
         file_paths = [os.path.join(save_dir, file_name) for file_name in file_names]
         self.decompress_files(file_paths, "gzip")
@@ -53,18 +52,6 @@ class DownloadFileFromServer():
         self.__http_connection.download_files(urls, save_dir)
         # file_paths = [os.path.join(save_dir, file_name) for file_name in db_list]
         self.decompress_files([os.path.join(save_dir, "dbsnapshots_mongodb"),], "gtar")
-        self.decompress_files([os.path.join(save_dir, "dbsnapshots_mysqldb"),], "gzip")
-
-    def get_mysqldb_snapshot(self, save_dir):
-        """ Download mongodb and mysql snapshot
-        """
-        if self.__token is None:
-            self.get_token_from_server()
-        self.__http_connection.headers = {"Authorization" : "Token " + self.__token}
-        # self.__http_connection.download_files(file_urls, save_dir,)
-        urls = [self.__host + "/resources/dbsnapshots_mysqldb",]
-        self.__http_connection.download_files(urls, save_dir)
-        # file_paths = [os.path.join(save_dir, file_name) for file_name in db_list]
         self.decompress_files([os.path.join(save_dir, "dbsnapshots_mysqldb"),], "gzip")
 
     def decompress_files(self, file_paths, compress_algorithm):
