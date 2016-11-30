@@ -200,6 +200,7 @@ class FormatUserFile(PipeModule):
         return None
 
     def process(self, raw_data, raw_data_filenames=None):
+        THIS_YEAR = 2016
         data_to_be_processed = self.load_data(raw_data_filenames)
 
         if data_to_be_processed is None:
@@ -214,7 +215,9 @@ class FormatUserFile(PipeModule):
             user[DBc.FIELD_USER_GENDER] = user_profile and user_profile[7]
             user[DBc.FIELD_USER_COURSE_IDS] = set()
             user[DBc.FIELD_USER_DROPPED_COURSE_IDS] = set()
-            user[DBc.FIELD_USER_AGE] = row[16] or (user_profile and user_profile[9])
+            user_birth_year = (row[16] and (THIS_YEAR - row[16])) or \
+                (user_profile and (user_profile[9] and (THIS_YEAR - user_profile[9])))
+            user[DBc.FIELD_USER_BIRTH_DATE] = datetime(user_birth_year, 1, 1).timestamp()
             user[DBc.FIELD_USER_COUNTRY] = row[14] or (
                 user_profile and (user_profile[13] or user_profile[4]))
             user[DBc.FIELD_USER_NAME] = row[1]
