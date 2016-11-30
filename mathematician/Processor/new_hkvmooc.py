@@ -6,7 +6,7 @@ import mathematician.httphelper as httphelper
 from bson import ObjectId
 from ..pipe import PipeModule
 from ..DB.mongo_dbhelper import MongoDB
-from ..config import DBConfig as DBc, ThirdPartyKeys
+from ..config import DBConfig as DBc, ThirdPartyKeys, FilenameConfig
 
 re_ISO_8601_duration = re.compile(
     r"^(?P<sign>[+-])?"
@@ -42,7 +42,7 @@ def parse_duration(datestring):
         raise BaseException("there must be something woring in this time string")
     return ret
 
-def split_comma(string, separator=','):
+def split(string, separator=','):
     """split a string with `separtor`"""
     tmp_stack = []
     results = []
@@ -71,54 +71,53 @@ class FormatCourseStructFile(PipeModule):
         self.course_video_coursekey = {}
         self.video_duration = {}
         self.video_url_dict = {}
-        self.edx_videos = {}
-        self.course_overview = {}
         self.course_instructor = {}
+        
     def load_data(self, raw_data):
         '''
         Load target file
         '''
         self.course_overview = raw_data['course_overviews_courseoverview']
         self.edx_videos = raw_data['edxval_video']
-        edx_course_videos = raw_data['edxval_coursevideo']
-        video_encode = raw_data['edxval_encodedvideo']
-        course_access_role = raw_data['student_courseaccessrole']
+        self.edx_course_videos = raw_data['edxval_coursevideo']
+        self.video_encode = raw_data['edxval_encodedvideo']
+        self.course_access_role = raw_data['student_courseaccessrole']
 
-        for video_encode_item in video_encode:
-            video_encode_items = split_comma(video_encode_item)
+    def process(self, raw_data, raw_data_filenames=None):
+        print("Processing FormatCourseStructFile")
+        COURSE_YEAR_NAME = 'course_year'
+        pattern_time = "%Y-%m-%d %H:%M:%S.%f"
+        course_year_pattern = r'^course-[\w|:|\+]+(?P<' + COURSE_YEAR_NAME + r'>[0-9]{4})\w*'
+        self.load_data(raw_data)
+        for video_encode_item in self.video_encode:
+            video_encode_items = split(video_encode_item)
             video_id = video_encode_items[7]
             video_url = video_encode_items[3]
             if "http" not in video_url:
                 video_url = "https://www.youtube.com/watch?v=" + video_url
             self.video_url_dict[video_id] = video_url
 
-        for row in edx_course_videos:
-            records = split_comma(row)
+        for row in self.edx_course_videos:
+            records = split(row)
             course_id = records[1]
             video_id = records[2]
             self.course_video_videokey[video_id] = course_id
             self.course_video_coursekey.setdefault(course_id, []).append(video_id)
 
-        for one_access_role in course_access_role:
-            records = split_comma(one_access_role)
+        for one_access_role in self.course_access_role:
+            records = split(one_access_role)
             if records[3] != 'instructor':
                 continue
             course_id = records[2]
             course_one_instructor = records[4]
             self.course_instructor.setdefault(course_id, []).append(course_one_instructor)
-
-    def process(self, raw_data, raw_data_filenames=None):
-        print("Processing FormatCourseStructFile")
-        COURSE_YEAR_NAME = 'course_year'
-        pattern_time = "%Y-%m-%d %H:%M:%S.%f"
-        self.load_data(raw_data)
-        course_year_pattern = r'^course-[\w|:|\+]+(?P<' + COURSE_YEAR_NAME + r'>[0-9]{4})\w*'
+        
         re_course_year = re.compile(course_year_pattern)
         videos = {}
         courses = {}
         for video_item in self.edx_videos:
             video = {}
-            video_records = split_comma(video_item)
+            video_records = split(video_item)
             video_original_id = video_records[0]
             create_date = datetime.strptime(video_records[1], pattern_time) \
                 if video_records[1] else None
@@ -134,7 +133,7 @@ class FormatCourseStructFile(PipeModule):
             videos[video_original_id] = video
         for course_item in self.course_overview:
             course = {}
-            course_records = split_comma(course_item)
+            course_records = split(course_item)
             course_start_time = datetime.strptime(
                 course_records[8], pattern_time) if course_records[8] != "NULL" else None
             course_end_time = datetime.strptime(
@@ -191,25 +190,21 @@ class FormatUserFile(PipeModule):
         '''
         Load target file
         '''
-        user_profile = raw_data['auth_userprofile']
-        if user_profile is not None:
-            for record in user_profile:
-                fields = split_comma(record)
-                self._userprofile[fields[16]] = fields
-
-        user_info = raw_data['auth_user']
-        if user_info is not None:
-            return user_info
-        return None
+        self.raw_user_profile = raw_data['auth_userprofile']
+        self.user_info = raw_data['auth_user']
 
     def process(self, raw_data, raw_data_filenames=None):
         print("Processing FormatUserFile")
         user_info = self.load_data(raw_data)
-        if user_info is None:
+        if self.raw_user_profile is not None:
+            for record in user_profile:
+                fields = split(record)
+                self._userprofile[fields[16]] = fields
+        if self.user_info is None:
             return raw_data
         users = {}
-        for record in user_info:
-            user_fields = split_comma(record)
+        for record in self.user_info:
+            user_fields = split(record)
             user = {}
             user_id = user_fields[0]
             # print(user_id)
@@ -267,7 +262,7 @@ class FormatEnrollmentFile(PipeModule):
         enrollments = []
         for enroll_item in self.course_enrollment:
             enrollment = {}
-            records = split_comma(enroll_item)
+            records = split(enroll_item)
             user_id = records[5]
             course_id = records[1]
             enrollment_time = datetime.strptime(records[2], pattern_time) \
@@ -306,17 +301,15 @@ class FormatLogFile(PipeModule):
         '''
         Load target file
         '''
-        print("Processing FormatLogFile")
         for filename in data_filenames:
-            if 'dbsnapshots_mysqldb' in filename:
-                continue
-            with open(filename, 'r', encoding='utf-8') as file:
-                raw_data = file.readlines()
-                yield raw_data
+            if FilenameConfig.Clickstream_suffix in filename:
+                with open(filename, 'r', encoding='utf-8') as file:
+                    raw_data = file.readlines()
+                    yield raw_data
 
     def process(self, raw_data, raw_data_filenames=None):
+        print("Processing FormatLogFile")
         all_data_to_be_processed = self.load_data(raw_data_filenames)
-
         if all_data_to_be_processed is None:
             return raw_data
 

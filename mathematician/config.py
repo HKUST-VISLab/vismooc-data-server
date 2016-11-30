@@ -1,5 +1,12 @@
 class ThirdPartyKeys:
     Youtube_key = "AIzaSyBvOV3z5LB78NB-yv1osqQQ4A9eY7Xg5r0"
+    HKMooc_key = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ" + \
+    "pc3MiOiJkYXRhYXBpLmhrbW9vYy5oayIsImF1ZCI6InVzZXIudmlzb" + \
+    "W9vYyIsImV4cCI6MTUxMDk3NzUxODQwMSwiaWF0IjoxNDc5NDQxNTE" + \
+    "4NDAxfQ.MJukG7r-8Sfv6DYWZIGcfZUyDEptkfyHM33rrUaucts "
+
+class FilenameConfig:
+    Clickstream_suffix = "-clickstream-log"
 
 class DBConfig:
     DB_HOST = "db_host"

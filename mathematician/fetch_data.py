@@ -2,10 +2,11 @@ from . import httphelper as http
 import tarfile
 import gzip
 import os
+from .config import ThirdPartyKeys, FilenameConfig
 
 class DownloadFileFromServer():
     """Download file from server"""
-    def __init__(self, api_key, host="https://dataapi2.hkmooc.hk"):
+    def __init__(self, api_key=ThirdPartyKeys.HKMooc_key, host="https://dataapi2.hkmooc.hk"):
         self.__api_key = api_key
         self.__token = None
         self.__host = host
@@ -35,8 +36,8 @@ class DownloadFileFromServer():
         for item in items:
             file_urls.append(item['href'])
             file_names.append(item['href'][item['href'].rindex("/")+1:])
-        self.__http_connection.download_files(file_urls, save_dir)
-        file_paths = [os.path.join(save_dir, file_name) for file_name in file_names]
+        self.__http_connection.download_files(file_urls, save_dir, common_suffix=FilenameConfig.Clickstream_suffix)
+        file_paths = [os.path.join(save_dir, file_name)+FilenameConfig.Clickstream_suffix for file_name in file_names]
         self.decompress_files(file_paths, "gzip")
 
     def get_mongodb_and_mysqldb_snapshot(self, save_dir):

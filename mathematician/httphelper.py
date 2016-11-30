@@ -89,75 +89,16 @@ async def async_post(url, headers=None, params=None, session=aiohttp):
         data = await response.read()
         return HttpResponse(response.status, response.headers, data)
 
-
-async def async_get_list(urls, headers=None, params=None, loop=None):
-    if type(urls) is not list:
-        raise Exception("The urls should be list type")
-
-    async with aiohttp.ClientSession(loop=loop) as session:
-        tasks = []
-        for url in urls:
-            task = asyncio.ensure_future(async_get(url, headers, params, session))
-            tasks.append(task)
-        responses = await asyncio.gather(*tasks)
-        return responses
-
-
 def get_list(urls, limit=30, headers=None, params=None):
     loop = asyncio.get_event_loop()
     results = []
-    for i in range(0, len(urls), limit):
-        future = asyncio.ensure_future(async_get_list(urls[i:i + limit], headers, params, loop))
-        loop.run_until_complete(future)
-        results += future.result()
-    for result in results:
-        result = result.get_content()
-    return results
+    with aiohttp.ClientSession(loop=loop) as session:
+        for i in range(0, len(urls), limit):
+            tasks = [ asyncio.ensure_future(async_get(url, headers, params, session)) for url in urls[i:i+limit]]
+            results += loop.run_until_complete(asyncio.gather(*tasks))
+    return [result.get_content() for result in results]
 
-async def async_download_file_part(url, start, end, file_path, params, headers={}, loop=None):
-    """Download the given part, which is defined by start and end
-    
-    """
-    headers = {"Range" : "bytes={}-{}".format(start, end)}
-    result = await async_get(url, headers=headers, params=params)
-    result = result.get_content()
-    with open(file_path, 'rb+') as file:
-        file.seek(start, 0)
-        file.write(result)
-
-def download_single_file(url, file_path, headers, file_slice=10*1024*1024, start=0, end=None, params=None):
-    req = urllib.request.Request(url, data=params, headers=headers, method='HEAD')
-    with urllib.request.urlopen(req) as f:
-        if f.getcode() < 200 or f.getcode() >= 300:
-            raise Exception("The file may" + url + "not exist")
-        length = f.info()["Content-Length"]
-        md5_value = f.info()["Content-Md5"]
-    file_size = int(length)
-    # if just download part of file
-    end = end or (file_size - 1)
-    download_size = end - start + 1
-    print(download_size)
-    if not os.path.exists(file_path):
-        with open(file_path, 'w') as f:
-            f.seek(download_size - 1)
-            f.write('\0')
-            f.flush()
-        print("Successfully generate file")
-    tasks = []
-    for part_start in range(0, download_size, file_slice):
-        part_end = part_start+file_slice if part_start+file_slice < download_size \
-            else download_size-1
-        future = asyncio.ensure_future(async_download_file_part(url, part_start, \
-            part_end, file_path, headers, params))
-        tasks.append(future)
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(asyncio.wait(tasks))
-    with open(file_path, 'rb') as file:
-        file_data = file.read()
-        actual_md5 = hashlib.md5(file_data).hexdigest()
-        assert str(actual_md5) == md5_value
-
-def download_single_file_one_thread(url, file_path, headers, params=None):
+def download_single_file(url, file_path, headers, params=None):
     """Download file using one thread
     """
     result = get(url, headers=headers, params=params)
@@ -165,7 +106,7 @@ def download_single_file_one_thread(url, file_path, headers, params=None):
     with open(file_path, 'wb+') as file:
         file.write(result)
 
-def download_multi_file(urls, save_dir, headers={}, process_pool_size=(os.cpu_count() or 1)):
+def download_multi_files(urls, save_dir, common_suffix='', headers={}, process_pool_size=(os.cpu_count() or 1)):
     """ Use multiprocess to download multiple files one time
     """
     if not isinstance(urls, list):
@@ -174,9 +115,9 @@ def download_multi_file(urls, save_dir, headers={}, process_pool_size=(os.cpu_co
         raise Exception("The directory not exists")
     pool = multiprocessing.Pool(processes=process_pool_size)
     for url in urls:
-        file_path = os.path.join(os.path.abspath(save_dir), url[url.rindex("/")+1 : ])
+        file_path = os.path.join(os.path.abspath(save_dir), url[url.rindex("/")+1 : ]) + common_suffix
         # pool.apply_async(download_single_file, (url, file_path, headers))
-        pool.apply_async(download_single_file_one_thread, (url, file_path, headers))
+        pool.apply_async(download_single_file, (url, file_path, headers))
     pool.close()
     pool.join()
 
@@ -216,8 +157,8 @@ class HttpConnection:
             self.headers = {"Cookie" : response.get_headers().get("Set-Cookie")}
         return response
 
-    def download_files(self, urls, save_dir):
-        return download_multi_file(urls, save_dir, headers=self.__headers)
+    def download_files(self, urls, save_dir, common_suffix=''):
+        return download_multi_files(urls, save_dir, common_suffix=common_suffix, headers=self.__headers)
 
     async def async_get(self, url, params):
         response = await async_get(self.__host + url, self.headers, params)
