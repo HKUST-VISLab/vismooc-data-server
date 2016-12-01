@@ -347,6 +347,7 @@ class FormatLogFile(PipeModule):
             'data'][DBc.COLLECTION_VIDEO]}
 
         events = []
+        denselogs = {}
         pattern_time = "%Y-%m-%dT%H:%M:%S.%f+00:00"
         for line in data_to_be_processed:
             event_type = re_right_eventtype.search(line)
@@ -371,6 +372,7 @@ class FormatLogFile(PipeModule):
 
                 temp_data = json.loads("{" + ",".join(temp_data) + "}")
                 event = {}
+                click = {}
                 event_context = temp_data.get('context') or {}
                 event_event = temp_data.get('event') or {}
 
@@ -382,12 +384,36 @@ class FormatLogFile(PipeModule):
                 event[DBc.FIELD_VIDEO_LOG_TIMESTAMP] = event_time.timestamp()
                 event[DBc.FIELD_VIDEO_LOG_TYPE] = temp_data.get('event_type')
 
+                denselog_time = datetime(event_time.year, event_time.month, 
+                    event_time.day).timestamp()
+                denselogs_key = video_id + str(denselog_time)
+
+                if denselogs.get(denselogs_key) is None:
+                    denselogs[denselogs_key] = {}
+                    denselogs[denselogs_key][DBc.FIELD_VIDEO_DENSELOGS_COURSE_ID] = \
+                        event_context.get('course_id')
+                    denselogs[denselogs_key][DBc.FIELD_VIDEO_DENSELOGS_TIMESTAMP] = \
+                        denselog_time
+                    denselogs[denselogs_key][DBc.FIELD_VIDEO_DENSELOGS_VIDEO_ID] = \
+                        video_id
+                # TODO
+                click[DBc.FIELD_VIDEO_DENSELOGS_ORIGINAL_ID] = ''
+                click[DBc.FIELD_VIDEO_DENSELOGS_USER_ID] = event_context.get('user_id')
+                click[DBc.FIELD_VIDEO_DENSELOGS_TYPE] = temp_data.get('event_type')
+                
                 target_attrs = {'path', 'code', 'currentTime', 'new_time', 'old_time',
                                 'new_speed', 'old_speed'}
                 event[DBc.FIELD_VIDEO_LOG_METAINFO] = {k: event_event.get(
                     k) for k in target_attrs if event_event.get(k) is not None}
                 event[DBc.FIELD_VIDEO_LOG_METAINFO]['path'] = event_context.get('path')
 
+                click[DBc.FIELD_VIDEO_DENSELOGS_PATH] = event_context.get('path')
+                tmp_metainfo = {k: event_event.get(
+                    k) for k in target_attrs if  event_event.get(k) is not None}
+                click.update(tmp_metainfo)
+
+                denselogs[denselogs_key].setdefault(
+                    DBc.FIELD_VIDEO_DENSELOGS_CLICKS, []).append(click)
                 date_time = str(event_time.date())
                 temporal_hotness = temp_video_dict[video_id][DBc.FIELD_VIDEO_TEMPORAL_HOTNESS]
 
@@ -398,6 +424,7 @@ class FormatLogFile(PipeModule):
 
         processed_data = raw_data
         processed_data['data'][DBc.COLLECTION_VIDEO_LOG] = events
+        processed_date['data'][DBc.COLLECTION_VIDEO_DENSELOGS] = denselogs
         return processed_data
 
 
