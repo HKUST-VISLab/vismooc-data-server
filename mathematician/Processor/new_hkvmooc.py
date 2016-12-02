@@ -44,6 +44,7 @@ def parse_duration(datestring):
 
 def split(string, separator=','):
     """split a string with `separtor`"""
+    
     tmp_stack = []
     results = []
     quota_number = 0
