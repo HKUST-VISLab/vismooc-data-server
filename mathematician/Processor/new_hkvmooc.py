@@ -4,7 +4,6 @@ import queue
 from datetime import timedelta, datetime
 from operator import itemgetter
 import mathematician.httphelper as httphelper
-from bson import ObjectId
 from ..pipe import PipeModule
 from ..DB.mongo_dbhelper import MongoDB
 from ..config import DBConfig as DBc, ThirdPartyKeys, FilenameConfig
@@ -65,7 +64,6 @@ def split(string, separator=','):
 class FormatCourseStructFile(PipeModule):
 
     order = 1
-    YOUTUBE_URL_PREFIX = 'https://www.youtube.com/watch?v='
 
     def __init__(self):
         super().__init__()
@@ -75,7 +73,7 @@ class FormatCourseStructFile(PipeModule):
         self.course_instructor = {}
         self.video_url_duration = {}
         self.video_id_info = {}
-        self.videos = {}
+        self.YOUTUBE_URL_PREFIX = 'https://www.youtube.com/watch?v='
 
     def load_data(self, raw_data):
         '''
@@ -96,11 +94,12 @@ class FormatCourseStructFile(PipeModule):
             video_id = video_encode_items[7]
             video_url = video_encode_items[3]
             if "http" not in video_url:
-                video_url = YOUTUBE_URL_PREFIX + video_url
+                video_url = self.YOUTUBE_URL_PREFIX + video_url
             video_id_url[video_id] = video_url
         for video_item in self.edx_videos:
             record = split(video_item)
-            self.video_url_duration[record[4]] = video_id_url[record[0]]
+            if video_id_url.get(record[0]):
+                self.video_url_duration[record[4]] = video_id_url[record[0]]
 
     def process(self, raw_data, raw_data_filenames=None):
         print("Processing FormatCourseStructFile")
@@ -124,26 +123,26 @@ class FormatCourseStructFile(PipeModule):
             course_id = records[2]
             course_one_instructor = records[4]
             self.course_instructor.setdefault(course_id, []).append(course_one_instructor)
-        
+
         re_course_year = re.compile(course_year_pattern)
         videos = {}
         courses = {}
-        for video_item in self.edx_videos:
-            video = {}
-            video_records = split(video_item)
-            video_original_id = video_records[0]
-            create_date = datetime.strptime(video_records[1], pattern_time) \
-                if video_records[1] else None
-            video[DBc.FIELD_VIDEO_ORIGINAL_ID] = video_original_id
-            video[DBc.FIELD_VIDEO_NAME] = video_records[2]
-            video[DBc.FIELD_VIDEO_SECTION] = video_records[3]
-            video[DBc.FIELD_VIDEO_DESCRIPTION] = video_records[3]
-            video[DBc.FIELD_VIDEO_RELEASE_DATE] = create_date and create_date.timestamp()
-            video[DBc.FIELD_VIDEO_DURATION] = video_records[4]
-            video[DBc.FIELD_VIDEO_METAINFO] = None
-            video[DBc.FIELD_VIDEO_COURSE_ID] = self.course_video_videokey[video_original_id]
-            video[DBc.FIELD_VIDEO_URL] = self.video_url_dict.get(video_original_id)
-            videos[video_original_id] = video
+        # for video_item in self.edx_videos:
+        #     video = {}
+        #     video_records = split(video_item)
+        #     video_original_id = video_records[0]
+        #     create_date = datetime.strptime(video_records[1], pattern_time) \
+        #         if video_records[1] else None
+        #     video[DBc.FIELD_VIDEO_ORIGINAL_ID] = video_original_id
+        #     video[DBc.FIELD_VIDEO_NAME] = video_records[2]
+        #     video[DBc.FIELD_VIDEO_SECTION] = video_records[3]
+        #     video[DBc.FIELD_VIDEO_DESCRIPTION] = video_records[3]
+        #     video[DBc.FIELD_VIDEO_RELEASE_DATE] = create_date and create_date.timestamp()
+        #     video[DBc.FIELD_VIDEO_DURATION] = video_records[4]
+        #     video[DBc.FIELD_VIDEO_METAINFO] = None
+        #     video[DBc.FIELD_VIDEO_COURSE_ID] = self.course_video_videokey[video_original_id]
+        #     video[DBc.FIELD_VIDEO_URL] = self.video_url_dict.get(video_original_id)
+        #     videos[video_original_id] = video
         for course_item in self.course_overview:
             course = {}
             course_records = split(course_item)
@@ -193,32 +192,31 @@ class FormatCourseStructFile(PipeModule):
             if course_structure:
                 for block in course_structure['blocks']:
                     if block['block_type'] == 'course':
-                        for chapter in block['children']:
-                            for sequential in chapter['children']:
-                                for vertical in sequential['children']:
-                                    for leaf in vertical['children']:
-                                        if lead['block_type'] == 'video':
+                        for chapter in block['fields']['children']:
+                            for sequential in chapter['fields']['children']:
+                                for vertical in sequential['fields']['children']:
+                                    for leaf in vertical['fields']['children']:
+                                        if leaf['block_type'] == 'video':
                                             if leaf['fields']:
                                                 fields = leaf['fields']
                                                 video_original_id = leaf['block_id']
-                                                self.videos[video_original_id] = {}
-                                                self.videos[video_original_id][DBc.FIELD_VIDEO_ORIGINAL_ID] = video_original_id
-                                                self.videos[video_original_id][DBc.FIELD_VIDEO_NAME] = fields['display_name']
-                                                self.videos[video_original_id][DBc.FIELD_VIDEO_URL] = (fields['youtube_id_1_0'] != '' \
-                                                    and YOUTUBE_URL_PREFIX+fields['youtube_id_1_0']) or (fields['html5_sources'] and fields['html5_sources'][0])
+                                                videos[video_original_id] = {}
+                                                videos[video_original_id][DBc.FIELD_VIDEO_ORIGINAL_ID] = video_original_id
+                                                videos[video_original_id][DBc.FIELD_VIDEO_NAME] = fields.get('display_name')
+                                                videos[video_original_id][DBc.FIELD_VIDEO_URL] = (fields.get('youtube_id_1_0') \
+                                                    and self.YOUTUBE_URL_PREFIX + fields.get('youtube_id_1_0')) or (fields.get('html5_sources') \
+                                                    and fields.get('html5_sources')[0])
+                                                videos[video_original_id][DBc.FIELD_VIDEO_TEMPORAL_HOTNESS] = {}
                                                 # TO DO
-                                                self.videos[video_original_id][DBc.FIELD_VIDEO_DURATION] = self.video_url_duration.get( \
-                                                    self.videos[video_original_id][DBc.FIELD_VIDEO_URL])
-                                                self.videos[video_original_id][DBc.FIELD_VIDEO_DESCRIPTION] = fields['display_name']
-                                                self.videos[video_original_id][DBc.FIELD_VIDEO_SECTION] = chapter['fields']['display_name'] + ', ' + \
+                                                videos[video_original_id][DBc.FIELD_VIDEO_DURATION] = self.video_url_duration.get( \
+                                                    videos[video_original_id][DBc.FIELD_VIDEO_URL])
+                                                videos[video_original_id][DBc.FIELD_VIDEO_DESCRIPTION] = fields.get('display_name')
+                                                videos[video_original_id][DBc.FIELD_VIDEO_SECTION] = chapter['fields']['display_name'] + ', ' + \
                                                     sequential['fields']['display_name'] + ', ' + vertical['fields']['display_name']
-                                                self.videos[video_original_id][DBc.FIELD_VIDEO_COURSE_ID] = course_original_id[course_original_id.index(':')+1:]
+                                                videos[video_original_id][DBc.FIELD_VIDEO_COURSE_ID] = course_original_id[course_original_id.index(':')+1:]
                                                 course.setdefault(DBc.FIELD_COURSE_VIDEO_IDS, []).append(video_original_id)
 
             courses[course_original_id] = course
-
-
-        
         processed_data = raw_data
         processed_data['data'][DBc.COLLECTION_VIDEO] = videos
         processed_data['data'][DBc.COLLECTION_COURSE] = courses
@@ -242,9 +240,9 @@ class FormatUserFile(PipeModule):
 
     def process(self, raw_data, raw_data_filenames=None):
         print("Processing FormatUserFile")
-        user_info = self.load_data(raw_data)
+        self.load_data(raw_data)
         if self.raw_user_profile is not None:
-            for record in user_profile:
+            for record in self.raw_user_profile:
                 fields = split(record)
                 self._userprofile[fields[16]] = fields
         if self.user_info is None:
@@ -354,9 +352,93 @@ class FormatLogFile(PipeModule):
                     raw_data = file.readlines()
                     yield raw_data
 
+    # def process(self, raw_data, raw_data_filenames=None):
+    #     print("Processing FormatLogFile")
+    #     all_data_to_be_processed = self.load_data(raw_data_filenames)
+    #     if all_data_to_be_processed is None:
+    #         return raw_data
+
+    #     pattern_wrong_username = r'"username"\s*:\s*"",'
+    #     pattern_right_eventsource = r'"event_source"\s*:\s*"browser"'
+    #     pattern_right_eventtype = r'"event_type"\s*:\s*"(hide_transcript|load_video|' + \
+    #         r'pause_video|play_video|seek_video|show_transcript|speed_change_video|stop_video|'+ \
+    #         r'video_hide_cc_menu|video_show_cc_menu)"'
+
+    #     pattern_context = r',?\s*("context"\s*:\s*{[^}]*})'
+    #     pattern_event = r',?\s*("event"\s*:\s*"([^"]|\\")*(?<!\\)")'
+    #     pattern_username = r',?\s*("username"\s*:\s*"[^"]*")'
+    #     pattern_time = r',?\s*("time"\s*:\s*"[^"]*")'
+    #     pattern_event_json_escape_ = r'"(?={)|"$'
+
+    #     re_wrong_username = re.compile(pattern_wrong_username)
+    #     re_right_eventsource = re.compile(pattern_right_eventsource)
+    #     re_right_eventtype = re.compile(pattern_right_eventtype)
+    #     re_context = re.compile(pattern_context)
+    #     re_event = re.compile(pattern_event)
+    #     re_username = re.compile(pattern_username)
+    #     re_time = re.compile(pattern_time)
+    #     re_event_json_escape = re.compile(pattern_event_json_escape_)
+
+    #     temp_video_dict = raw_data['data'][DBc.COLLECTION_VIDEO]
+
+    #     events = []
+    #     pattern_time = "%Y-%m-%dT%H:%M:%S.%f+00:00"
+    #     for data_to_be_processed in all_data_to_be_processed:
+    #         for line in data_to_be_processed:
+    #             event_type = re_right_eventtype.search(line)
+    #             if re_wrong_username.search(line) is None and \
+    #             re_right_eventsource.search(line) is not None and \
+    #             event_type is not None:
+
+    #                 context = re_context.search(line)
+    #                 event_field = re_event.search(line)
+    #                 username = re_username.search(line)
+    #                 timestamp = re_time.search(line)
+    #                 temp_data = [event_type.group()]
+    #                 if context is not None:
+    #                     temp_data.append(context.group(1))
+    #                 if event_field is not None:
+    #                     temp_data.append(re_event_json_escape.sub(
+    #                         '', event_field.group(1).replace('\\', '')))
+    #                 if username is not None:
+    #                     temp_data.append(username.group(1))
+    #                 if timestamp is not None:
+    #                     temp_data.append(timestamp.group(1))
+
+    #                 temp_data = json.loads("{" + ",".join(temp_data) + "}")
+    #                 event = {}
+    #                 event_context = temp_data.get('context') or {}
+    #                 event_event = temp_data.get('event') or {}
+
+    #                 video_id = event_event.get('id')
+    #                 event_time = datetime.strptime(temp_data.get('time'), pattern_time)
+    #                 event[DBc.FIELD_VIDEO_LOG_USER_ID] = event_context.get('user_id')
+    #                 event[DBc.FIELD_VIDEO_LOG_VIDEO_ID] = video_id
+    #                 event[DBc.FIELD_VIDEO_COURSE_ID] = event_context.get('course_id')
+    #                 event[DBc.FIELD_VIDEO_LOG_TIMESTAMP] = event_time.timestamp()
+    #                 event[DBc.FIELD_VIDEO_LOG_TYPE] = temp_data.get('event_type')
+
+    #                 target_attrs = {'path', 'code', 'currentTime', 'new_time', 'old_time',
+    #                                 'new_speed', 'old_speed'}
+    #                 event[DBc.FIELD_VIDEO_LOG_METAINFO] = {k: event_event.get(
+    #                     k) for k in target_attrs if event_event.get(k) is not None}
+    #                 event[DBc.FIELD_VIDEO_LOG_METAINFO]['path'] = event_context.get('path')
+
+    #                 # date_time = str(event_time.date())
+    #                 # temporal_hotness = temp_video_dict[video_id][DBc.FIELD_VIDEO_TEMPORAL_HOTNESS]
+
+    #                 # if date_time not in temporal_hotness:
+    #                 #     temporal_hotness[date_time] = 0
+    #                 # temporal_hotness[date_time] += 1
+    #                 events.append(event)
+
+    #     processed_data = raw_data
+    #     processed_data['data'][DBc.COLLECTION_VIDEO_LOG] = events
+    #     return processed_data
     def process(self, raw_data, raw_data_filenames=None):
-        print("Processing FormatLogFile")
+        print("Processing log files")
         all_data_to_be_processed = self.load_data(raw_data_filenames)
+
         if all_data_to_be_processed is None:
             return raw_data
 
@@ -381,11 +463,17 @@ class FormatLogFile(PipeModule):
         re_time = re.compile(pattern_time)
         re_event_json_escape = re.compile(pattern_event_json_escape_)
 
+        # temp_video_dict = {video[DBc.FIELD_VIDEO_ORIGINAL_ID]: video for video in raw_data[
+        #     'data'][DBc.COLLECTION_VIDEO]}
         temp_video_dict = raw_data['data'][DBc.COLLECTION_VIDEO]
 
         events = []
+        denselogs = {}
         pattern_time = "%Y-%m-%dT%H:%M:%S.%f+00:00"
+        count = 0
         for data_to_be_processed in all_data_to_be_processed:
+            count += 1
+            print("This is " + str(count) +"th log file")
             for line in data_to_be_processed:
                 event_type = re_right_eventtype.search(line)
                 if re_wrong_username.search(line) is None and \
@@ -406,36 +494,68 @@ class FormatLogFile(PipeModule):
                         temp_data.append(username.group(1))
                     if timestamp is not None:
                         temp_data.append(timestamp.group(1))
-
-                    temp_data = json.loads("{" + ",".join(temp_data) + "}")
+                    str_temp_data = "{" + ",".join(temp_data) + "}"
+                    str_temp_data = str_temp_data.replace('.,', ',', 1)
+                    temp_data = json.loads(str_temp_data)
                     event = {}
+                    click = {}
                     event_context = temp_data.get('context') or {}
                     event_event = temp_data.get('event') or {}
 
                     video_id = event_event.get('id')
-                    event_time = datetime.strptime(temp_data.get('time'), pattern_time)
+                    str_event_time = temp_data.get('time')
+                    if '.' not in str_event_time:
+                        str_event_time = str_event_time[:str_event_time.index("+")] + \
+                            '.000000' + str_event_time[str_event_time.index("+"):]
+                    event_time = datetime.strptime(str_event_time, pattern_time)
                     event[DBc.FIELD_VIDEO_LOG_USER_ID] = event_context.get('user_id')
                     event[DBc.FIELD_VIDEO_LOG_VIDEO_ID] = video_id
                     event[DBc.FIELD_VIDEO_COURSE_ID] = event_context.get('course_id')
                     event[DBc.FIELD_VIDEO_LOG_TIMESTAMP] = event_time.timestamp()
                     event[DBc.FIELD_VIDEO_LOG_TYPE] = temp_data.get('event_type')
 
+                    denselog_time = datetime(event_time.year, event_time.month, 
+                        event_time.day).timestamp()
+                    denselogs_key = (video_id + str(denselog_time)) if video_id else \
+                        "none_video_id"+str(denselog_time)
+
+                    if denselogs.get(denselogs_key) is None:
+                        denselogs[denselogs_key] = {}
+                        denselogs[denselogs_key][DBc.FIELD_VIDEO_DENSELOGS_COURSE_ID] = \
+                            event_context.get('course_id')
+                        denselogs[denselogs_key][DBc.FIELD_VIDEO_DENSELOGS_TIMESTAMP] = \
+                            denselog_time
+                        denselogs[denselogs_key][DBc.FIELD_VIDEO_DENSELOGS_VIDEO_ID] = \
+                            video_id
+                    # TODO
+                    click[DBc.FIELD_VIDEO_DENSELOGS_ORIGINAL_ID] = ''
+                    click[DBc.FIELD_VIDEO_DENSELOGS_USER_ID] = event_context.get('user_id')
+                    click[DBc.FIELD_VIDEO_DENSELOGS_TYPE] = temp_data.get('event_type')
                     target_attrs = {'path', 'code', 'currentTime', 'new_time', 'old_time',
                                     'new_speed', 'old_speed'}
                     event[DBc.FIELD_VIDEO_LOG_METAINFO] = {k: event_event.get(
                         k) for k in target_attrs if event_event.get(k) is not None}
                     event[DBc.FIELD_VIDEO_LOG_METAINFO]['path'] = event_context.get('path')
 
-                    # date_time = str(event_time.date())
-                    # temporal_hotness = temp_video_dict[video_id][DBc.FIELD_VIDEO_TEMPORAL_HOTNESS]
+                    click[DBc.FIELD_VIDEO_DENSELOGS_PATH] = event_context.get('path')
+                    tmp_metainfo = {k: event_event.get(
+                        k) for k in target_attrs if  event_event.get(k) is not None}
+                    click.update(tmp_metainfo)
 
-                    # if date_time not in temporal_hotness:
-                    #     temporal_hotness[date_time] = 0
-                    # temporal_hotness[date_time] += 1
+                    denselogs[denselogs_key].setdefault(
+                        DBc.FIELD_VIDEO_DENSELOGS_CLICKS, []).append(click)
+                    date_time = str(event_time.date())
+                    if temp_video_dict.get(video_id):
+                        temporal_hotness = temp_video_dict[video_id][DBc.FIELD_VIDEO_TEMPORAL_HOTNESS]
+
+                        if date_time not in temporal_hotness:
+                            temporal_hotness[date_time] = 0
+                        temporal_hotness[date_time] += 1
                     events.append(event)
 
         processed_data = raw_data
         processed_data['data'][DBc.COLLECTION_VIDEO_LOG] = events
+        processed_data['data'][DBc.COLLECTION_VIDEO_DENSELOGS] = list(denselogs.values())
         return processed_data
 
 
@@ -564,7 +684,8 @@ class ExtractRawData(PipeModule):
                             continue
                         oid = record.get('versions').get('published-branch').get('$oid')
                         structureIds.add(oid)
-                        structureId_to_courseId[oid] = record['org'] + '+' + record['course'] + '+' + record['run']
+                        structureId_to_courseId[oid] = record['org'] + '+' + \
+                            record['course'] + '+' + record['run']
             elif 'modulestore.structures' in filename:
                 module_structure_filename = filename
         # modulestore.active_version must be processed before modulestore.structures 
@@ -597,6 +718,8 @@ class ExtractRawData(PipeModule):
                             #blocks_to_remove.add(child[1])
                         item["fields"]["children"] = new_children
             raw_data['course_in_mongo'] = courseId_to_structure
+            # with open('/tmp/course_structures.json', 'w') as file:
+            #     file.write(json.dumps(courseId_to_structure))
         
         return raw_data
 
