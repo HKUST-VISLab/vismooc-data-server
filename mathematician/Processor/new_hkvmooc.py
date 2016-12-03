@@ -1,5 +1,6 @@
 import re
 import json
+import queue
 from datetime import timedelta, datetime
 from operator import itemgetter
 import mathematician.httphelper as httphelper
@@ -64,15 +65,18 @@ def split(string, separator=','):
 class FormatCourseStructFile(PipeModule):
 
     order = 1
+    YOUTUBE_URL_PREFIX = 'https://www.youtube.com/watch?v='
 
     def __init__(self):
         super().__init__()
         self.course_video_videokey = {}
         self.course_video_coursekey = {}
         self.video_duration = {}
-        self.video_url_dict = {}
         self.course_instructor = {}
-        
+        self.video_url_duration = {}
+        self.video_id_info = {}
+        self.videos = {}
+
     def load_data(self, raw_data):
         '''
         Load target file
@@ -82,6 +86,21 @@ class FormatCourseStructFile(PipeModule):
         self.edx_course_videos = raw_data['edxval_coursevideo']
         self.video_encode = raw_data['edxval_encodedvideo']
         self.course_access_role = raw_data['student_courseaccessrole']
+        self.course_structures = raw_data['course_in_mongo']
+        
+
+    def get_video_url_duration_from_sql(self):
+        video_id_url = {}
+        for video_encode_item in self.video_encode:
+            video_encode_items = split(video_encode_item)
+            video_id = video_encode_items[7]
+            video_url = video_encode_items[3]
+            if "http" not in video_url:
+                video_url = YOUTUBE_URL_PREFIX + video_url
+            video_id_url[video_id] = video_url
+        for video_item in self.edx_videos:
+            record = split(video_item)
+            self.video_url_duration[record[4]] = video_id_url[record[0]]
 
     def process(self, raw_data, raw_data_filenames=None):
         print("Processing FormatCourseStructFile")
@@ -89,13 +108,7 @@ class FormatCourseStructFile(PipeModule):
         pattern_time = "%Y-%m-%d %H:%M:%S.%f"
         course_year_pattern = r'^course-[\w|:|\+]+(?P<' + COURSE_YEAR_NAME + r'>[0-9]{4})\w*'
         self.load_data(raw_data)
-        for video_encode_item in self.video_encode:
-            video_encode_items = split(video_encode_item)
-            video_id = video_encode_items[7]
-            video_url = video_encode_items[3]
-            if "http" not in video_url:
-                video_url = "https://www.youtube.com/watch?v=" + video_url
-            self.video_url_dict[video_id] = video_url
+        self.get_video_url_duration_from_sql()
 
         for row in self.edx_course_videos:
             records = split(row)
@@ -134,6 +147,9 @@ class FormatCourseStructFile(PipeModule):
         for course_item in self.course_overview:
             course = {}
             course_records = split(course_item)
+            # if the course info already exist, then skip it
+            if course.get(course_records[3]):
+                continue
             course_start_time = datetime.strptime(
                 course_records[8], pattern_time) if course_records[8] != "NULL" else None
             course_end_time = datetime.strptime(
@@ -163,7 +179,7 @@ class FormatCourseStructFile(PipeModule):
             course[DBc.FIELD_COURSE_ENROLLMENT_END] = enrollment_end_time \
                 and enrollment_end_time.timestamp()
             course[DBc.FIELD_COURSE_STUDENT_IDS] = set()
-            course[DBc.FIELD_COURSE_VIDEO_IDS] = self.course_video_coursekey.get(course_original_id)
+            #course[DBc.FIELD_COURSE_VIDEO_IDS] = self.course_video_coursekey.get(course_original_id)
             course[DBc.FIELD_COURSE_METAINFO] = None
             course[DBc.FIELD_COURSE_ORG] = course_records[36]
             course[DBc.FIELD_COURSE_ADVERTISED_START] = advertised_start_time \
@@ -171,7 +187,38 @@ class FormatCourseStructFile(PipeModule):
             course[DBc.FIELD_COURSE_LOWEST_PASSING_GRADE] = course_records[21]
             course[DBc.FIELD_COURSE_MOBILE_AVAILABLE] = course_records[23]
             course[DBc.FIELD_COURSE_DISPLAY_NUMBER_WITH_DEFAULT] = course_records[6]
+
+            course_id_in_mongo = course_original_id[course_original_id.index(':')+1:]
+            course_structure = self.course_structures.get(course_id_in_mongo)
+            if course_structure:
+                for block in course_structure['blocks']:
+                    if block['block_type'] == 'course':
+                        for chapter in block['children']:
+                            for sequential in chapter['children']:
+                                for vertical in sequential['children']:
+                                    for leaf in vertical['children']:
+                                        if lead['block_type'] == 'video':
+                                            if leaf['fields']:
+                                                fields = leaf['fields']
+                                                video_original_id = leaf['block_id']
+                                                self.videos[video_original_id] = {}
+                                                self.videos[video_original_id][DBc.FIELD_VIDEO_ORIGINAL_ID] = video_original_id
+                                                self.videos[video_original_id][DBc.FIELD_VIDEO_NAME] = fields['display_name']
+                                                self.videos[video_original_id][DBc.FIELD_VIDEO_URL] = (fields['youtube_id_1_0'] != '' \
+                                                    and YOUTUBE_URL_PREFIX+fields['youtube_id_1_0']) or (fields['html5_sources'] and fields['html5_sources'][0])
+                                                # TO DO
+                                                self.videos[video_original_id][DBc.FIELD_VIDEO_DURATION] = self.video_url_duration.get( \
+                                                    self.videos[video_original_id][DBc.FIELD_VIDEO_URL])
+                                                self.videos[video_original_id][DBc.FIELD_VIDEO_DESCRIPTION] = fields['display_name']
+                                                self.videos[video_original_id][DBc.FIELD_VIDEO_SECTION] = chapter['fields']['display_name'] + ', ' + \
+                                                    sequential['fields']['display_name'] + ', ' + vertical['fields']['display_name']
+                                                self.videos[video_original_id][DBc.FIELD_VIDEO_COURSE_ID] = course_original_id[course_original_id.index(':')+1:]
+                                                course.setdefault(DBc.FIELD_COURSE_VIDEO_IDS, []).append(video_original_id)
+
             courses[course_original_id] = course
+
+
+        
         processed_data = raw_data
         processed_data['data'][DBc.COLLECTION_VIDEO] = videos
         processed_data['data'][DBc.COLLECTION_COURSE] = courses
@@ -475,38 +522,82 @@ class ExtractRawData(PipeModule):
     def __init__(self):
         super().__init__()
 
-
     def process(self, raw_data, raw_data_filenames=None):
         pattern_insert = r'^INSERT INTO `(?P<table_name>\w*)`'
         pattern_create_db = r'^USE `(?P<db_name>\w*)`;$'
         re_pattern_insert_table = re.compile(pattern_insert)
         re_pattern_create_db = re.compile(pattern_create_db)
         current_db = None
+        structureIds = set()
+        structureId_to_courseId = {}
+        courseId_to_structure = {}
+        block_queue  = queue.Queue()
+
+        module_structure_filename = None
 
         print("Processing ExtractRawData")
 
         for filename in raw_data_filenames:
             if 'dbsnapshots_mysqldb' in filename:
-                target_filename = filename
-                break
-        if target_filename is not None:
-            with open(target_filename, 'r', encoding='utf-8') as file:
+                with open(filename, 'r', encoding='utf-8') as file:
+                    for line in file:
+                        match_db = re_pattern_create_db.search(line)
+                        # find out the current database
+                        if match_db is not None:
+                            current_db = match_db.group("db_name")
+                        if (current_db is None) or (current_db != "edxapp"):
+                            continue
+                        # if in database edxapp
+                        match_table = re_pattern_insert_table.search(line)
+                        if match_table is None:
+                            continue
+                        # remove first '(' and last ';)\n' pay attention to '\n'
+                        line = line[line.index('(')+1: -3]
+                        records = line.split('),(')
+                        table_name = match_table.group("table_name")
+                        raw_data[table_name] = records
+            elif 'modulestore.active_versions' in filename:
+                with open(filename, 'r') as file:
+                    for line in file:
+                        record = json.loads(line)
+                        if record.get('versions').get('published-branch') is None:
+                            continue
+                        oid = record.get('versions').get('published-branch').get('$oid')
+                        structureIds.add(oid)
+                        structureId_to_courseId[oid] = record['org'] + '+' + record['course'] + '+' + record['run']
+            elif 'modulestore.structures' in filename:
+                module_structure_filename = filename
+        # modulestore.active_version must be processed before modulestore.structures 
+        if module_structure_filename and len(structureId_to_courseId) != 0:
+            with open(filename, 'r') as file:
                 for line in file:
-                    match_db = re_pattern_create_db.search(line)
-                    # find out the current database
-                    if match_db is not None:
-                        current_db = match_db.group("db_name")
-                    if (current_db is None) or (current_db != "edxapp"):
-                        continue
-                    # if in database edxapp
-                    match_table = re_pattern_insert_table.search(line)
-                    if match_table is None:
-                        continue
-                    # remove first '(' and last ';)\n' pay attention to '\n'
-                    line = line[line.index('(')+1: -3]
-                    records = line.split('),(')
-                    table_name = match_table.group("table_name")
-                    raw_data[table_name] = records
+                    record = json.loads(line)
+                    oid = record.get('_id').get('$oid')
+                    if oid in structureIds:
+                        courseId_to_structure[structureId_to_courseId[oid]] = record
+            for one_structure in courseId_to_structure.values():
+                blocks_dict = {}
+                blocks_to_remove = set()
+                # construct a dictory which contains all blocks
+                # and get the root course block
+                blocks = one_structure.get("blocks")
+                for block in blocks:
+                    blocks_dict[block.get("block_id")] = block
+                    if block.get("block_type") == "course":
+                        block_queue.put(block)
+                # fill in the children field
+                while not block_queue.empty():
+                    item = block_queue.get()
+                    if item.get("fields") and item.get("fields").get("children"):
+                        new_children = []
+                        for child in item.get("fields").get("children"):
+                            new_children.append(blocks_dict[child[1]])
+                            block_queue.put(blocks_dict[child[1]])
+                            blocks.remove(blocks_dict.get(child[1]))
+                            #blocks_to_remove.add(child[1])
+                        item["fields"]["children"] = new_children
+            raw_data['course_in_mongo'] = courseId_to_structure
+        
         return raw_data
 
 class PreprocessFormatLogFile():
