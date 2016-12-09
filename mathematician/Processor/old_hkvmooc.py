@@ -73,7 +73,7 @@ class FormatCourseStructFile(PipeModule):
         return None
 
     def process(self, raw_data, raw_data_filenames=None):
-
+        print("Processing course record")
         data_to_be_processed = self.load_data(raw_data_filenames)
         if data_to_be_processed is None:
             return raw_data
@@ -117,7 +117,7 @@ class FormatCourseStructFile(PipeModule):
                 course[DBc.FIELD_COURSE_INSTRUCTOR] = None
                 course[DBc.FIELD_COURSE_STATUS] = None
                 course[DBc.FIELD_COURSE_URL] = None
-                course[DBc.FIELD_COURSE_IMAGE] = metadata.get('course_image')
+                #course[DBc.FIELD_COURSE_IMAGE] = metadata.get('course_image')
                 course[DBc.FIELD_COURSE_DESCRIPTION] = None
                 course[DBc.FIELD_COURSE_METAINFO] = {}
                 course[DBc.FIELD_COURSE_STARTTIME] = start_time and start_time.timestamp()
@@ -142,7 +142,7 @@ class FormatCourseStructFile(PipeModule):
         broken_youtube_id = set([youtube_id for youtube_id in video_youtube_ids])
         results = httphelper.get_list(urls, limit=60)
         for result in results:
-            result = json.loads(result.decode('utf-8'))
+            result = json.loads(str(result, 'utf-8'))
             if len(result["items"]) == 0:
                 continue
             video_id = result["items"][0]["id"]
@@ -203,6 +203,8 @@ class FormatUserFile(PipeModule):
         return None
 
     def process(self, raw_data, raw_data_filenames=None):
+        print("Processing user record")
+        THIS_YEAR = 2016
         data_to_be_processed = self.load_data(raw_data_filenames)
 
         if data_to_be_processed is None:
@@ -217,7 +219,12 @@ class FormatUserFile(PipeModule):
             user[DBc.FIELD_USER_GENDER] = user_profile and user_profile[7]
             user[DBc.FIELD_USER_COURSE_IDS] = set()
             user[DBc.FIELD_USER_DROPPED_COURSE_IDS] = set()
-            user[DBc.FIELD_USER_AGE] = row[16] or (user_profile and user_profile[9])
+
+            str_user_birth_year = (row[16]!="NULL" and row[16]) or \
+                (user_profile and user_profile[9] and user_profile[9])
+
+            user_birth_year = (str_user_birth_year.isdigit() and int(str_user_birth_year)) or THIS_YEAR
+            user[DBc.FIELD_USER_BIRTH_DATE] = datetime(int(user_birth_year), 1, 1).timestamp()
             user[DBc.FIELD_USER_COUNTRY] = row[14] or (
                 user_profile and (user_profile[13] or user_profile[4]))
             user[DBc.FIELD_USER_NAME] = row[1]
@@ -259,6 +266,7 @@ class FormatEnrollmentFile(PipeModule):
         return None
 
     def process(self, raw_data, raw_data_filenames=None):
+        print("Processing enrollment record")
         data_to_be_processed = self.load_data(raw_data_filenames)
         if data_to_be_processed is None:
             return raw_data
@@ -318,18 +326,15 @@ class FormatLogFile(PipeModule):
         for filename in data_filenames:
             if '-events-' in filename:
                 target_filename = filename
-                break
-
-        if target_filename is not None:
-            with open(target_filename, 'r', encoding='utf-8') as file:
-                raw_data = file.readlines()
-                return raw_data
-        return None
+                with open(target_filename, 'r', encoding='utf-8') as file:
+                    raw_data = file.readlines()
+                    yield raw_data
 
     def process(self, raw_data, raw_data_filenames=None):
-        data_to_be_processed = self.load_data(raw_data_filenames)
+        print("Processing log files")
+        all_data_to_be_processed = self.load_data(raw_data_filenames)
 
-        if data_to_be_processed is None:
+        if all_data_to_be_processed is None:
             return raw_data
 
         pattern_wrong_username = r'"username"\s*:\s*"",'
@@ -357,66 +362,95 @@ class FormatLogFile(PipeModule):
             'data'][DBc.COLLECTION_VIDEO]}
 
         events = []
-        broken_event = []
-        print('ready to process log file')
-        for line in data_to_be_processed:
-            event_type = re_right_eventtype.search(line)
-            if re_wrong_username.search(line) is None and \
-               re_right_eventsource.search(line) is not None and \
-               event_type is not None:
+        denselogs = {}
+        pattern_time = "%Y-%m-%dT%H:%M:%S.%f+00:00"
+        count = 0
+        for data_to_be_processed in all_data_to_be_processed:
+            count += 1
+            print("This is " + str(count) +"th log file")
+            for line in data_to_be_processed:
+                event_type = re_right_eventtype.search(line)
+                if re_wrong_username.search(line) is None and \
+                re_right_eventsource.search(line) is not None and \
+                event_type is not None:
 
-                context = re_context.search(line)
-                event_field = re_event.search(line)
-                username = re_username.search(line)
-                timestamp = re_time.search(line)
-                temp_data = [event_type.group()]
-                if context is not None:
-                    temp_data.append(context.group(1))
-                if event_field is not None:
-                    temp_data.append(re_event_json_escape.sub(
-                        '', event_field.group(1).replace('\\', '')))
-                if username is not None:
-                    temp_data.append(username.group(1))
-                if timestamp is not None:
-                    temp_data.append(timestamp.group(1))
+                    context = re_context.search(line)
+                    event_field = re_event.search(line)
+                    username = re_username.search(line)
+                    timestamp = re_time.search(line)
+                    temp_data = [event_type.group()]
+                    if context is not None:
+                        temp_data.append(context.group(1))
+                    if event_field is not None:
+                        temp_data.append(re_event_json_escape.sub(
+                            '', event_field.group(1).replace('\\', '')))
+                    if username is not None:
+                        temp_data.append(username.group(1))
+                    if timestamp is not None:
+                        temp_data.append(timestamp.group(1))
+                    str_temp_data = "{" + ",".join(temp_data) + "}"
+                    str_temp_data = str_temp_data.replace('.,', ',', 1)
+                    temp_data = json.loads(str_temp_data)
+                    event = {}
+                    click = {}
+                    event_context = temp_data.get('context') or {}
+                    event_event = temp_data.get('event') or {}
 
-                temp_data = json.loads("{" + (",".join(temp_data)).replace('.,', ',') + "}")
-                event = {}
-                event_context = temp_data.get('context') or {}
-                event_event = temp_data.get('event') or {}
+                    video_id = event_event.get('id')
+                    str_event_time = temp_data.get('time')
+                    if '.' not in str_event_time:
+                        str_event_time = str_event_time[:str_event_time.index("+")] + \
+                            '.000000' + str_event_time[str_event_time.index("+"):]
+                    event_time = datetime.strptime(str_event_time, pattern_time)
+                    event[DBc.FIELD_VIDEO_LOG_USER_ID] = event_context.get('user_id')
+                    event[DBc.FIELD_VIDEO_LOG_VIDEO_ID] = video_id
+                    event[DBc.FIELD_VIDEO_COURSE_ID] = event_context.get('course_id')
+                    event[DBc.FIELD_VIDEO_LOG_TIMESTAMP] = event_time.timestamp()
+                    event[DBc.FIELD_VIDEO_LOG_TYPE] = temp_data.get('event_type')
 
-                video_id = event_event.get('id')
-                event_time = self.try_parsing_date(temp_data.get('time'))
-                event[DBc.FIELD_VIDEO_LOG_USER_ID] = event_context.get('user_id')
-                event[DBc.FIELD_VIDEO_LOG_VIDEO_ID] = video_id
-                event[DBc.FIELD_VIDEO_COURSE_ID] = event_context.get('course_id')
-                event[DBc.FIELD_VIDEO_LOG_TIMESTAMP] = event_time.timestamp()
-                event[DBc.FIELD_VIDEO_LOG_TYPE] = temp_data.get('event_type')
+                    denselog_time = datetime(event_time.year, event_time.month, 
+                        event_time.day).timestamp()
+                    denselogs_key = (video_id + str(denselog_time)) if video_id else \
+                        "none_video_id"+str(denselog_time)
 
-                target_attrs = {'path': 'path', 'code': 'code', 'currentTime': 'currentTime',
-                                'new_time': 'newTime', 'old_time': 'oldTime',
-                                'new_speed': 'newSpeed', 'old_speed': 'oldSpeed'}
+                    if denselogs.get(denselogs_key) is None:
+                        denselogs[denselogs_key] = {}
+                        denselogs[denselogs_key][DBc.FIELD_VIDEO_DENSELOGS_COURSE_ID] = \
+                            event_context.get('course_id')
+                        denselogs[denselogs_key][DBc.FIELD_VIDEO_DENSELOGS_TIMESTAMP] = \
+                            denselog_time
+                        denselogs[denselogs_key][DBc.FIELD_VIDEO_DENSELOGS_VIDEO_ID] = \
+                            video_id
+                    # TODO
+                    click[DBc.FIELD_VIDEO_DENSELOGS_ORIGINAL_ID] = ''
+                    click[DBc.FIELD_VIDEO_DENSELOGS_USER_ID] = event_context.get('user_id')
+                    click[DBc.FIELD_VIDEO_DENSELOGS_TYPE] = temp_data.get('event_type')
+                    
+                    target_attrs = {'path', 'code', 'currentTime', 'new_time', 'old_time',
+                                    'new_speed', 'old_speed'}
+                    event[DBc.FIELD_VIDEO_LOG_METAINFO] = {k: event_event.get(
+                        k) for k in target_attrs if event_event.get(k) is not None}
+                    event[DBc.FIELD_VIDEO_LOG_METAINFO]['path'] = event_context.get('path')
 
-                event[DBc.FIELD_VIDEO_LOG_METAINFO] = {nk: event_event.get(
-                    k) for k, nk in target_attrs.items() if event_event.get(k) is not None}
-                event[DBc.FIELD_VIDEO_LOG_METAINFO]['path'] = event_context.get('path')
+                    click[DBc.FIELD_VIDEO_DENSELOGS_PATH] = event_context.get('path')
+                    tmp_metainfo = {k: event_event.get(
+                        k) for k in target_attrs if  event_event.get(k) is not None}
+                    click.update(tmp_metainfo)
 
-                date_time = str(event_time.date())
+                    denselogs[denselogs_key].setdefault(
+                        DBc.FIELD_VIDEO_DENSELOGS_CLICKS, []).append(click)
+                    date_time = str(event_time.date())
+                    if temp_video_dict.get(video_id):
+                        temporal_hotness = temp_video_dict[video_id][DBc.FIELD_VIDEO_TEMPORAL_HOTNESS]
 
-                try:
-                    temporal_hotness = temp_video_dict[video_id][DBc.FIELD_VIDEO_TEMPORAL_HOTNESS]
-                    if date_time not in temporal_hotness:
-                        temporal_hotness[date_time] = 0
-                    temporal_hotness[date_time] += 1
-                except KeyError:
-                    broken_event.append(json.dumps(event))
-                events.append(event)
-        with open("/vismooc-test-data/broken_event.log", "w+") as f:
-            f.write(str(broken_event))
+                        if date_time not in temporal_hotness:
+                            temporal_hotness[date_time] = 0
+                        temporal_hotness[date_time] += 1
+                    events.append(event)
 
         processed_data = raw_data
         processed_data['data'][DBc.COLLECTION_VIDEO_LOG] = events
-        print('finish format log file')
+        processed_data['data'][DBc.COLLECTION_VIDEO_DENSELOGS] = list(denselogs.values())
         return processed_data
 
 
@@ -428,6 +462,7 @@ class DumpToDB(PipeModule):
         self.db = MongoDB('localhost', 'test-vismooc-java')
 
     def process(self, raw_data, raw_data_filenames=None):
+        print("DB Insertion")
         db_data = raw_data['data']
         # cast from set to list
         course = db_data[DBc.COLLECTION_COURSE][0]
@@ -447,6 +482,7 @@ class DumpToDB(PipeModule):
         # insert to db
         print('ready to dump to db')
         for collection_name in db_data:
+            print(collection_name)
             collection = self.db.get_collection(collection_name)
             if db_data[collection_name] is not None:
                 collection.insert_many(db_data[collection_name])
