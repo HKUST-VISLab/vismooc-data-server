@@ -113,6 +113,7 @@ class FormatCourseStructFile(PipeModule):
         for row in self.edx_course_videos:
             records = split(row)
             course_id = records[1]
+            course_id = course_id[course_id.index(':')+1:]
             video_id = records[2]
             self.course_video_videokey[video_id] = course_id
             self.course_video_coursekey.setdefault(course_id, []).append(video_id)
@@ -122,6 +123,7 @@ class FormatCourseStructFile(PipeModule):
             if records[3] != 'instructor':
                 continue
             course_id = records[2]
+            course_id = course_id[course_id.index(':')+1:]
             course_one_instructor = records[4]
             self.course_instructor.setdefault(course_id, []).append(course_one_instructor)
 
@@ -311,6 +313,7 @@ class FormatEnrollmentFile(PipeModule):
             records = split(enroll_item)
             user_id = records[5]
             course_id = records[1]
+            course_id = course_id[course_id.index(':')+1:]            
             enrollment_time = datetime.strptime(records[2], pattern_time) \
                 if records[2] != "NULL" else None
             enrollment[DBc.FIELD_ENROLLMENT_USER_ID] = user_id
