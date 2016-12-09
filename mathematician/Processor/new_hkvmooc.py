@@ -161,6 +161,7 @@ class FormatCourseStructFile(PipeModule):
             enrollment_end_time = datetime.strptime(
                 course_records[27], pattern_time) if course_records[27] != "NULL" else None
             course_original_id = course_records[3]
+            course_original_id = course_original_id[course_original_id.index(':')+1:]
             course[DBc.FIELD_COURSE_ORIGINAL_ID] = course_original_id
             course[DBc.FIELD_COURSE_NAME] = course_records[5]
             course_year_match = re_course_year.search(course_original_id)
@@ -188,8 +189,7 @@ class FormatCourseStructFile(PipeModule):
             course[DBc.FIELD_COURSE_MOBILE_AVAILABLE] = course_records[23]
             course[DBc.FIELD_COURSE_DISPLAY_NUMBER_WITH_DEFAULT] = course_records[6]
 
-            course_id_in_mongo = course_original_id[course_original_id.index(':')+1:]
-            course_structure = self.course_structures.get(course_id_in_mongo)
+            course_structure = self.course_structures.get(course_original_id)
             if course_structure:
                 for block in course_structure['blocks']:
                     if block['block_type'] == 'course':
@@ -214,7 +214,7 @@ class FormatCourseStructFile(PipeModule):
                                                 videos[video_original_id][DBc.FIELD_VIDEO_DESCRIPTION] = fields.get('display_name')
                                                 videos[video_original_id][DBc.FIELD_VIDEO_SECTION] = chapter['fields']['display_name'] + ', ' + \
                                                     sequential['fields']['display_name'] + ', ' + vertical['fields']['display_name']
-                                                videos[video_original_id][DBc.FIELD_VIDEO_COURSE_ID] = course_original_id[course_original_id.index(':')+1:]
+                                                videos[video_original_id][DBc.FIELD_VIDEO_COURSE_ID] = course_original_id
                                                 course.setdefault(DBc.FIELD_COURSE_VIDEO_IDS, []).append(video_original_id)
 
             courses[course_original_id] = course
