@@ -511,10 +511,12 @@ class FormatLogFile(PipeModule):
                     if '.' not in str_event_time:
                         str_event_time = str_event_time[:str_event_time.index("+")] + \
                             '.000000' + str_event_time[str_event_time.index("+"):]
+                    course_id = event_context.get('course_id')
+                    course_id = course_id[course_id.index(':')+1:]
                     event_time = datetime.strptime(str_event_time, pattern_time)
                     event[DBc.FIELD_VIDEO_LOG_USER_ID] = event_context.get('user_id')
                     event[DBc.FIELD_VIDEO_LOG_VIDEO_ID] = video_id
-                    event[DBc.FIELD_VIDEO_COURSE_ID] = event_context.get('course_id')
+                    event[DBc.FIELD_VIDEO_COURSE_ID] = course_id
                     event[DBc.FIELD_VIDEO_LOG_TIMESTAMP] = event_time.timestamp()
                     event[DBc.FIELD_VIDEO_LOG_TYPE] = temp_data.get('event_type')
 
@@ -526,7 +528,7 @@ class FormatLogFile(PipeModule):
                     if denselogs.get(denselogs_key) is None:
                         denselogs[denselogs_key] = {}
                         denselogs[denselogs_key][DBc.FIELD_VIDEO_DENSELOGS_COURSE_ID] = \
-                            event_context.get('course_id')
+                            course_id
                         denselogs[denselogs_key][DBc.FIELD_VIDEO_DENSELOGS_TIMESTAMP] = \
                             denselog_time
                         denselogs[denselogs_key][DBc.FIELD_VIDEO_DENSELOGS_VIDEO_ID] = \
