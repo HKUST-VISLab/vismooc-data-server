@@ -1,6 +1,7 @@
 import re
 import json
 import queue
+import struct
 from datetime import timedelta, datetime
 from operator import itemgetter
 import mathematician.httphelper as httphelper
@@ -76,6 +77,11 @@ class FormatCourseStructFile(PipeModule):
         self.video_id_info = {}
         self.YOUTUBE_URL_PREFIX = 'https://www.youtube.com/watch?v='
 
+        youtube_api_host = 'https://www.googleapis.com/youtube/v3/videos'
+        params = 'part=contentDetails&key=' + ThirdPartyKeys.Youtube_key
+
+        self.youtube_api = youtube_api_host + '?' + params
+
     def load_data(self, raw_data):
         '''
         Load target file
@@ -101,6 +107,27 @@ class FormatCourseStructFile(PipeModule):
             record = split(video_item)
             if video_id_url.get(record[0]):
                 self.video_url_duration[record[4]] = video_id_url[record[0]]
+    def parse_video_duration(self, url):
+        header = {"Range":"bytes=0-100"}
+        result = httphelper.get(url, header)
+        bio = io.BytesIO(result.get_content())
+        data = bio.read(8)
+        al, an = struct.unpack('>I4s', data)
+        an = an.decode()
+        assert an == 'ftyp'
+        bio.read(al-8)
+        data = bio.read(8)
+        al, an = struct.unpack('>I4s', data)
+        an = an.decode()
+        assert an == 'moov'
+        data = bio.read(8)
+        al, an = struct.unpack('>I4s', data)
+        an = an.decode()
+        assert an == 'mvhd'
+        data = bio.read(20)
+        infos = struct.unpack('>12x2I', data)
+        video_length = int(infos[1]) // int(infos[0])
+        return video_length
 
     def process(self, raw_data, raw_data_filenames=None):
         print("Processing FormatCourseStructFile")
@@ -130,6 +157,8 @@ class FormatCourseStructFile(PipeModule):
         re_course_year = re.compile(course_year_pattern)
         videos = {}
         courses = {}
+        tmp_youtube_video_dict = {}
+        tmp_other_video_dict = {}
         # for video_item in self.edx_videos:
         #     video = {}
         #     video_records = split(video_item)
@@ -217,9 +246,36 @@ class FormatCourseStructFile(PipeModule):
                                                 videos[video_original_id][DBc.FIELD_VIDEO_SECTION] = chapter['fields']['display_name'] + ', ' + \
                                                     sequential['fields']['display_name'] + ', ' + vertical['fields']['display_name']
                                                 videos[video_original_id][DBc.FIELD_VIDEO_COURSE_ID] = course_original_id
+
+                                                if videos[video_original_id][DBc.FIELD_VIDEO_URL] and 'youtube' in videos[video_original_id][DBc.FIELD_VIDEO_URL]:
+                                                    url = videos[video_original_id][DBc.FIELD_VIDEO_URL]
+                                                    youtube_id = url[url.index('v=')+2:]
+                                                    tmp_youtube_video_dict[youtube_id] = video_original_id
+                                                elif videos[video_original_id][DBc.FIELD_VIDEO_URL]:
+                                                    tmp_other_video_dict[videos[video_original_id][DBc.FIELD_VIDEO_URL]] = video_original_id
+
                                                 course.setdefault(DBc.FIELD_COURSE_VIDEO_IDS, []).append(video_original_id)
 
             courses[course_original_id] = course
+
+        # fetch the video duration from youtube_api_v3
+        urls = [self.youtube_api + '&id=' +
+                youtube_id for youtube_id in tmp_youtube_video_dict.keys()]
+        broken_youtube_id = set([youtube_id for youtube_id in tmp_youtube_video_dict.keys()])
+        results = httphelper.get_list(urls, limit=60)
+        for result in results:
+            result = json.loads(str(result, 'utf-8'))
+            if len(result["items"]) == 0:
+                continue
+            video_id = result["items"][0]["id"]
+            broken_youtube_id.discard(video_id)
+            duration = parse_duration(result["items"][0]["contentDetails"]["duration"])
+            videos[tmp_youtube_video_dict[video_id]][DBc.FIELD_VIDEO_DURATION] = int(duration.total_seconds())
+        
+        for url in tmp_other_video_dict.keys():
+            video_duration = self.parse_video_duration(url)
+            videos[tmp_other_video_dict[url]][DBc.FIELD_VIDEO_DURATION] = video_duration
+
         processed_data = raw_data
         processed_data['data'][DBc.COLLECTION_VIDEO] = videos
         processed_data['data'][DBc.COLLECTION_COURSE] = courses
@@ -473,6 +529,7 @@ class FormatLogFile(PipeModule):
 
         events = []
         denselogs = {}
+        raw_logs = []
         pattern_time = "%Y-%m-%dT%H:%M:%S.%f+00:00"
         count = 0
         for data_to_be_processed in all_data_to_be_processed:
@@ -559,9 +616,15 @@ class FormatLogFile(PipeModule):
                         temporal_hotness[date_time] += 1
                     events.append(event)
 
+                    line = line.replace('.,', ',', 1)
+                    raw_logs.append(json.loads(line))
+
         processed_data = raw_data
         processed_data['data'][DBc.COLLECTION_VIDEO_LOG] = events
         processed_data['data'][DBc.COLLECTION_VIDEO_DENSELOGS] = list(denselogs.values())
+        processed_data['data'][DBc.COLLECTION_VIDEO_RAWLOGS] = raw_logs
+        
+
         return processed_data
 
 
@@ -570,7 +633,7 @@ class DumpToDB(PipeModule):
 
     def __init__(self):
         super().__init__()
-        self.db = MongoDB('localhost', 'test-vismooc-newData')
+        self.db = MongoDB('localhost', 'test-vismooc-newData-tmp')
 
     def process(self, raw_data, raw_data_filenames=None):
         print("Insert data to DB")

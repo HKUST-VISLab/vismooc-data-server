@@ -76,7 +76,7 @@ class DBConfig:
     FIELD_VIDEO_URL = "url"
     FIELD_VIDEO_DURATION = "duration"
 
-    COLLECTION_VIDEO_LOG = "videoLogs"
+    COLLECTION_VIDEO_LOG = "logs"
     FIELD_VIDEO_LOG_ORIGINAL_ID = "originalId"
     FIELD_VIDEO_LOG_USER_ID = "userId"
     FIELD_VIDEO_LOG_VIDEO_ID = "videoId"
@@ -99,6 +99,8 @@ class DBConfig:
     FIELD_VIDEO_DENSELOGS_OLD_TIME = "oldTime"
     FIELD_VIDEO_DENSELOGS_NEW_SPEED = "newSpeed"
     FIELD_VIDEO_DENSELOGS_OLD_SPEED = "oldSpeed"
+
+    COLLECTION_VIDEO_RAWLOGS = "rawlogs"
 
     CONFIG_JSON = {
         DB_HOST: "localhost",

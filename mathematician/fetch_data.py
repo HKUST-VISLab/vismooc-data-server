@@ -65,6 +65,8 @@ class DownloadFileFromServer():
             raise Exception("Unsupported compress algorithm " + compress_algorithm)
 
         for file_path in file_paths:
+            if not os.path.exists(file_path):
+                continue
             if compress_algorithm == "gzip":
                 with open(file_path, 'rb') as file:
                     file_data = file.read()
@@ -73,4 +75,18 @@ class DownloadFileFromServer():
                     file.write(decompass_data)
             elif compress_algorithm == "gtar":
                 with tarfile.open(file_path, 'r') as tar:
+                    tar_root = tar.getnames()[0]
                     tar.extractall(path=os.path.dirname(file_path))
+                    # print(os.path.join(os.path.dirname(file_path), tar_root))
+                    self.bson2json(os.path.join(os.path.dirname(file_path), tar_root))
+                    # os.remove(file_path)
+    def bson2json(self, dir):
+        file_to_be_process = set(['modulestore.active_versions.bson', 'modulestore.structures.bson'])
+        files = [os.path.join(dir, file) for file in os.listdir(dir)]
+        for file in files:
+            if os.path.isdir(file):
+                self.bson2json(file)
+            elif os.path.isfile(file) and os.path.basename(file) in file_to_be_process:
+                cmd = "bsondump " + file + " > " + file[0:file.rindex('.')+1] + 'json'
+                output = os.system(cmd)
+                # os.remove(file)
