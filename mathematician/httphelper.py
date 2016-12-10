@@ -5,6 +5,9 @@ import multiprocessing
 import json
 import hashlib
 import aiohttp
+import ssl
+
+
 
 def get(url, headers={}, params=None):
     """Send synchronous get request
@@ -20,8 +23,11 @@ def get(url, headers={}, params=None):
             raise Exception("The params should be dict type")
 
     # print(url)
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
     req = urllib.request.Request(url=url, headers=headers, method='GET')
-    with urllib.request.urlopen(req) as f:
+    with urllib.request.urlopen(req, ctx) as f:
         assert f.getcode() >= 200 and f.getcode() < 300
         data = f.read()
         response_headers = f.info()
