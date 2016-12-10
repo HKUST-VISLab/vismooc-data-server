@@ -2,6 +2,7 @@ import re
 import json
 import queue
 import struct
+import io
 from datetime import timedelta, datetime
 from operator import itemgetter
 import mathematician.httphelper as httphelper
