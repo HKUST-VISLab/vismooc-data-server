@@ -23,17 +23,19 @@ def get(url, headers={}, params=None):
             raise Exception("The params should be dict type")
 
     # print(url)
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
+    context = ssl._create_unverified_context()
+    url = urllib.request.quote(url.encode('utf8'), ':/%')
+    # print(url)
     req = urllib.request.Request(url=url, headers=headers, method='GET')
-    with urllib.request.urlopen(req, ctx) as f:
-        assert f.getcode() >= 200 and f.getcode() < 300
-        data = f.read()
-        response_headers = f.info()
-        return_code = f.getcode()
+    try:
+        response = urllib.request.urlopen(req, context=context)
+    except urllib.error.HTTPError as e:
+        return HttpResponse(e.getcode(), '', '')
+    else:
+        data = response.read()
+        response_headers = response.info()
+        return_code = response.getcode()
         return HttpResponse(return_code, response_headers, data)
-
 
 def post(url, headers={}, params=None):
     """Send synchronous post request

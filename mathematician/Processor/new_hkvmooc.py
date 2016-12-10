@@ -108,9 +108,12 @@ class FormatCourseStructFile(PipeModule):
             record = split(video_item)
             if video_id_url.get(record[0]):
                 self.video_url_duration[record[4]] = video_id_url[record[0]]
+
     def parse_video_duration(self, url):
         header = {"Range":"bytes=0-100"}
         result = httphelper.get(url, header)
+        if result.get_return_code() < 200 or result.get_return_code() >= 300:
+            return -1
         bio = io.BytesIO(result.get_content())
         data = bio.read(8)
         al, an = struct.unpack('>I4s', data)
@@ -253,7 +256,7 @@ class FormatCourseStructFile(PipeModule):
                                                     youtube_id = url[url.index('v=')+2:]
                                                     tmp_youtube_video_dict[youtube_id] = video_original_id
                                                 elif videos[video_original_id][DBc.FIELD_VIDEO_URL]:
-                                                    tmp_other_video_dict[videos[video_original_id][DBc.FIELD_VIDEO_URL]] = video_original_id
+                                                    tmp_other_video_dict.setdefault(videos[video_original_id][DBc.FIELD_VIDEO_URL], []).append(video_original_id)
 
                                                 course.setdefault(DBc.FIELD_COURSE_VIDEO_IDS, []).append(video_original_id)
 
@@ -275,7 +278,10 @@ class FormatCourseStructFile(PipeModule):
         
         for url in tmp_other_video_dict.keys():
             video_duration = self.parse_video_duration(url)
-            videos[tmp_other_video_dict[url]][DBc.FIELD_VIDEO_DURATION] = video_duration
+            # if url == "https://www.hkmooc.hk/COMP1022P/videos/Part%202/w4-l9/COMP102.2x-L9-T1.4-Recursive_Method_Calls.mp4":
+            #     print('find this url ' + str(video_duration))
+            for videoID in tmp_other_video_dict[url]:
+                videos[videoID][DBc.FIELD_VIDEO_DURATION] = video_duration
 
         processed_data = raw_data
         processed_data['data'][DBc.COLLECTION_VIDEO] = videos
@@ -634,7 +640,7 @@ class DumpToDB(PipeModule):
 
     def __init__(self):
         super().__init__()
-        self.db = MongoDB('localhost', 'test-vismooc-newData-tmp')
+        self.db = MongoDB('localhost', 'test-vismooc-newData')
 
     def process(self, raw_data, raw_data_filenames=None):
         print("Insert data to DB")
