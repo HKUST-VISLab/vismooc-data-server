@@ -75,7 +75,7 @@ class MongoCollection(BaseCollection):
         """
         self.__collection.update_many(query, update_data, upsert)
 
-    def find(self, query, projection, limit=None, skip=None, sort=None):
+    def find(self, query, projection=None, limit=0, skip=0, sort=None):
         """Find documents according to the query
         """
         return self.__collection.find(query, projection, skip, limit, sort=sort)

@@ -7,11 +7,15 @@ class ThirdPartyKeys:
 
 class FilenameConfig:
     Clickstream_suffix = "-clickstream-log"
+    Data_dir = "/vismooc-test-data/"
+    MongoDB_Name = "dbsnapshots_mongodb"
+    SQLDB_Name = "dbsnapshots_mysqldb"
+    MetaDBRecord_Name = "meta_db_record"
 
 class DBConfig:
-    DB_HOST = "db_host"
-    DB_PORT = "db_port"
-    DB_NAME = "db_name"
+    DB_HOST = "localhost"
+    DB_PORT = 27017
+    DB_NAME = "test-vismooc-newData-tmp"
     DB_USER = "db_user"
     DB_PASSWD = "db_passwd"
     DB_GENERAL_COLLECTIONS = "db_collections"
@@ -101,6 +105,17 @@ class DBConfig:
     FIELD_VIDEO_DENSELOGS_OLD_SPEED = "oldSpeed"
 
     COLLECTION_VIDEO_RAWLOGS = "rawlogs"
+
+    COLLECTION_METADBFILES = "metadbfiles"
+    FIELD_METADBFILES_ETAG = "etag"
+    FIELD_METADBFILES_CREATEAT = "createAt"
+    # FIELD_METADBFILES_NAME = "name"
+    FIELD_METADBFILES_TYPE = "type"
+    FIELD_METADBFILES_FILEPATH = "filepath"
+
+    TYPE_MYSQL = "mysql"
+    TYPE_MONGO = "mongo"
+    TYPE_CLICKSTREAM = "clickstream"
 
     CONFIG_JSON = {
         DB_HOST: "localhost",
