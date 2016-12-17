@@ -77,17 +77,23 @@ class DownloadFileFromServer():
         save_dir = save_dir or self.__save_dir
         new_metadb_items = []
         now = int(datetime.now().timestamp())
+        # db_list = [FilenameConfig.MongoDB_Name, FilenameConfig.SQLDB_Name]
         db_list = [FilenameConfig.MongoDB_Name, FilenameConfig.SQLDB_Name]
         self.__http_connection.headers = {"Authorization" : "Token " + self.__token}
         # self.__http_connection.download_files(file_urls, save_dir,)
-        urls = [self.__host + "/resources/" + db_name for \
-               db_name in db_list]
+        # urls = [self.__host + "/resources/" + db_name for \
+        #        db_name in db_list]
+        urls = []
         for collection in db_list:
             url = self.__host + "/resources/" + collection
             print(url)
-            etag = self.__http_connection.head(url).get_headers().get("ETag")
+            print("hi 1")
+            print(str(self.__http_connection.headers))
+            print("hi 2")
+            etag = self.__http_connection.head("/resources/" + collection).get_headers().get("ETag")
+            print(etag)
             if etag and etag not in self.__db_data.keys():
-                urls.add(url)
+                urls.append(url)
                 item = {}
                 item[DBC.FIELD_METADBFILES_CREATEAT] = now
                 item[DBC.FIELD_METADBFILES_ETAG] = etag
@@ -96,7 +102,7 @@ class DownloadFileFromServer():
                     collection == FilenameConfig.MongoDB_Name else DBC.TYPE_MYSQL
                 new_metadb_items.append(item)
         self.__http_connection.download_files(urls, save_dir)
-                
+
         # file_paths = [os.path.join(save_dir, file_name) for file_name in db_list]
         self.decompress_files([os.path.join(save_dir, FilenameConfig.MongoDB_Name),], "gtar")
         self.decompress_files([os.path.join(save_dir, FilenameConfig.SQLDB_Name),], "gzip")
