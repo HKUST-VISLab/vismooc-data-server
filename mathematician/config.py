@@ -15,7 +15,7 @@ class FilenameConfig:
 class DBConfig:
     DB_HOST = "localhost"
     DB_PORT = 27017
-    DB_NAME = "test-vismooc-newData-tmp"
+    DB_NAME = "test-vismooc-newData-temp"
     DB_USER = "db_user"
     DB_PASSWD = "db_passwd"
     DB_GENERAL_COLLECTIONS = "db_collections"

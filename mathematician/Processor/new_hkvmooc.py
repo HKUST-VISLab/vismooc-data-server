@@ -143,7 +143,8 @@ class FormatCourseStructFile(PipeModule):
         video_collection = db.get_collection(DBc.COLLECTION_VIDEO)
         # the db file stay unchanged
         if self.course_overview is None:
-            videos = video_collection.find({}).toArray()
+            videos = {video[DBc.FIELD_VIDEO_ORIGINAL_ID] : video for \
+                video in video_collection.find({})}
             processed_data = raw_data
             processed_data['data'][DBc.COLLECTION_VIDEO] = videos
             return processed_data
@@ -308,8 +309,8 @@ class FormatUserFile(PipeModule):
         '''
         Load target file
         '''
-        self.raw_user_profile = raw_data['auth_userprofile']
-        self.user_info = raw_data['auth_user']
+        self.raw_user_profile = raw_data.get('auth_userprofile')
+        self.user_info = raw_data.get('auth_user')
 
     def process(self, raw_data, raw_data_filenames=None):
         print("Processing FormatUserFile")
@@ -366,7 +367,7 @@ class FormatEnrollmentFile(PipeModule):
         '''
         Load target file
         '''
-        self.course_enrollment = raw_data['student_courseenrollment']
+        self.course_enrollment = raw_data.get('student_courseenrollment')
 
     def process(self, raw_data, raw_data_filenames=None):
         print("Processing FormatEnrollmentFile")
@@ -554,33 +555,31 @@ class FormatLogFile(PipeModule):
         processed_data['data'][DBc.COLLECTION_VIDEO_LOG] = events
         processed_data['data'][DBc.COLLECTION_VIDEO_DENSELOGS] = list(denselogs.values())
         processed_data['data'][DBc.COLLECTION_VIDEO_RAWLOGS] = raw_logs
-        
-
         return processed_data
-
-
 class DumpToDB(PipeModule):
     order = 998
 
     def __init__(self):
         super().__init__()
-        self.db = MongoDB('localhost', 'test-vismooc-newData')
-        self.drop_collection = [DBc.COLLECTION_COURSE, DBc.COLLECTION_ENROLLMENT,\
+        self.db = MongoDB(DBc.DB_HOST, DBc.DB_NAME)
+        self.need_drop_collections = [DBc.COLLECTION_COURSE, DBc.COLLECTION_ENROLLMENT,\
             DBc.COLLECTION_USER, DBc.COLLECTION_VIDEO]
 
     def process(self, raw_data, raw_data_filenames=None):
         print("Insert data to DB")
         db_data = raw_data['data']
         # cast from set to list
-        courses = db_data[DBc.COLLECTION_COURSE]
-        users = db_data[DBc.COLLECTION_USER]
-        for course_info in courses.values():
-            course_info[DBc.FIELD_COURSE_STUDENT_IDS] = list(
-                course_info[DBc.FIELD_COURSE_STUDENT_IDS])
-        for user in users.values():
-            user[DBc.FIELD_USER_COURSE_IDS] = list(user[DBc.FIELD_USER_COURSE_IDS])
-            user[DBc.FIELD_USER_DROPPED_COURSE_IDS] = list(
-                user[DBc.FIELD_USER_DROPPED_COURSE_IDS])
+        courses = db_data.get(DBc.COLLECTION_COURSE)
+        users = db_data.get(DBc.COLLECTION_USER)
+        if courses:
+            for course_info in courses.values():
+                course_info[DBc.FIELD_COURSE_STUDENT_IDS] = list(
+                    course_info[DBc.FIELD_COURSE_STUDENT_IDS])
+        if users:
+            for user in users.values():
+                user[DBc.FIELD_USER_COURSE_IDS] = list(user[DBc.FIELD_USER_COURSE_IDS])
+                user[DBc.FIELD_USER_DROPPED_COURSE_IDS] = list(
+                    user[DBc.FIELD_USER_DROPPED_COURSE_IDS])
         # from dictory to list, removing id index
         for (key, value) in db_data.items():
             if isinstance(value, dict):
@@ -589,9 +588,9 @@ class DumpToDB(PipeModule):
         # insert to db
         for collection_name in db_data:
             collection = self.db.get_collection(collection_name)
-            if collection_name in self.drop_collection:
-                collection.drop()
-            if db_data[collection_name] is not None:
+            if collection_name in self.need_drop_collections:
+                collection.delete_many({})
+            if db_data[collection_name] and len(db_data[collection_name]) > 0:
                 collection.insert_many(db_data[collection_name])
 
         return raw_data
