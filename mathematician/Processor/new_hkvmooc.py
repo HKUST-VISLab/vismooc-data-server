@@ -42,14 +42,14 @@ def parse_duration(datestring):
         raise BaseException("there must be something woring in this time string")
     return ret
 
-def split(string, separator=','):
-    """split a string with `separtor`"""
+def split(text, separator=','):
+    """split a text with `separtor`"""
     
     tmp_stack = []
     results = []
     quota_number = 0
-    for i, letter in enumerate(string):
-        if letter == "'" and string[i-1] != "\\":
+    for i, letter in enumerate(text):
+        if letter == "'" and text[i-1] != "\\":
             quota_number += 1
         elif letter == separator and (quota_number == 2 or quota_number == 0):
             results.append("".join(tmp_stack))
@@ -58,7 +58,7 @@ def split(string, separator=','):
         else:
             tmp_stack.append(letter)
 
-        if i == len(string)-1:
+        if i == len(text)-1:
             results.append("".join(tmp_stack))
             return results
 
