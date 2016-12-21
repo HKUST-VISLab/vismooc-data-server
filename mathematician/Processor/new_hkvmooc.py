@@ -125,10 +125,6 @@ class ExtractRawData(PipeModule):
                             record['course'] + '+' + record['run']
             elif FilenameConfig.STRUCTURES in filename:
                 module_structure_filename = filename
-            elif FilenameConfig.META_DB_RECORD in filename:
-                with open(filename, 'r') as file:
-                    raw_data['data'][DBc.COLLECTION_METADBFILES] = json.load(file)
-
         # modulestore.active_version must be processed before modulestore.structures
         if module_structure_filename and len(structureId_to_courseId) != 0:
             with open(module_structure_filename, 'r') as file:
