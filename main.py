@@ -31,14 +31,14 @@ if __name__ == "__main__":
     if db_record and len(db_record) > 0:
         with open(join(dirname, config.FilenameConfig.MetaDBRecord_Name), 'w') as file:
             file.write(json.dumps(db_record))
-    file_names = [join(dirname, f) for f in listdir(dirname) if isfile(join(dirname, f))]
+    file_names = [join(dirname, f)
+                  for f in listdir(dirname) if isfile(join(dirname, f))]
     if exists(join(dirname, 'mongodb')):
-        file_names.append(join(dirname, 'mongodb/edxapp/modulestore.active_versions.json'))
-        file_names.append(join(dirname, 'mongodb/edxapp/modulestore.structures.json'))
+        file_names.append(join(dirname, config.FilenameConfig.ACTIVE_VERSIONS))
+        file_names.append(join(dirname, config.FilenameConfig.STRUCTURES))
     pipeLine = PipeLine()
-    pipeLine.input_files(file_names).pipe(FormatCourseStructFile()).pipe(
-        FormatEnrollmentFile()).pipe(FormatLogFile()).pipe(FormatUserFile()).pipe(
-        ExtractRawData()).pipe(DumpToDB())
+    pipeLine.input_files(file_names).pipe(FormatCourseStructFile()).pipe(FormatEnrollmentFile()).pipe(
+        FormatLogFile()).pipe(FormatUserFile()).pipe(ExtractRawData()).pipe(DumpToDB())
 
     pipeLine.excute()
     print('spend time:' + str(datetime.now() - start_time))
