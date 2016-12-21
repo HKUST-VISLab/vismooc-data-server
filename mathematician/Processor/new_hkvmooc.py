@@ -191,7 +191,7 @@ class FormatCourseStructFile(PipeModule):
         self.edx_course_videos = raw_data.get('edxval_coursevideo') or []
         self.video_encode = raw_data.get('edxval_encodedvideo') or []
         self.course_access_role = raw_data.get('student_courseaccessrole') or []
-        self.course_structures = raw_data.get('course_in_mongo') or []
+        self.course_structures = raw_data.get('course_in_mongo') or {}
 
     def get_video_url_duration_from_sql(self):
         video_id_url = {}
