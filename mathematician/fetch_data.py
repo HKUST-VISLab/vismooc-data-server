@@ -25,23 +25,28 @@ class DownloadFileFromServer():
 
     def get_db_data(self):
         """Fetch meta db files data from db"""
-        database = mongo_dbhelper.MongoDB(DBC.DB_HOST, DBC.DB_NAME, DBC.DB_PORT)
+        database = mongo_dbhelper.MongoDB(
+            DBC.DB_HOST, DBC.DB_NAME, DBC.DB_PORT)
         metadbfiles = database.get_collection(DBC.COLLECTION_METADBFILES)
         for item in metadbfiles.find({}):
             self.__db_data[item[DBC.FIELD_METADBFILES_ETAG]] = item
             if item[DBC.FIELD_METADBFILES_TYPE] == DBC.TYPE_CLICKSTREAM and \
                     item[DBC.FIELD_METADBFILES_CREATEAT] > self.__lastest_clickstream_time:
-                self.__lastest_clickstream_time = item[DBC.FIELD_METADBFILES_CREATEAT]
+                self.__lastest_clickstream_time = item[
+                    DBC.FIELD_METADBFILES_CREATEAT]
 
     def get_token_from_server(self):
         """ Get the Access Token from server using API Key
         """
-        self.__http_connection.headers = {"Authorization": "Token " + self.__api_key}
+        self.__http_connection.headers = {
+            "Authorization": "Token " + self.__api_key}
         response = self.__http_connection.post(DS.ACCESS_TOKENS_URL, None)
         assert response.get_return_code() == 200
         response_json = response.get_content_json()
-        self.__token = response_json.get("collection").get("items")[0].get("accessToken")
-        self.__http_connection.headers = {"Authorization": "Token " + self.__token}
+        self.__token = response_json.get("collection").get("items")[
+            0].get("accessToken")
+        self.__http_connection.headers = {
+            "Authorization": "Token " + self.__token}
         return self.__token
 
     def get_click_stream(self, start=0, end=0, save_dir=None):
@@ -58,30 +63,38 @@ class DownloadFileFromServer():
                                               {"since": str(start), "before": str(end)})
         print("Start is " + str(start) + " , End is " + str(end))
         assert response.get_return_code() == 200
-        items = response.get_content_json().get("collection").get("items")
+        items = response.get_content_json().get("collection")
+        items = items.get("items") if items else []
         file_urls = []
-        filename_url = {}
+        md5s = {}
         for item in items:
-            file_urls.append(item['href'])
-            file_name = item['href'][item['href'].rindex("/") + 1:]
-            filename_url[file_name] = item['md5']
-        print(file_urls)
+            href = item['href']
+            file_urls.append(href[href.index(DS.HOST) + len(DS.HOST):])
+            md5s[href[href.rindex("/") + 1:]] = item.get('md5')
+
+        print('Begin to download log-files, totally ' + len(file_urls) + " files, please wait")
         downloaded_files = self.__http_connection.download_files(
             file_urls, save_dir, common_suffix=FC.Clickstream_suffix)
+        print('Finish downloading log-fiels')
+        print('Begin to decompress log-files')
         self.decompress_files(downloaded_files, "gzip")
-        new_metadb_items = [{DBC.FIELD_METADBFILES_CREATEAT: now,
-                             DBC.FIELD_METADBFILES_FILEPATH: file_path,
-                             DBC.FIELD_METADBFILES_ETAG: filename_url.get(file_path[file_path.rindex("/") + 1:]),
-                             DBC.FIELD_METADBFILES_TYPE: DBC.TYPE_CLICKSTREAM}
-                            for file_path in downloaded_files if os.path.exists(file_path)]
-        if len(new_metadb_items) < 1:
-            new_metadb_items.append({
+        print('Finish decompress log-files')
+        # cache the metaInfo of log files into database
+        new_items = [{
+            DBC.FIELD_METADBFILES_CREATEAT: now,
+            DBC.FIELD_METADBFILES_FILEPATH: file_path,
+            DBC.FIELD_METADBFILES_ETAG: md5s.get(file_path[file_path.rindex(os.sep) + 1:]),
+            DBC.FIELD_METADBFILES_TYPE: DBC.TYPE_CLICKSTREAM
+        } for file_path in downloaded_files if os.path.exists(file_path)]
+        # if no log has been downloaded, add a empty log record
+        if len(new_items) < 1:
+            new_items.append({
                 DBC.FIELD_METADBFILES_CREATEAT: now,
                 DBC.FIELD_METADBFILES_FILEPATH: save_dir + "/no_log",
                 DBC.FIELD_METADBFILES_ETAG: str(now) + "-no_log",
                 DBC.FIELD_METADBFILES_TYPE: DBC.TYPE_CLICKSTREAM
             })
-        return new_metadb_items
+        return new_items
 
     def get_mongodb_and_mysqldb_snapshot(self, save_dir=None):
         """ Download mongodb and mysql snapshot
@@ -93,15 +106,19 @@ class DownloadFileFromServer():
 
         # check what file should be downloaded
         urls = []
-        etag = self.__http_connection.head(DS.MONGODB_URL).get_headers().get("ETag")
+        etag = self.__http_connection.head(
+            DS.MONGODB_URL).get_headers().get("ETag")
         if etag and etag not in self.__db_data.keys():
             urls.append(DS.MONGODB_URL)
 
-        etag = self.__http_connection.head(DS.SQLDB_URL).get_headers().get("ETag")
+        etag = self.__http_connection.head(
+            DS.SQLDB_URL).get_headers().get("ETag")
         if etag and etag not in self.__db_data.keys():
             urls.append(DS.SQLDB_URL)
 
+        print("Begin to download DB snapshots, totally "+len(urls)+" files, pleas wait")
         downloaded_files = self.__http_connection.download_files(urls, save_dir)
+        print("Finish download DB snapshots")
         for file_path in downloaded_files:
             if FC.MongoDB_Name in file_path:
                 self.decompress_files([file_path, ], "gtar")
@@ -109,7 +126,8 @@ class DownloadFileFromServer():
                 item = {}
                 item[DBC.FIELD_METADBFILES_CREATEAT] = now
                 item[DBC.FIELD_METADBFILES_ETAG] = etag
-                item[DBC.FIELD_METADBFILES_FILEPATH] = os.path.join(save_dir, FC.SQLDB_Name)
+                item[DBC.FIELD_METADBFILES_FILEPATH] = os.path.join(
+                    save_dir, FC.SQLDB_Name)
                 item[DBC.FIELD_METADBFILES_TYPE] = DBC.TYPE_MYSQL
                 new_metadb_items.append(item)
             if FC.SQLDB_Name in file_path:
@@ -118,7 +136,8 @@ class DownloadFileFromServer():
                 item = {}
                 item[DBC.FIELD_METADBFILES_CREATEAT] = now
                 item[DBC.FIELD_METADBFILES_ETAG] = etag
-                item[DBC.FIELD_METADBFILES_FILEPATH] = os.path.join(save_dir, FC.MongoDB_Name)
+                item[DBC.FIELD_METADBFILES_FILEPATH] = os.path.join(
+                    save_dir, FC.MongoDB_Name)
                 item[DBC.FIELD_METADBFILES_TYPE] = FC.MongoDB_Name
                 new_metadb_items.append(item)
         return new_metadb_items
@@ -130,7 +149,8 @@ class DownloadFileFromServer():
             to check and value is md5 value
         """
         if compress_algorithm not in ["gzip", "gtar"]:
-            raise Exception("Unsupported compress algorithm " + compress_algorithm)
+            raise Exception(
+                "Unsupported compress algorithm " + compress_algorithm)
 
         for file_path in file_paths:
             if not os.path.exists(file_path):
@@ -146,7 +166,8 @@ class DownloadFileFromServer():
                     tar_root = tar.getnames()[0]
                     tar.extractall(path=os.path.dirname(file_path))
                     # print(os.path.join(os.path.dirname(file_path), tar_root))
-                    self.bson2json(os.path.join(os.path.dirname(file_path), tar_root))
+                    self.bson2json(os.path.join(
+                        os.path.dirname(file_path), tar_root))
                     # os.remove(file_path)
 
     def bson2json(self, dir):
@@ -157,6 +178,7 @@ class DownloadFileFromServer():
             if os.path.isdir(file):
                 self.bson2json(file)
             elif os.path.isfile(file) and os.path.basename(file) in file_to_be_process:
-                cmd = "bsondump " + file + " > " + file[0:file.rindex('.') + 1] + 'json'
+                cmd = "bsondump " + file + " > " + \
+                    file[0:file.rindex('.') + 1] + 'json'
                 output = os.system(cmd)
                 # os.remove(file)

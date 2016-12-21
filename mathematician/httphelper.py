@@ -2,12 +2,14 @@
 '''
 import urllib.request
 import os
+from os import path as path
 import multiprocessing
 import json
 # import hashlib
 import ssl
 import asyncio
 import aiohttp
+
 
 def head(url, headers=None, params=None):
     """Send synchronous head request
@@ -54,15 +56,13 @@ def get(url, headers=None, params=None):
         else:
             raise Exception("The params should be dict type")
 
-    # print(url)
     context = ssl._create_unverified_context()
     url = urllib.request.quote(url.encode('utf8'), ':/%?=&')
-    # print(url)
     req = urllib.request.Request(url=url, headers=headers, method='GET')
     try:
         response = urllib.request.urlopen(req, context=context)
-    except urllib.error.HTTPError as e:
-        return HttpResponse(e.getcode(), '', '')
+    except urllib.error.HTTPError as ex:
+        return HttpResponse(ex.getcode(), '', '')
     else:
         data = response.read()
         response_headers = response.info()
@@ -82,11 +82,11 @@ def post(url, headers=None, params=None):
     req = urllib.request.Request(
         url=url, headers=headers, data=params, method='POST')
 
-    with urllib.request.urlopen(req) as f:
-        assert f.getcode() >= 200 and f.getcode() < 300
-        data = f.read()
-        response_headers = f.info()
-        return_code = f.getcode()
+    with urllib.request.urlopen(req) as response:
+        assert response.getcode() >= 200 and response.getcode() < 300
+        data = response.read()
+        response_headers = response.info()
+        return_code = response.getcode()
         return HttpResponse(return_code, response_headers, data)
 
 
@@ -158,21 +158,21 @@ def download_single_file(url, file_path, headers, params=None):
     return file_path
 
 
-def download_multi_files(urls, save_dir, common_suffix='', headers=None, process_pool_size=(os.cpu_count() or 1)):
+def download_multi_files(urls, save_dir, common_suffix='', headers=None, \
+    process_pool_size=(os.cpu_count() or 1)):
     """ Use multiprocess to download multiple files one time
     """
     headers = headers or {}
     if not isinstance(urls, list):
         raise Exception("The urls should be list type")
-    if not os.path.exists(save_dir):
+    if not path.exists(save_dir):
         raise Exception("The directory not exists")
     if len(urls) < 1:
         return []
-    pool = multiprocessing.Pool(processes=process_pool_size)
     process_results = []
+    pool = multiprocessing.Pool(processes=process_pool_size)
     for url in urls:
-        file_path = os.path.join(os.path.abspath(save_dir), url[
-                                 url.rindex("/") + 1:]) + common_suffix
+        file_path = path.join(path.abspath(save_dir), url[url.rindex("/") + 1:]) + common_suffix
         process_result = pool.apply_async(
             download_single_file, (url, file_path, headers))
         process_results.append(process_result)
@@ -183,7 +183,6 @@ def download_multi_files(urls, save_dir, common_suffix='', headers=None, process
         if process_result.get():
             results.append(process_result.get())
     return results
-
 
 class HttpConnection:
     """This class is proposed to provide data-fetch interface
@@ -196,6 +195,8 @@ class HttpConnection:
 
     @property
     def headers(self):
+        '''return the headers
+        '''
         return self.__headers
 
     @headers.setter
