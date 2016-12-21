@@ -72,7 +72,7 @@ class DownloadFileFromServer():
             file_urls.append(href[href.index(DS.HOST) + len(DS.HOST):])
             md5s[href[href.rindex("/") + 1:]] = item.get('md5')
 
-        print('Begin to download log-files, totally ' + len(file_urls) + " files, please wait")
+        print('Begin to download log-files, totally ' + str(len(file_urls)) + " files, please wait")
         downloaded_files = self.__http_connection.download_files(
             file_urls, save_dir, common_suffix=FC.Clickstream_suffix)
         print('Finish downloading log-fiels')
@@ -116,7 +116,7 @@ class DownloadFileFromServer():
         if etag and etag not in self.__db_data.keys():
             urls.append(DS.SQLDB_URL)
 
-        print("Begin to download DB snapshots, totally "+len(urls)+" files, pleas wait")
+        print("Begin to download DB snapshots, totally "+str(len(urls))+" files, pleas wait")
         downloaded_files = self.__http_connection.download_files(urls, save_dir)
         print("Finish download DB snapshots")
         for file_path in downloaded_files:
