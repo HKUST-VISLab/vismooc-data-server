@@ -5,7 +5,38 @@ import multiprocessing
 import json
 import hashlib
 import aiohttp
+import ssl
 
+
+def head(url, headers={}, params=None):
+    """Send synchronous head request
+
+    """
+    if params is not None:
+        if isinstance(params, dict):
+            url = url + '?'
+            for key in params:
+                url = url + key + '=' + params[key] + '&'
+            url = url[0: -1]
+        else:
+            raise Exception("The params should be dict type")
+
+    # print(url)
+    context = ssl._create_unverified_context()
+    url = urllib.request.quote(url.encode('utf8'), ':/%?=&')
+    # print(url)
+    req = urllib.request.Request(url=url, headers=headers, method='HEAD')
+    try:
+        response = urllib.request.urlopen(req, context=context, timeout=100)
+    except urllib.error.HTTPError as e:
+        print(e.info())
+        return HttpResponse(e.getcode(), '', '')
+    else:
+        data = response.read()
+        response_headers = response.info()
+        return_code = response.getcode()
+        return HttpResponse(return_code, response_headers, data)
+        
 def get(url, headers={}, params=None):
     """Send synchronous get request
 
@@ -20,14 +51,19 @@ def get(url, headers={}, params=None):
             raise Exception("The params should be dict type")
 
     # print(url)
+    context = ssl._create_unverified_context()
+    url = urllib.request.quote(url.encode('utf8'), ':/%?=&')
+    # print(url)
     req = urllib.request.Request(url=url, headers=headers, method='GET')
-    with urllib.request.urlopen(req) as f:
-        assert f.getcode() >= 200 and f.getcode() < 300
-        data = f.read()
-        response_headers = f.info()
-        return_code = f.getcode()
+    try:
+        response = urllib.request.urlopen(req, context=context)
+    except urllib.error.HTTPError as e:
+        return HttpResponse(e.getcode(), '', '')
+    else:
+        data = response.read()
+        response_headers = response.info()
+        return_code = response.getcode()
         return HttpResponse(return_code, response_headers, data)
-
 
 def post(url, headers={}, params=None):
     """Send synchronous post request
@@ -102,9 +138,13 @@ def download_single_file(url, file_path, headers, params=None):
     """Download file using one thread
     """
     result = get(url, headers=headers, params=params)
+    code = result.get_return_code()
+    if code < 200 or code >= 300:
+        return
     result = result.get_content()
     with open(file_path, 'wb+') as file:
         file.write(result)
+    return file_path
 
 def download_multi_files(urls, save_dir, common_suffix='', headers={}, process_pool_size=(os.cpu_count() or 1)):
     """ Use multiprocess to download multiple files one time
@@ -113,13 +153,21 @@ def download_multi_files(urls, save_dir, common_suffix='', headers={}, process_p
         raise Exception("The urls should be list type")
     if not os.path.exists(save_dir):
         raise Exception("The directory not exists")
+    if len(urls) < 1:
+        return []
     pool = multiprocessing.Pool(processes=process_pool_size)
+    process_results = []
     for url in urls:
         file_path = os.path.join(os.path.abspath(save_dir), url[url.rindex("/")+1 : ]) + common_suffix
-        # pool.apply_async(download_single_file, (url, file_path, headers))
-        pool.apply_async(download_single_file, (url, file_path, headers))
+        process_result = pool.apply_async(download_single_file, (url, file_path, headers))
+        process_results.append(process_result)
     pool.close()
     pool.join()
+    results = []
+    for process_result in process_results:
+        if process_result.get():
+            results.append(process_result.get())
+    return results
 
 class HttpConnection:
     """This class is proposed to provide data-fetch interface
@@ -147,14 +195,21 @@ class HttpConnection:
 
     def get(self, url, params=None):
         response = get(self.__host + url, self.headers, params)
+        # print(self.__host + url)
         if response.get_headers().get("Set-Cookie") is not None:
-            self.headers = {"Cookie" : response.get_headers().get("Set-Cookie")}
+            self.__headers["Cookie"] = response.get_headers().get("Set-Cookie")
+        return response
+    
+    def head(self, url, params=None):
+        response = head(self.__host + url, self.headers, params)
+        if response.get_headers().get("Set-Cookie") is not None:
+            self.__headers["Cookie"] = response.get_headers().get("Set-Cookie")
         return response
 
     def post(self, url, params):
         response = post(self.__host + url, self.headers, params)
         if response.get_headers().get("Set-Cookie") is not None:
-            self.headers = {"Cookie" : response.get_headers().get("Set-Cookie")}
+            self.__headers["Cookie"] = response.get_headers().get("Set-Cookie")
         return response
 
     def download_files(self, urls, save_dir, common_suffix=''):
@@ -182,7 +237,7 @@ class HttpResponse():
     def get_headers(self):
         """ return the response headers
         """
-        return self.__headers
+        return self.__headers or {}
     def get_content(self):
         """ return the response content in bytes
         """
