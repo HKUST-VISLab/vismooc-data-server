@@ -4,6 +4,7 @@
 import tarfile
 import gzip
 import os
+import json
 from datetime import datetime
 from . import httphelper as http
 from .DB import mongo_dbhelper
@@ -21,14 +22,17 @@ class DownloadFileFromServer():
         self.__lastest_clickstream_time = 0
         self.__db_data = {}
         self.__save_dir = save_dir
+        self._db = mongo_dbhelper.MongoDB(DBC.DB_HOST, DBC.DB_NAME, DBC.DB_PORT)
         self.get_db_data()
 
     def get_db_data(self):
         """Fetch meta db files data from db"""
-        database = mongo_dbhelper.MongoDB(
-            DBC.DB_HOST, DBC.DB_NAME, DBC.DB_PORT)
-        metadbfiles = database.get_collection(DBC.COLLECTION_METADBFILES)
-        for item in metadbfiles.find({}):
+        if os.path.exists(os.path.join(self.__save_dir, FC.META_DB_RECORD)):
+            with open(os.path.join(self.__save_dir, FC.META_DB_RECORD), 'r') as file:
+                metadbfiles = json.load(file)
+        else:
+            metadbfiles = self._db.get_collection(DBC.COLLECTION_METADBFILES).find({})
+        for item in metadbfiles:
             self.__db_data[item[DBC.FIELD_METADBFILES_ETAG]] = item
             if item[DBC.FIELD_METADBFILES_TYPE] == DBC.TYPE_CLICKSTREAM and \
                     item[DBC.FIELD_METADBFILES_CREATEAT] > self.__lastest_clickstream_time:
@@ -95,6 +99,7 @@ class DownloadFileFromServer():
                 DBC.FIELD_METADBFILES_ETAG: str(now) + "-no_log",
                 DBC.FIELD_METADBFILES_TYPE: DBC.TYPE_CLICKSTREAM
             })
+        self._db.get_collection(DBC.COLLECTION_METADBFILES).insert_many(new_items)
         return new_items
 
     def get_mongodb_and_mysqldb_snapshot(self, save_dir=None):
@@ -141,6 +146,7 @@ class DownloadFileFromServer():
                     save_dir, FC.MongoDB_FILE)
                 item[DBC.FIELD_METADBFILES_TYPE] = FC.MongoDB_FILE
                 new_metadb_items.append(item)
+        self._db.get_collection(DBC.COLLECTION_METADBFILES).insert_many(new_items)
         return new_metadb_items
 
     def decompress_files(self, file_paths, compress_algorithm):

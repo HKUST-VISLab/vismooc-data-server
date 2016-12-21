@@ -377,9 +377,10 @@ class FormatCourseStructFile(PipeModule):
             videos[tmp_youtube_video_dict[video_id]][
                 DBc.FIELD_VIDEO_DURATION] = int(duration.total_seconds())
 
-        for url, videoIDs in tmp_other_video_dict:
+        for url in tmp_other_video_dict:
             video_duration = self.parse_video_duration(url)
-            for videoID in videoIDs:
+            video_ids = tmp_other_video_dict[url]
+            for videoID in video_ids:
                 videos[videoID][DBc.FIELD_VIDEO_DURATION] = video_duration
 
         processed_data = raw_data
