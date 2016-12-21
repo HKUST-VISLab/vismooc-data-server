@@ -256,6 +256,8 @@ class FormatCourseStructFile(PipeModule):
 
         for one_access_role in self.course_access_role:
             records = split(one_access_role)
+            if len(records) < 2:
+                continue
             if records[3] != 'instructor' or records[3] != "staffs":
                 continue
             course_id = records[2]
@@ -415,6 +417,8 @@ class FormatUserFile(PipeModule):
 
         for one_access_role in self.course_access_role:
             records = split(one_access_role)
+            if len(records) < 3 :
+                continue
             course_id = records[2]
             course_id = course_id[course_id.index(':') + 1:]
             self.user_roles.setdefault(records[4], {}).setdefault(course_id, []).append(records[3])
