@@ -27,7 +27,6 @@ class DownloadFileFromServer():
             self.__db_data[item[DBC.FIELD_METADBFILES_ETAG]] = item
             if item[DBC.FIELD_METADBFILES_TYPE] == DBC.TYPE_CLICKSTREAM and \
                 item[DBC.FIELD_METADBFILES_CREATEAT] > self.__lastest_clickstream_time:
-
                 self.__lastest_clickstream_time = item[DBC.FIELD_METADBFILES_CREATEAT]
 
     def get_token_from_server(self):
@@ -40,6 +39,7 @@ class DownloadFileFromServer():
         self.__token = response_json.get("collection").get("items")[0].get("accessToken")
         self.__http_connection.headers = {"Authorization" : "Token " + self.__token}
         return self.__token
+
     def get_click_stream(self, start=0, end=0, save_dir=None):
         """Get click stream from server, the parameters start
            and end should be unix timestamp in millisecond
@@ -52,10 +52,9 @@ class DownloadFileFromServer():
 
         response = self.__http_connection.get("/resources/clickstreams", \
             {"since": str(start), "before": str(end)})
-        
         print("Start is " + str(start) + " , End is " + str(end))
         assert response.get_return_code() == 200
-        items = response.get_content_json().get('collection').get('items')
+        items = response.get_content_json().get("collection").get("items")
         file_urls = []
         filename_url = {}
         for item in items:
@@ -141,6 +140,7 @@ class DownloadFileFromServer():
                     # print(os.path.join(os.path.dirname(file_path), tar_root))
                     self.bson2json(os.path.join(os.path.dirname(file_path), tar_root))
                     # os.remove(file_path)
+
     def bson2json(self, dir):
         file_to_be_process = set(['modulestore.active_versions.bson', 'modulestore.structures.bson'])
         files = [os.path.join(dir, file) for file in os.listdir(dir)]
