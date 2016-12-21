@@ -86,6 +86,7 @@ class DBConfig:
     FIELD_USER_COUNTRY = "country"
     FIELD_USER_COURSE_IDS = "courseIds"
     FIELD_USER_DROPPED_COURSE_IDS = "droppedCourseIds"
+    FIELD_USER_COURSE_ROLE = "courseRoles"
 
     COLLECTION_ENROLLMENT = "enrollments"
     FIELD_ENROLLMENT_COURSE_ID = "courseId"
@@ -299,6 +300,10 @@ class DBConfig:
                     {
                         FIELD_GENERAL_NAME: FIELD_USER_DROPPED_COURSE_IDS,
                         FIELD_GENERAL_VALIDATION: {"$type": "array"}
+                    },
+                    {
+                        FIELD_GENERAL_NAME: FIELD_USER_COURSE_ROLE,
+                        FIELD_GENERAL_VALIDATION: {"$type": "object"}
                     }
                 ],
                 COLLECTION_GENERAL_INDEX:
@@ -352,7 +357,7 @@ class DBConfig:
                     },
                     {
                         FIELD_GENERAL_NAME: FIELD_VIDEO_TEMPORAL_HOTNESS,
-                        FIELD_GENERAL_VALIDATION: {"$type": "int"}
+                        FIELD_GENERAL_VALIDATION: {"$type": "object"}
                     },
                     {
                         FIELD_GENERAL_NAME: FIELD_VIDEO_METAINFO,
@@ -472,14 +477,16 @@ def init_config(config_file_path):
         # init data server sources
         data_sources_config = dataserver_config.get('data_sources')
         if data_sources_config:
-            DataSource.HOST = data_sources_config.get('data_source_host') or DataSource.HOST
+            DataSource.HOST = data_sources_config.get(
+                'data_source_host') or DataSource.HOST
             DataSource.ACCESS_TOKENS_URL = data_sources_config.get(
                 '/resources/access_tokens') or DataSource.ACCESS_TOKENS_URL
             DataSource.CLICKSTREAMS_URL = data_sources_config.get(
                 'clickstreams_url') or DataSource.CLICKSTREAMS_URL
             DataSource.MONGODB_URL = data_sources_config.get(
                 'mongoDB_url') or DataSource.MONGODB_URL
-            DataSource.SQLDB_URL = data_sources_config.get('SQLDB_url') or DataSource.SQLDB_URL
+            DataSource.SQLDB_URL = data_sources_config.get(
+                'SQLDB_url') or DataSource.SQLDB_URL
 
         # init the data file NameError
         data_filenames = dataserver_config.get("data_filenames")
