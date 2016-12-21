@@ -65,6 +65,7 @@ class DownloadFileFromServer():
             file_urls.append(item['href'])
             file_name = item['href'][item['href'].rindex("/") + 1:]
             filename_url[file_name] = item['md5']
+        print(file_urls)
         downloaded_files = self.__http_connection.download_files(
             file_urls, save_dir, common_suffix=FC.Clickstream_suffix)
         self.decompress_files(downloaded_files, "gzip")
