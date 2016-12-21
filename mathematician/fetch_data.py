@@ -27,11 +27,7 @@ class DownloadFileFromServer():
 
     def get_db_data(self):
         """Fetch meta db files data from db"""
-        if os.path.exists(os.path.join(self.__save_dir, FC.META_DB_RECORD)):
-            with open(os.path.join(self.__save_dir, FC.META_DB_RECORD), 'r') as file:
-                metadbfiles = json.load(file)
-        else:
-            metadbfiles = self._db.get_collection(DBC.COLLECTION_METADBFILES).find({})
+        metadbfiles = self._db.get_collection(DBC.COLLECTION_METADBFILES).find({})
         for item in metadbfiles:
             self.__db_data[item[DBC.FIELD_METADBFILES_ETAG]] = item
             if item[DBC.FIELD_METADBFILES_TYPE] == DBC.TYPE_CLICKSTREAM and \
