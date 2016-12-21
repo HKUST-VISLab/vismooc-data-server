@@ -80,6 +80,7 @@ class DownloadFileFromServer():
         self.decompress_files(downloaded_files, "gzip")
         print('Finish decompress log-files')
         # cache the metaInfo of log files into database
+        print('Begin to cache the metainfo of log-files into mongoDB')
         new_items = [{
             DBC.FIELD_METADBFILES_CREATEAT: now,
             DBC.FIELD_METADBFILES_FILEPATH: file_path,
@@ -120,25 +121,25 @@ class DownloadFileFromServer():
         downloaded_files = self.__http_connection.download_files(urls, save_dir)
         print("Finish download DB snapshots")
         for file_path in downloaded_files:
-            if FC.MongoDB_Name in file_path:
+            if FC.MongoDB_FILE in file_path:
                 self.decompress_files([file_path, ], "gtar")
                 # cache the file info if  it has been downloaded successfully
                 item = {}
                 item[DBC.FIELD_METADBFILES_CREATEAT] = now
                 item[DBC.FIELD_METADBFILES_ETAG] = etag
                 item[DBC.FIELD_METADBFILES_FILEPATH] = os.path.join(
-                    save_dir, FC.SQLDB_Name)
+                    save_dir, FC.SQLDB_FILE)
                 item[DBC.FIELD_METADBFILES_TYPE] = DBC.TYPE_MYSQL
                 new_metadb_items.append(item)
-            if FC.SQLDB_Name in file_path:
+            if FC.SQLDB_FILE in file_path:
                 self.decompress_files([file_path, ], "gzip")
                 # cache the file info if  it has been downloaded successfully
                 item = {}
                 item[DBC.FIELD_METADBFILES_CREATEAT] = now
                 item[DBC.FIELD_METADBFILES_ETAG] = etag
                 item[DBC.FIELD_METADBFILES_FILEPATH] = os.path.join(
-                    save_dir, FC.MongoDB_Name)
-                item[DBC.FIELD_METADBFILES_TYPE] = FC.MongoDB_Name
+                    save_dir, FC.MongoDB_FILE)
+                item[DBC.FIELD_METADBFILES_TYPE] = FC.MongoDB_FILE
                 new_metadb_items.append(item)
         return new_metadb_items
 
