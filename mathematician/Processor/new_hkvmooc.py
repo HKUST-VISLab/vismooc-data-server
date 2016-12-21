@@ -174,7 +174,6 @@ class FormatCourseStructFile(PipeModule):
         # self.course_video_videokey = {}
         self.course_video_coursekey = {}
         self.video_duration = {}
-        self.course_instructor = {}
         self.video_url_duration = {}
         self.video_id_info = {}
         self.course_overview = None
@@ -240,6 +239,8 @@ class FormatCourseStructFile(PipeModule):
         print("Processing FormatCourseStructFile")
 
         self.load_data(raw_data)
+        course_instructors = {}
+
         db = MongoDB(DBc.DB_HOST, DBc.DB_NAME)
         video_collection = db.get_collection(DBc.COLLECTION_VIDEO).find({})
         # the db file stay unchanged
@@ -263,8 +264,8 @@ class FormatCourseStructFile(PipeModule):
                 continue
             course_id = records[2]
             course_id = course_id[course_id.index(':') + 1:]
-            course_one_instructor = records[4]
-            self.course_instructor.setdefault(course_id, []).append(course_one_instructor)
+            user_id = records[4]
+            course_instructors.setdefault(course_id, []).append(user_id)
 
         pattern_time = "%Y-%m-%d %H:%M:%S.%f"
         COURSE_YEAR = "course_year"
@@ -299,8 +300,8 @@ class FormatCourseStructFile(PipeModule):
             course_year_match = re_course_year.search(course_original_id)
             course[DBc.FIELD_COURSE_YEAR] = course_year_match and \
                 course_year_match.group(COURSE_YEAR)
-            course[DBc.FIELD_COURSE_INSTRUCTOR] = self.course_instructor[course_original_id]
-            # TO DO
+            course[DBc.FIELD_COURSE_INSTRUCTOR] = course_instructors.get(course_original_id) or []
+            # TODO
             course[DBc.FIELD_COURSE_STATUS] = None
             course[DBc.FIELD_COURSE_URL] = None
             course[DBc.FIELD_COURSE_IMAGE_URL] = course_records[11]
@@ -393,14 +394,17 @@ class FormatUserFile(PipeModule):
     def __init__(self):
         super().__init__()
         self._userprofile = {}
+        self.user_roles = {}
         self.raw_user_profile = None
         self.user_info = None
+        self.course_access_role = None
 
     def load_data(self, raw_data):
         '''Load target file
         '''
         self.raw_user_profile = raw_data.get('auth_userprofile') or []
         self.user_info = raw_data.get('auth_user') or []
+        self.course_access_role = raw_data.get('student_courseaccessrole') or []
 
     def process(self, raw_data, raw_data_filenames=None):
         print("Processing FormatUserFile")
@@ -411,6 +415,13 @@ class FormatUserFile(PipeModule):
                 self._userprofile[fields[16]] = fields
         if self.user_info is None:
             return raw_data
+
+        for one_access_role in self.course_access_role:
+            records = split(one_access_role)
+            course_id = records[2]
+            course_id = course_id[course_id.index(':') + 1:]
+            self.user_roles.setdefault(records[4], {}).setdefault(course_id, []).append(records[3])
+
         users = {}
         for record in self.user_info:
             user_fields = split(record)
@@ -432,6 +443,7 @@ class FormatUserFile(PipeModule):
             user[DBc.FIELD_USER_COUNTRY] = user_profile and (user_profile[11] or user_profile[5])
             user[DBc.FIELD_USER_NAME] = user_fields[5] + user_fields[6]
             user[DBc.FIELD_USER_ORIGINAL_ID] = user_id
+            user[DBc.FIELD_USER_COURSE_ROLE] = self.user_roles.get(user_id) or {}
             users[user[DBc.FIELD_USER_ORIGINAL_ID]] = user
 
         processed_data = raw_data
