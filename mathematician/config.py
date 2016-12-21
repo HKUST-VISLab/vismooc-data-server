@@ -24,7 +24,6 @@ class FilenameConfig:
     ACTIVE_VERSIONS = "mongodb/edxapp/modulestore.active_versions.json"
     STRUCTURES = "mongodb/edxapp/modulestore.structures.json"
 
-
 class DataSource:
     '''Urls of datasources
     '''
@@ -33,7 +32,6 @@ class DataSource:
     CLICKSTREAMS_URL = "/resources/clickstreams"
     MONGODB_URL = "/resources/dbsnapshots_mongodb"
     SQLDB_URL = "/resources/dbsnapshots_mysqldb"
-
 
 class DBConfig:
     '''Config of database
