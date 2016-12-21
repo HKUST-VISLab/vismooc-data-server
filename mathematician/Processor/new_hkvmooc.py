@@ -417,7 +417,7 @@ class FormatUserFile(PipeModule):
 
         for one_access_role in self.course_access_role:
             records = split(one_access_role)
-            if len(records) < 3 :
+            if len(records) < 3:
                 continue
             course_id = records[2]
             course_id = course_id[course_id.index(':') + 1:]

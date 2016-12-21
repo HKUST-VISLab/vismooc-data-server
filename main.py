@@ -2,7 +2,6 @@
 '''
 
 import sys
-import json
 import os
 from os import listdir, makedirs
 from os.path import isfile, join, exists, abspath
