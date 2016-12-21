@@ -12,6 +12,7 @@ class ThirdPartyKeys:
         "W9vYyIsImV4cCI6MTUxMDk3NzUxODQwMSwiaWF0IjoxNDc5NDQxNTE" + \
         "4NDAxfQ.MJukG7r-8Sfv6DYWZIGcfZUyDEptkfyHM33rrUaucts "
 
+
 class FilenameConfig:
     '''File names of raw data
     '''
@@ -23,6 +24,7 @@ class FilenameConfig:
     ACTIVE_VERSIONS = "mongodb/edxapp/modulestore.active_versions.json"
     STRUCTURES = "mongodb/edxapp/modulestore.structures.json"
 
+
 class DataSource:
     '''Urls of datasources
     '''
@@ -31,6 +33,7 @@ class DataSource:
     CLICKSTREAMS_URL = "/resources/clickstreams"
     MONGODB_URL = "/resources/dbsnapshots_mongodb"
     SQLDB_URL = "/resources/dbsnapshots_mysqldb"
+
 
 class DBConfig:
     '''Config of database
@@ -106,6 +109,7 @@ class DBConfig:
     FIELD_VIDEO_LOG_ORIGINAL_ID = "originalId"
     FIELD_VIDEO_LOG_USER_ID = "userId"
     FIELD_VIDEO_LOG_VIDEO_ID = "videoId"
+    FIELD_VIDEO_LOG_COURSE_ID = "courseId"
     FIELD_VIDEO_LOG_TIMESTAMP = "timestamp"
     FIELD_VIDEO_LOG_TYPE = "type"
     FIELD_VIDEO_LOG_METAINFO = "metaInfo"
@@ -401,6 +405,10 @@ class DBConfig:
                     },
                     {
                         FIELD_GENERAL_NAME: FIELD_VIDEO_LOG_VIDEO_ID,
+                        FIELD_GENERAL_VALIDATION: {"$type": "objectId"}
+                    },
+                    {
+                        FIELD_GENERAL_NAME: FIELD_VIDEO_LOG_COURSE_ID,
                         FIELD_GENERAL_VALIDATION: {"$type": "objectId"}
                     },
                     {
