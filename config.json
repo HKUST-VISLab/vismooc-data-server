@@ -15,6 +15,14 @@
             "clickstreams_url": "/resources/clickstreams",
             "mongoDB_url": "/resources/dbsnapshots_mongodb",
             "SQLDB_url": "/resources/dbsnapshots_mysqldb"
+        },
+        "data_filenames": {
+            "data_dir":"vismooc-test-data",
+            "mongodb_file": "dbsnapshots_mongodb",
+            "sqldb_file": "dbsnapshots_mysqldb",
+            "meta_db_record": "meta_db_record",
+            "active_versions": "mongodb/edxapp/modulestore.active_versions.json",
+            "structures": "mongodb/edxapp/modulestore.structures.json"
         }
     }
 }

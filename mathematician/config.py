@@ -2,6 +2,7 @@
 '''
 import json
 
+
 class ThirdPartyKeys:
     '''Third party keys
     '''
@@ -11,19 +12,16 @@ class ThirdPartyKeys:
         "W9vYyIsImV4cCI6MTUxMDk3NzUxODQwMSwiaWF0IjoxNDc5NDQxNTE" + \
         "4NDAxfQ.MJukG7r-8Sfv6DYWZIGcfZUyDEptkfyHM33rrUaucts "
 
-
 class FilenameConfig:
     '''File names of raw data
     '''
     Clickstream_suffix = "-clickstream-log"
     Data_dir = "/vismooc-test-data/"
-    MongoDB_Name = "dbsnapshots_mongodb"
-    SQLDB_Name = "dbsnapshots_mysqldb"
-    MetaDBRecord_Name = "meta_db_record"
-    # the name of files extract from mongodb file
-    # TODO config.json
-    ACTIVE_VERSIONS = 'mongodb/edxapp/modulestore.active_versions.json'
-    STRUCTURES = 'mongodb/edxapp/modulestore.structures.json'
+    MongoDB_FILE = "dbsnapshots_mongodb"
+    SQLDB_FILE = "dbsnapshots_mysqldb"
+    META_DB_RECORD = "meta_db_record"
+    ACTIVE_VERSIONS = "mongodb/edxapp/modulestore.active_versions.json"
+    STRUCTURES = "mongodb/edxapp/modulestore.structures.json"
 
 class DataSource:
     '''Urls of datasources
@@ -474,6 +472,21 @@ def init_config(config_file_path):
             DataSource.MONGODB_URL = data_sources_config.get(
                 'mongoDB_url') or DataSource.MONGODB_URL
             DataSource.SQLDB_URL = data_sources_config.get('SQLDB_url') or DataSource.SQLDB_URL
+
+        # init the data file NameError
+        data_filenames = dataserver_config.get("data_filenames")
+        if data_filenames:
+            FilenameConfig.Data_dir = data_filenames.get("data_dir")
+            FilenameConfig.MongoDB_FILE = data_filenames.get(
+                "mongodb_file") or FilenameConfig.MongoDB_FILE
+            FilenameConfig.SQLDB_FILE = data_filenames.get(
+                "sqldb_file") or FilenameConfig.SQLDB_FILE
+            FilenameConfig.META_DB_RECORD = data_filenames.get(
+                "meta_db_record") or FilenameConfig.META_DB_RECORD
+            FilenameConfig.ACTIVE_VERSIONS = data_filenames.get(
+                "active_versions") or FilenameConfig.ACTIVE_VERSIONS
+            FilenameConfig.STRUCTURES = data_filenames.get(
+                "structures") or FilenameConfig.STRUCTURES
 
         # init 3rd party keys
         third_party_keys = dataserver_config.get('third_party_keys')
