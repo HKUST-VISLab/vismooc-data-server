@@ -29,10 +29,10 @@ if __name__ == "__main__":
     download = DownloadFileFromServer(dir_name)
     click_record = download.get_click_stream()
     db_record = download.get_mongodb_and_mysqldb_snapshot()
-    db_record.extend(click_record)
-    if db_record and len(db_record) > 0:
-        with open(join(dir_name, config.FilenameConfig.META_DB_RECORD), 'w') as file:
-            file.write(json.dumps(db_record))
+    # db_record.extend(click_record)
+    # if db_record and len(db_record) > 0:
+    #     with open(join(dir_name, config.FilenameConfig.META_DB_RECORD), 'w') as file:
+    #         file.write(json.dumps(db_record))
     file_names = [join(dir_name, f)
                   for f in listdir(dir_name) if isfile(join(dir_name, f))]
     if exists(join(dir_name, 'mongodb')):

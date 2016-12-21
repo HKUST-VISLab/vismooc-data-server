@@ -100,6 +100,7 @@ class DownloadFileFromServer():
                 DBC.FIELD_METADBFILES_TYPE: DBC.TYPE_CLICKSTREAM
             })
         self._db.get_collection(DBC.COLLECTION_METADBFILES).insert_many(new_items)
+        print('Finish caching the metainfo of log-files into mongoDB')
         return new_items
 
     def get_mongodb_and_mysqldb_snapshot(self, save_dir=None):
@@ -111,6 +112,7 @@ class DownloadFileFromServer():
         new_metadb_items = []
 
         # check what file should be downloaded
+        print("Begin to analyze which snapshots need to be downloaded")
         urls = []
         etag = self.__http_connection.head(
             DS.MONGODB_URL).get_headers().get("ETag")
