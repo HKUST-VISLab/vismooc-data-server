@@ -17,10 +17,13 @@ class FilenameConfig:
     '''
     Clickstream_suffix = "-clickstream-log"
     Data_dir = "/vismooc-test-data/"
-    # MongoDB_Name = "dbsnapshots_mongodb"
-    # SQLDB_Name = "dbsnapshots_mysqldb"
+    MongoDB_Name = "dbsnapshots_mongodb"
+    SQLDB_Name = "dbsnapshots_mysqldb"
     MetaDBRecord_Name = "meta_db_record"
-
+    # the name of files extract from mongodb file
+    # TODO config.json
+    ACTIVE_VERSIONS = 'mongodb/edxapp/modulestore.active_versions.json'
+    STRUCTURES = 'mongodb/edxapp/modulestore.structures.json'
 
 class DataSource:
     '''Urls of datasources
