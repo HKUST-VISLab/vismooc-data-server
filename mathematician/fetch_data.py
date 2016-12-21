@@ -146,7 +146,7 @@ class DownloadFileFromServer():
                     save_dir, FC.MongoDB_FILE)
                 item[DBC.FIELD_METADBFILES_TYPE] = FC.MongoDB_FILE
                 new_metadb_items.append(item)
-        self._db.get_collection(DBC.COLLECTION_METADBFILES).insert_many(new_items)
+        self._db.get_collection(DBC.COLLECTION_METADBFILES).insert_many(new_metadb_items)
         return new_metadb_items
 
     def decompress_files(self, file_paths, compress_algorithm):
