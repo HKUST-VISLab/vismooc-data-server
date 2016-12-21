@@ -291,7 +291,11 @@ class FormatCourseStructFile(PipeModule):
             enrollment_end_time = datetime.strptime(
                 course_records[27], pattern_time) if course_records[27] != "NULL" else None
             course_original_id = course_records[3]
-            course_original_id = course_original_id[course_original_id.index(':') + 1:]
+            try:
+                course_original_id = course_original_id[course_original_id.index(':') + 1:]
+            except ValueError as ex:
+                print(ex)
+                print(course_original_id)
             # construct the course object
             course[DBc.FIELD_COURSE_ORIGINAL_ID] = course_original_id
             course[DBc.FIELD_COURSE_NAME] = course_records[5]
@@ -420,7 +424,11 @@ class FormatUserFile(PipeModule):
             if len(records) < 3:
                 continue
             course_id = records[2]
-            course_id = course_id[course_id.index(':') + 1:]
+            try:
+                course_id = course_id[course_id.index(':') + 1:]
+            except ValueError as ex:
+                print(ex)
+                print(course_id)
             self.user_roles.setdefault(records[4], {}).setdefault(course_id, []).append(records[3])
 
         users = {}
@@ -485,7 +493,11 @@ class FormatEnrollmentFile(PipeModule):
             records = split(enroll_item)
             user_id = records[5]
             course_id = records[1]
-            course_id = course_id[course_id.index(':') + 1:]
+            try:
+                course_id = course_id[course_id.index(':') + 1:]
+            except ValueError as ex:
+                print(ex.args)
+                print(course_id)
             enrollment_time = datetime.strptime(records[2], pattern_time) \
                 if records[2] != "NULL" else None
             enrollment[DBc.FIELD_ENROLLMENT_USER_ID] = user_id
@@ -595,10 +607,18 @@ class FormatLogFile(PipeModule):
                     video_id = event_event.get('id')
                     str_event_time = temp_data.get('time')
                     if '.' not in str_event_time:
-                        str_event_time = str_event_time[:str_event_time.index("+")] + \
-                            '.000000' + str_event_time[str_event_time.index("+"):]
+                        try:
+                            str_event_time = str_event_time[:str_event_time.index("+")] + \
+                                '.000000' + str_event_time[str_event_time.index("+"):]
+                        except ValueError as ex:
+                            print(ex)
+                            print(str_event_time)
                     course_id = event_context.get('course_id')
-                    course_id = course_id[course_id.index(':') + 1:]
+                    try:
+                        course_id = course_id[course_id.index(':') + 1:]
+                    except ValueError as ex:
+                        print(ex)
+                        print(course_id)
                     target_attrs = {'path', 'code', 'currentTime', 'new_time', 'old_time',
                                     'new_speed', 'old_speed'}
                     event_time = datetime.strptime(str_event_time, pattern_time)
