@@ -677,9 +677,9 @@ class FormatLogFile(PipeModule):
                         # TODO maybe raw_log is not needed
                         # line = line.replace('.,', ',', 1)
                         # raw_logs.append(json.loads(line))
-                    except BaseException as ex:
-                        print(ex)
-                        print("log file parse problem")
+                except BaseException as ex:
+                    print(ex)
+                    print("log file parse problem")
 
         processed_data = raw_data
         processed_data['data'][DBc.COLLECTION_VIDEO_LOG] = events
