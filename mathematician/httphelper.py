@@ -1,17 +1,19 @@
+'''Http helper
+'''
 import urllib.request
-import asyncio
 import os
 import multiprocessing
 import json
-import hashlib
-import aiohttp
+# import hashlib
 import ssl
+import asyncio
+import aiohttp
 
-
-def head(url, headers={}, params=None):
+def head(url, headers=None, params=None):
     """Send synchronous head request
 
     """
+    headers = headers or {}
     if params is not None:
         if isinstance(params, dict):
             url = url + '?'
@@ -38,10 +40,11 @@ def head(url, headers={}, params=None):
         return HttpResponse(return_code, response_headers, data)
 
 
-def get(url, headers={}, params=None):
+def get(url, headers=None, params=None):
     """Send synchronous get request
 
     """
+    headers = headers or {}
     if params is not None:
         if isinstance(params, dict):
             url = url + '?'
@@ -67,10 +70,11 @@ def get(url, headers={}, params=None):
         return HttpResponse(return_code, response_headers, data)
 
 
-def post(url, headers={}, params=None):
+def post(url, headers=None, params=None):
     """Send synchronous post request
 
     """
+    headers = headers or {}
     if params is not None:
         if type(params) is not dict:
             raise Exception("The params should be dict type")
@@ -154,9 +158,10 @@ def download_single_file(url, file_path, headers, params=None):
     return file_path
 
 
-def download_multi_files(urls, save_dir, common_suffix='', headers={}, process_pool_size=(os.cpu_count() or 1)):
+def download_multi_files(urls, save_dir, common_suffix='', headers=None, process_pool_size=(os.cpu_count() or 1)):
     """ Use multiprocess to download multiple files one time
     """
+    headers = headers or {}
     if not isinstance(urls, list):
         raise Exception("The urls should be list type")
     if not os.path.exists(save_dir):
