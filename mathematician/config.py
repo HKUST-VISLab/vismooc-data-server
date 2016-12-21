@@ -1,18 +1,39 @@
+'''All the config fields of data server
+'''
+import json
+
 class ThirdPartyKeys:
+    '''Third party keys
+    '''
     Youtube_key = "AIzaSyBvOV3z5LB78NB-yv1osqQQ4A9eY7Xg5r0"
     HKMooc_key = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ" + \
-    "pc3MiOiJkYXRhYXBpLmhrbW9vYy5oayIsImF1ZCI6InVzZXIudmlzb" + \
-    "W9vYyIsImV4cCI6MTUxMDk3NzUxODQwMSwiaWF0IjoxNDc5NDQxNTE" + \
-    "4NDAxfQ.MJukG7r-8Sfv6DYWZIGcfZUyDEptkfyHM33rrUaucts "
+        "pc3MiOiJkYXRhYXBpLmhrbW9vYy5oayIsImF1ZCI6InVzZXIudmlzb" + \
+        "W9vYyIsImV4cCI6MTUxMDk3NzUxODQwMSwiaWF0IjoxNDc5NDQxNTE" + \
+        "4NDAxfQ.MJukG7r-8Sfv6DYWZIGcfZUyDEptkfyHM33rrUaucts "
+
 
 class FilenameConfig:
+    '''File names of raw data
+    '''
     Clickstream_suffix = "-clickstream-log"
     Data_dir = "/vismooc-test-data/"
-    MongoDB_Name = "dbsnapshots_mongodb"
-    SQLDB_Name = "dbsnapshots_mysqldb"
+    # MongoDB_Name = "dbsnapshots_mongodb"
+    # SQLDB_Name = "dbsnapshots_mysqldb"
     MetaDBRecord_Name = "meta_db_record"
 
+
+class DataSource:
+    '''Urls of datasources
+    '''
+    HOST = "https://dataapi2.hkmooc.hk"
+    ACCESS_TOKENS_URL = "/resources/access_tokens"
+    CLICKSTREAMS_URL = "/resources/clickstreams"
+    MONGODB_URL = "/resources/dbsnapshots_mongodb"
+    SQLDB_URL = "/resources/dbsnapshots_mysqldb"
+
 class DBConfig:
+    '''Config of database
+    '''
     DB_HOST = "localhost"
     DB_PORT = 27017
     DB_NAME = "test-vismooc-newData-temp"
@@ -416,3 +437,45 @@ class DBConfig:
             }
         ]
     }
+
+
+def init_config(config_file_path):
+    ''' Init all the configuration from a config file
+    '''
+
+    with open(config_file_path, 'r') as file:
+        try:
+            config_json = json.load(file)
+        except json.JSONDecodeError as ex:
+            print('Decode init json file failed')
+            print(ex.msg)
+            return
+
+    mongo_config = config_json.get('mongo')
+    # init mongo db
+    if mongo_config:
+        DBConfig.DB_HOST = mongo_config.get('host') or DBConfig.DB_HOST
+        DBConfig.DB_NAME = mongo_config.get('name') or DBConfig.DB_NAME
+        DBConfig.DB_PORT = mongo_config.get('port') or DBConfig.DB_PORT
+
+    dataserver_config = config_json.get('data_server')
+    if dataserver_config:
+        # init data server sources
+        data_sources_config = dataserver_config.get('data_sources')
+        if data_sources_config:
+            DataSource.HOST = data_sources_config.get('data_source_host') or DataSource.HOST
+            DataSource.ACCESS_TOKENS_URL = data_sources_config.get(
+                '/resources/access_tokens') or DataSource.ACCESS_TOKENS_URL
+            DataSource.CLICKSTREAMS_URL = data_sources_config.get(
+                'clickstreams_url') or DataSource.CLICKSTREAMS_URL
+            DataSource.MONGODB_URL = data_sources_config.get(
+                'mongoDB_url') or DataSource.MONGODB_URL
+            DataSource.SQLDB_URL = data_sources_config.get('SQLDB_url') or DataSource.SQLDB_URL
+
+        # init 3rd party keys
+        third_party_keys = dataserver_config.get('third_party_keys')
+        if third_party_keys:
+            ThirdPartyKeys.Youtube_key = third_party_keys.get(
+                'Youtube_key') or ThirdPartyKeys.Youtube_key
+            ThirdPartyKeys.HKMooc_key = third_party_keys.get(
+                'HKMOOC_key') or ThirdPartyKeys.HKMooc_key

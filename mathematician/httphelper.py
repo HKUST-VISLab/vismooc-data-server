@@ -36,7 +36,8 @@ def head(url, headers={}, params=None):
         response_headers = response.info()
         return_code = response.getcode()
         return HttpResponse(return_code, response_headers, data)
-        
+
+
 def get(url, headers={}, params=None):
     """Send synchronous get request
 
@@ -65,6 +66,7 @@ def get(url, headers={}, params=None):
         return_code = response.getcode()
         return HttpResponse(return_code, response_headers, data)
 
+
 def post(url, headers={}, params=None):
     """Send synchronous post request
 
@@ -75,7 +77,6 @@ def post(url, headers={}, params=None):
 
     req = urllib.request.Request(
         url=url, headers=headers, data=params, method='POST')
-
 
     with urllib.request.urlopen(req) as f:
         assert f.getcode() >= 200 and f.getcode() < 300
@@ -128,12 +129,14 @@ async def async_post(url, headers=None, params=None, session=aiohttp):
         data = await response.read()
         return HttpResponse(response.status, response.headers, data)
 
+
 def get_list(urls, limit=30, headers=None, params=None):
     loop = asyncio.get_event_loop()
     results = []
     with aiohttp.ClientSession(loop=loop) as session:
         for i in range(0, len(urls), limit):
-            tasks = [ asyncio.ensure_future(async_get(url, headers, params, session)) for url in urls[i:i+limit]]
+            tasks = [asyncio.ensure_future(async_get(url, headers, params, session))
+                     for url in urls[i:i + limit]]
             results += loop.run_until_complete(asyncio.gather(*tasks))
     return [result.get_content() for result in results]
 
@@ -150,6 +153,7 @@ def download_single_file(url, file_path, headers, params=None):
         file.write(result)
     return file_path
 
+
 def download_multi_files(urls, save_dir, common_suffix='', headers={}, process_pool_size=(os.cpu_count() or 1)):
     """ Use multiprocess to download multiple files one time
     """
@@ -162,8 +166,10 @@ def download_multi_files(urls, save_dir, common_suffix='', headers={}, process_p
     pool = multiprocessing.Pool(processes=process_pool_size)
     process_results = []
     for url in urls:
-        file_path = os.path.join(os.path.abspath(save_dir), url[url.rindex("/")+1 : ]) + common_suffix
-        process_result = pool.apply_async(download_single_file, (url, file_path, headers))
+        file_path = os.path.join(os.path.abspath(save_dir), url[
+                                 url.rindex("/") + 1:]) + common_suffix
+        process_result = pool.apply_async(
+            download_single_file, (url, file_path, headers))
         process_results.append(process_result)
     pool.close()
     pool.join()
@@ -204,7 +210,7 @@ class HttpConnection:
         if response.get_headers().get("Set-Cookie") is not None:
             self.__headers["Cookie"] = response.get_headers().get("Set-Cookie")
         return response
-    
+
     def head(self, url, params=None):
         response = head(self.__host + url, self.headers, params)
         if response.get_headers().get("Set-Cookie") is not None:
@@ -218,23 +224,26 @@ class HttpConnection:
         return response
 
     def download_files(self, urls, save_dir, common_suffix=''):
-        return download_multi_files(urls, save_dir, common_suffix=common_suffix, headers=self.__headers)
+        return download_multi_files([self.__host + url for url in urls], save_dir,
+                                    common_suffix=common_suffix, headers=self.__headers)
 
     async def async_get(self, url, params):
         response = await async_get(self.__host + url, self.headers, params)
         if response.get_headers().get("Set-Cookie") is not None:
-            self.headers = {"Cookie" : response.get_headers().get("Set-Cookie")}
+            self.headers = {"Cookie": response.get_headers().get("Set-Cookie")}
         return response
 
     async def async_post(self, url, params):
         response = await async_post(self.__host + url, self.headers, params)
         if response.get_headers().get("Set-Cookie") is not None:
-            self.headers = {"Cookie" : response.get_headers().get("Set-Cookie")}
+            self.headers = {"Cookie": response.get_headers().get("Set-Cookie")}
         return response
+
 
 class HttpResponse():
     """ Encapsulate http response headers, content, and status code in this class
     """
+
     def __init__(self, return_code, headers, content):
         self.__return_code = return_code
         self.__headers = headers
@@ -254,8 +263,8 @@ class HttpResponse():
         """ return the response status code
         """
         return self.__return_code
+
     def get_content_json(self, encode="UTF-8"):
         """ return the response content in json
         """
         return json.loads(str(self.__content, encode))
-

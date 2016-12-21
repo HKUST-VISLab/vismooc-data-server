@@ -10,7 +10,7 @@
             "program": "${file}",
             "cwd": "${workspaceRoot}",
             "args": [
-                "-m"
+                "config.json"
             ],
             "debugOptions": [
                 "WaitOnAbnormalExit",
