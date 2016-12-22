@@ -336,8 +336,6 @@ class FormatCourseStructFile(PipeModule):
                                         if leaf['block_type'] == 'video':
                                             if leaf['fields']:
                                                 fields = leaf.get('fields')
-                                                if fields is None:
-                                                    continue
                                                 video_original_id = leaf['block_id']
                                                 video = {}
                                                 video[DBc.FIELD_VIDEO_ORIGINAL_ID] = video_original_id
