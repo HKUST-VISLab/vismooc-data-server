@@ -122,7 +122,7 @@ class ExtractRawData(PipeModule):
                         oid = published_branch.get('$oid')
                         structureIds.add(oid)
                         structureId_to_courseId[oid] = record['org'] + '+' + \
-                            record['course'] + '+' + record['run']
+                            record['course'].replace('.', '_') + '+' + record['run']
             elif FilenameConfig.STRUCTURES in filename:
                 module_structure_filename = filename
         # modulestore.active_version must be processed before modulestore.structures
