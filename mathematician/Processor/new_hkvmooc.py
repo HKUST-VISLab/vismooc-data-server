@@ -308,7 +308,7 @@ class FormatCourseStructFile(PipeModule):
                     print(ex)
                     print(course_original_id)
                     continue
-                course_original_id = course_original_id.replace('.','_')
+                course_original_id = course_original_id.replace('.', '_')
                 # construct the course object
                 course[DBc.FIELD_COURSE_ORIGINAL_ID] = course_original_id
                 course[DBc.FIELD_COURSE_NAME] = course_records[5]
@@ -336,42 +336,40 @@ class FormatCourseStructFile(PipeModule):
                 course[DBc.FIELD_COURSE_LOWEST_PASSING_GRADE] = course_records[21]
                 course[DBc.FIELD_COURSE_MOBILE_AVAILABLE] = course_records[23]
                 course[DBc.FIELD_COURSE_DISPLAY_NUMBER_WITH_DEFAULT] = course_records[6]
-                print(course_original_id)
                 course_structure = self.course_structures.get(course_original_id)
                 # TODO
                 if course_structure:
-                    for block in course_structure['blocks']:
-                        if block['block_type'] == 'course':
+                    for block in course_structure.get('blocks'):
+                        if block.get('block_type') == 'course':
                             for chapter in block['fields']['children']:
                                 for sequential in chapter['fields']['children']:
                                     for vertical in sequential['fields']['children']:
                                         for leaf in vertical['fields']['children']:
-                                            if leaf['block_type'] == 'video':
-                                                if leaf['fields']:
-                                                    fields = leaf.get('fields')
-                                                    video_original_id = leaf['block_id']
-                                                    video = {}
-                                                    video[DBc.FIELD_VIDEO_ORIGINAL_ID] = video_original_id
-                                                    video[DBc.FIELD_VIDEO_NAME] = fields.get('display_name')
-                                                    video[DBc.FIELD_VIDEO_URL] = (fields.get('youtube_id_1_0') and FormatCourseStructFile.YOUTUBE_URL_PREFIX + fields.get('youtube_id_1_0')) or \
-                                                        (fields.get('html5_sources') and fields.get('html5_sources')[0])
-                                                    video[DBc.FIELD_VIDEO_TEMPORAL_HOTNESS] = {}
-                                                    # TODO
-                                                    video[DBc.FIELD_VIDEO_DURATION] = self.video_url_duration.get(video[DBc.FIELD_VIDEO_URL])
-                                                    video[DBc.FIELD_VIDEO_DESCRIPTION] = fields.get('display_name')
-                                                    video[DBc.FIELD_VIDEO_SECTION] = chapter['fields']['display_name'] + ', ' + \
-                                                        sequential['fields']['display_name'] + \
-                                                        ', ' + vertical['fields']['display_name']
-                                                    video[DBc.FIELD_VIDEO_COURSE_ID] = course_original_id
+                                            if leaf.get('block_type') == 'video' and leaf.get("fields"):
+                                                fields = leaf.get('fields')
+                                                video_original_id = leaf.get('block_id')
+                                                video = {}
+                                                video[DBc.FIELD_VIDEO_ORIGINAL_ID] = video_original_id
+                                                video[DBc.FIELD_VIDEO_NAME] = fields.get('display_name')
+                                                video[DBc.FIELD_VIDEO_URL] = (fields.get('youtube_id_1_0') and FormatCourseStructFile.YOUTUBE_URL_PREFIX + fields.get('youtube_id_1_0')) or \
+                                                    (fields.get('html5_sources') and fields.get('html5_sources')[0])
+                                                video[DBc.FIELD_VIDEO_TEMPORAL_HOTNESS] = {}
+                                                # TODO
+                                                video[DBc.FIELD_VIDEO_DURATION] = self.video_url_duration.get(video[DBc.FIELD_VIDEO_URL])
+                                                video[DBc.FIELD_VIDEO_DESCRIPTION] = fields.get('display_name')
+                                                video[DBc.FIELD_VIDEO_SECTION] = chapter['fields']['display_name'] + ', ' + \
+                                                    sequential['fields']['display_name'] + \
+                                                    ', ' + vertical['fields']['display_name']
+                                                video[DBc.FIELD_VIDEO_COURSE_ID] = course_original_id
 
-                                                    if video[DBc.FIELD_VIDEO_URL] and 'youtube' in video[DBc.FIELD_VIDEO_URL]:
-                                                        url = video[DBc.FIELD_VIDEO_URL]
-                                                        youtube_id = url[url.index('v=') + 2:]
-                                                        tmp_youtube_video_dict[youtube_id] = video_original_id
-                                                    elif video[DBc.FIELD_VIDEO_URL]:
-                                                        tmp_other_video_dict.setdefault(video[DBc.FIELD_VIDEO_URL], []).append(video_original_id)
-                                                    videos[video_original_id] = video
-                                                    course.setdefault(DBc.FIELD_COURSE_VIDEO_IDS, []).append(video_original_id)
+                                                if video[DBc.FIELD_VIDEO_URL] and 'youtube' in video[DBc.FIELD_VIDEO_URL]:
+                                                    url = video[DBc.FIELD_VIDEO_URL]
+                                                    youtube_id = url[url.index('v=') + 2:]
+                                                    tmp_youtube_video_dict[youtube_id] = video_original_id
+                                                elif video[DBc.FIELD_VIDEO_URL]:
+                                                    tmp_other_video_dict.setdefault(video[DBc.FIELD_VIDEO_URL], []).append(video_original_id)
+                                                videos[video_original_id] = video
+                                                course.setdefault(DBc.FIELD_COURSE_VIDEO_IDS, []).append(video_original_id)
                 courses[course_original_id] = course
             except BaseException as ex:
                 print(ex)
