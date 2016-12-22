@@ -336,7 +336,7 @@ class FormatCourseStructFile(PipeModule):
                 course[DBc.FIELD_COURSE_LOWEST_PASSING_GRADE] = course_records[21]
                 course[DBc.FIELD_COURSE_MOBILE_AVAILABLE] = course_records[23]
                 course[DBc.FIELD_COURSE_DISPLAY_NUMBER_WITH_DEFAULT] = course_records[6]
-
+                print(course_original_id)
                 course_structure = self.course_structures.get(course_original_id)
                 # TODO
                 if course_structure:
@@ -349,8 +349,6 @@ class FormatCourseStructFile(PipeModule):
                                             if leaf['block_type'] == 'video':
                                                 if leaf['fields']:
                                                     fields = leaf.get('fields')
-                                                    if fields is None:
-                                                        continue
                                                     video_original_id = leaf['block_id']
                                                     video = {}
                                                     video[DBc.FIELD_VIDEO_ORIGINAL_ID] = video_original_id
