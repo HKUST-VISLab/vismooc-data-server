@@ -174,7 +174,7 @@ class FormatCourseStructFile(PipeModule):
         self.video_id_info = {}
         self.course_overview = None
         self.edx_videos = None
-        self.edx_course_videos = None
+        # self.edx_course_videos = None
         self.video_encode = None
         self.course_access_role = None
         self.course_structures = None
@@ -188,7 +188,7 @@ class FormatCourseStructFile(PipeModule):
         '''
         self.course_overview = raw_data.get('course_overviews_courseoverview') or []
         self.edx_videos = raw_data.get('edxval_video') or []
-        self.edx_course_videos = raw_data.get('edxval_coursevideo') or []
+        # self.edx_course_videos = raw_data.get('edxval_coursevideo') or []
         self.video_encode = raw_data.get('edxval_encodedvideo') or []
         self.course_access_role = raw_data.get('student_courseaccessrole') or []
         self.course_structures = raw_data.get('course_in_mongo') or {}
@@ -246,13 +246,17 @@ class FormatCourseStructFile(PipeModule):
             processed_data['data'][DBc.COLLECTION_VIDEO] = videos
             return processed_data
 
-        for row in self.edx_course_videos:
-            records = split(row)
-            course_id = records[1]
-            course_id = course_id[course_id.index(':') + 1:]
-            video_id = records[2]
-            # self.course_video_videokey[video_id] = course_id
-            self.course_video_coursekey.setdefault(course_id, []).append(video_id)
+        # for row in self.edx_course_videos:
+        #     records = split(row)
+        #     course_id = records[1]
+        #     try:
+        #         course_id = course_id[course_id.index(':') + 1:].replace('.','_')
+        #     except ValueError as ex:
+        #         print(ex)
+        #         print("Error in get course_video_coursekey "+ course_id)
+        #     video_id = records[2]
+        #     # self.course_video_videokey[video_id] = course_id
+        #     self.course_video_coursekey.setdefault(course_id, []).append(video_id)
 
         for one_access_role in self.course_access_role:
             records = split(one_access_role)
@@ -261,7 +265,13 @@ class FormatCourseStructFile(PipeModule):
             if records[3] != 'instructor' or records[3] != "staffs":
                 continue
             course_id = records[2]
-            course_id = course_id[course_id.index(':') + 1:]
+            try:
+                course_id = course_id[course_id.index(':') + 1:]
+            except ValueError as ex:
+                print(ex)
+                print(course_id)
+                continue
+            course_id = course_id.replace('.','_')
             user_id = records[4]
             course_instructors.setdefault(course_id, []).append(user_id)
 
@@ -297,6 +307,8 @@ class FormatCourseStructFile(PipeModule):
                 except ValueError as ex:
                     print(ex)
                     print(course_original_id)
+                    continue
+                course_original_id = course_original_id.replace('.','_')
                 # construct the course object
                 course[DBc.FIELD_COURSE_ORIGINAL_ID] = course_original_id
                 course[DBc.FIELD_COURSE_NAME] = course_records[5]
@@ -433,6 +445,7 @@ class FormatUserFile(PipeModule):
             except ValueError as ex:
                 print(ex)
                 print(course_id)
+            course_id = course_id.replace('.','_')
             self.user_roles.setdefault(records[4], {}).setdefault(course_id, []).append(records[3])
 
         users = {}
@@ -507,6 +520,8 @@ class FormatEnrollmentFile(PipeModule):
                 except ValueError as ex:
                     print(ex.args)
                     print(course_id)
+                    continue
+                course_id = course_id.replace('.','_')
                 enrollment_time = datetime.strptime(records[2], pattern_time) \
                     if records[2] != "NULL" else None
                 enrollment[DBc.FIELD_ENROLLMENT_USER_ID] = user_id
@@ -627,11 +642,14 @@ class FormatLogFile(PipeModule):
                                 print(ex)
                                 print(str_event_time)
                         course_id = event_context.get('course_id')
+                        
                         try:
                             course_id = course_id[course_id.index(':') + 1:]
                         except ValueError as ex:
                             print(ex)
                             print(course_id)
+                            continue
+                        course_id = course_id.replace('.','_')
                         target_attrs = {'path', 'code', 'currentTime', 'new_time', 'old_time',
                                         'new_speed', 'old_speed'}
                         event_time = datetime.strptime(str_event_time, pattern_time)
