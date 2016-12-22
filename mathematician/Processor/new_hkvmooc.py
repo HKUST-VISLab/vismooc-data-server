@@ -271,7 +271,7 @@ class FormatCourseStructFile(PipeModule):
                 print(ex)
                 print(course_id)
                 continue
-            course_id = course_id.replace('.','_')
+            course_id = course_id.replace('.', '_')
             user_id = records[4]
             course_instructors.setdefault(course_id, []).append(user_id)
 
@@ -315,7 +315,8 @@ class FormatCourseStructFile(PipeModule):
                 course_year_match = re_course_year.search(course_original_id)
                 course[DBc.FIELD_COURSE_YEAR] = course_year_match and \
                     course_year_match.group(COURSE_YEAR)
-                course[DBc.FIELD_COURSE_INSTRUCTOR] = course_instructors.get(course_original_id) or []
+                course[DBc.FIELD_COURSE_INSTRUCTOR] = course_instructors.get(
+                    course_original_id) or []
                 # TODO
                 course[DBc.FIELD_COURSE_STATUS] = None
                 course[DBc.FIELD_COURSE_URL] = None
@@ -350,13 +351,17 @@ class FormatCourseStructFile(PipeModule):
                                                 video_original_id = leaf.get('block_id')
                                                 video = {}
                                                 video[DBc.FIELD_VIDEO_ORIGINAL_ID] = video_original_id
-                                                video[DBc.FIELD_VIDEO_NAME] = fields.get('display_name')
+                                                video[DBc.FIELD_VIDEO_NAME] = fields.get(
+                                                    'display_name')
                                                 video[DBc.FIELD_VIDEO_URL] = (fields.get('youtube_id_1_0') and FormatCourseStructFile.YOUTUBE_URL_PREFIX + fields.get('youtube_id_1_0')) or \
-                                                    (fields.get('html5_sources') and fields.get('html5_sources')[0])
+                                                    (fields.get('html5_sources')
+                                                     and fields.get('html5_sources')[0])
                                                 video[DBc.FIELD_VIDEO_TEMPORAL_HOTNESS] = {}
                                                 # TODO
-                                                video[DBc.FIELD_VIDEO_DURATION] = self.video_url_duration.get(video[DBc.FIELD_VIDEO_URL])
-                                                video[DBc.FIELD_VIDEO_DESCRIPTION] = fields.get('display_name')
+                                                video[DBc.FIELD_VIDEO_DURATION] = self.video_url_duration.get(
+                                                    video[DBc.FIELD_VIDEO_URL])
+                                                video[DBc.FIELD_VIDEO_DESCRIPTION] = fields.get(
+                                                    'display_name')
                                                 video[DBc.FIELD_VIDEO_SECTION] = chapter['fields']['display_name'] + ', ' + \
                                                     sequential['fields']['display_name'] + \
                                                     ', ' + vertical['fields']['display_name']
@@ -365,19 +370,22 @@ class FormatCourseStructFile(PipeModule):
                                                 if video[DBc.FIELD_VIDEO_URL] and 'youtube' in video[DBc.FIELD_VIDEO_URL]:
                                                     url = video[DBc.FIELD_VIDEO_URL]
                                                     youtube_id = url[url.index('v=') + 2:]
-                                                    tmp_youtube_video_dict[youtube_id] = video_original_id
+                                                    tmp_youtube_video_dict[
+                                                        youtube_id] = video_original_id
                                                 elif video[DBc.FIELD_VIDEO_URL]:
-                                                    tmp_other_video_dict.setdefault(video[DBc.FIELD_VIDEO_URL], []).append(video_original_id)
+                                                    tmp_other_video_dict.setdefault(
+                                                        video[DBc.FIELD_VIDEO_URL], []).append(video_original_id)
                                                 videos[video_original_id] = video
-                                                course.setdefault(DBc.FIELD_COURSE_VIDEO_IDS, []).append(video_original_id)
+                                                course.setdefault(DBc.FIELD_COURSE_VIDEO_IDS, []).append(
+                                                    video_original_id)
                 courses[course_original_id] = course
             except BaseException as ex:
                 print(ex)
-                print("Wrong at "+course_original_id)
+                print("Wrong at " + course_original_id)
 
         # fetch the video duration from youtube_api_v3
-        urls = [self.youtube_api + '&id=' +\
-            youtube_id for youtube_id in tmp_youtube_video_dict.keys()]
+        urls = [self.youtube_api + '&id=' +
+                youtube_id for youtube_id in tmp_youtube_video_dict.keys()]
         broken_youtube_id = set(tmp_youtube_video_dict.keys())
         results = httphelper.get_list(urls, limit=60)
         for result in results:
@@ -394,13 +402,14 @@ class FormatCourseStructFile(PipeModule):
         for url in tmp_other_video_dict:
             video_duration = self.parse_video_duration(url)
             video_ids = tmp_other_video_dict[url]
-            for videoID in video_ids:
-                videos[videoID][DBc.FIELD_VIDEO_DURATION] = video_duration
+            for video_id in video_ids:
+                videos[video_id][DBc.FIELD_VIDEO_DURATION] = video_duration
 
         processed_data = raw_data
         processed_data['data'][DBc.COLLECTION_VIDEO] = videos
         processed_data['data'][DBc.COLLECTION_COURSE] = courses
         return processed_data
+
 
 class FormatUserFile(PipeModule):
 
@@ -441,7 +450,7 @@ class FormatUserFile(PipeModule):
             except ValueError as ex:
                 print(ex)
                 print(course_id)
-            course_id = course_id.replace('.','_')
+            course_id = course_id.replace('.', '_')
             self.user_roles.setdefault(records[4], {}).setdefault(course_id, []).append(records[3])
 
         users = {}
@@ -453,7 +462,7 @@ class FormatUserFile(PipeModule):
                 user_profile = self._userprofile.get(user_id)
                 birth_year = datetime.strptime(user_profile[6], '%Y')\
                     if (user_profile and (user_profile[6] != "NULL" and
-                                        len(user_profile[6]) == 4)) else None
+                                          len(user_profile[6]) == 4)) else None
                 user[DBc.FIELD_USER_USER_NAME] = user_fields[4]
                 user[DBc.FIELD_USER_LANGUAGE] = user_profile and user_profile[4]
                 user[DBc.FIELD_USER_LOCATION] = user_profile and user_profile[5]
@@ -463,7 +472,8 @@ class FormatUserFile(PipeModule):
                 user[DBc.FIELD_USER_COURSE_IDS] = set()
                 user[DBc.FIELD_USER_DROPPED_COURSE_IDS] = set()
                 user[DBc.FIELD_USER_BIO] = user_profile and user_profile[14]
-                user[DBc.FIELD_USER_COUNTRY] = user_profile and (user_profile[11] or user_profile[5])
+                user[DBc.FIELD_USER_COUNTRY] = user_profile and (
+                    user_profile[11] or user_profile[5])
                 user[DBc.FIELD_USER_NAME] = user_fields[5] + user_fields[6]
                 user[DBc.FIELD_USER_ORIGINAL_ID] = user_id
                 user[DBc.FIELD_USER_COURSE_ROLE] = self.user_roles.get(user_id) or {}
@@ -517,14 +527,15 @@ class FormatEnrollmentFile(PipeModule):
                     print(ex.args)
                     print(course_id)
                     continue
-                course_id = course_id.replace('.','_')
+                course_id = course_id.replace('.', '_')
                 enrollment_time = datetime.strptime(records[2], pattern_time) \
                     if records[2] != "NULL" else None
                 enrollment[DBc.FIELD_ENROLLMENT_USER_ID] = user_id
                 enrollment[DBc.FIELD_ENROLLMENT_COURSE_ID] = course_id
                 enrollment[DBc.FIELD_ENROLLMENT_TIMESTAMP] = enrollment_time \
                     and enrollment_time.timestamp()
-                enrollment[DBc.FIELD_ENROLLMENT_ACTION] = FormatEnrollmentFile.action.get(records[3])
+                enrollment[DBc.FIELD_ENROLLMENT_ACTION] = FormatEnrollmentFile.action.get(records[
+                                                                                          3])
                 enrollments.append(enrollment)
                 # fill in user collection
                 if enrollment[DBc.FIELD_ENROLLMENT_ACTION] == FormatEnrollmentFile.ENROLL:
@@ -537,7 +548,7 @@ class FormatEnrollmentFile(PipeModule):
                     courses[course_id][DBc.FIELD_COURSE_STUDENT_IDS].discard(user_id)
             except BaseException as ex:
                 print(ex)
-                print("enrollment userId " + user_id + ", courseId "+course_id)
+                print("enrollment userId " + user_id + ", courseId " + course_id)
 
         processed_data = raw_data
         # course and users collection are completed
@@ -600,7 +611,7 @@ class FormatLogFile(PipeModule):
         count = 0
         for data_to_be_processed in all_data_to_be_processed:
             count += 1
-            print("This is " + str(count) +"th log file")
+            print("This is " + str(count) + "th log file")
             for line in data_to_be_processed:
                 try:
                     event_type = re_right_eventtype.search(line)
@@ -638,30 +649,31 @@ class FormatLogFile(PipeModule):
                                 print(ex)
                                 print(str_event_time)
                         course_id = event_context.get('course_id')
-                        
+
                         try:
                             course_id = course_id[course_id.index(':') + 1:]
                         except ValueError as ex:
                             print(ex)
                             print(course_id)
                             continue
-                        course_id = course_id.replace('.','_')
-                        target_attrs = {'path', 'code', 'currentTime', 'new_time', 'old_time',
-                                        'new_speed', 'old_speed'}
+                        course_id = course_id.replace('.', '_')
+                        target_attrs = {'path':'path', 'code':'code', 'currentTime':'currentTime',\
+                            'new_time':'newTime', 'old_time':'oldTime', 'new_speed':'newSpeed',\
+                            'old_speed':'oldSpeed'}
                         event_time = datetime.strptime(str_event_time, pattern_time)
                         event[DBc.FIELD_VIDEO_LOG_USER_ID] = event_context.get('user_id')
                         event[DBc.FIELD_VIDEO_LOG_VIDEO_ID] = video_id
                         event[DBc.FIELD_VIDEO_LOG_COURSE_ID] = course_id
                         event[DBc.FIELD_VIDEO_LOG_TIMESTAMP] = event_time.timestamp()
                         event[DBc.FIELD_VIDEO_LOG_TYPE] = temp_data.get('event_type')
-                        event[DBc.FIELD_VIDEO_LOG_METAINFO] = {k: event_event.get(
+                        event[DBc.FIELD_VIDEO_LOG_METAINFO] = {target_attrs[k]: event_event.get(
                             k) for k in target_attrs if event_event.get(k) is not None}
                         event[DBc.FIELD_VIDEO_LOG_METAINFO]['path'] = event_context.get('path')
                         events.append(event)
 
                         # ready to denselogs
                         denselog_time = datetime(event_time.year, event_time.month,
-                                                event_time.day).timestamp()
+                                                 event_time.day).timestamp()
                         denselogs_key = (video_id + str(denselog_time)) if video_id else \
                             "none_video_id" + str(denselog_time)
                         if denselogs.get(denselogs_key) is None:
@@ -697,6 +709,7 @@ class FormatLogFile(PipeModule):
         processed_data['data'][DBc.COLLECTION_VIDEO_LOG] = events
         processed_data['data'][DBc.COLLECTION_VIDEO_DENSELOGS] = list(denselogs.values())
         return processed_data
+
 
 class DumpToDB(PipeModule):
     order = 998
@@ -736,6 +749,7 @@ class DumpToDB(PipeModule):
                 collection.insert_many(db_data[collection_name])
 
         return raw_data
+
 
 class SetEncoder(json.JSONEncoder):
     # pylint: disable=E0202
