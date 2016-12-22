@@ -1,17 +1,21 @@
+'''Http helper
+'''
 import urllib.request
-import asyncio
 import os
+from os import path as path
 import multiprocessing
 import json
-import hashlib
-import aiohttp
+# import hashlib
 import ssl
+import asyncio
+import aiohttp
 
 
-def head(url, headers={}, params=None):
+def head(url, headers=None, params=None):
     """Send synchronous head request
 
     """
+    headers = headers or {}
     if params is not None:
         if isinstance(params, dict):
             url = url + '?'
@@ -36,11 +40,13 @@ def head(url, headers={}, params=None):
         response_headers = response.info()
         return_code = response.getcode()
         return HttpResponse(return_code, response_headers, data)
-        
-def get(url, headers={}, params=None):
+
+
+def get(url, headers=None, params=None):
     """Send synchronous get request
 
     """
+    headers = headers or {}
     if params is not None:
         if isinstance(params, dict):
             url = url + '?'
@@ -50,36 +56,37 @@ def get(url, headers={}, params=None):
         else:
             raise Exception("The params should be dict type")
 
-    # print(url)
     context = ssl._create_unverified_context()
     url = urllib.request.quote(url.encode('utf8'), ':/%?=&')
-    # print(url)
     req = urllib.request.Request(url=url, headers=headers, method='GET')
     try:
         response = urllib.request.urlopen(req, context=context)
-    except urllib.error.HTTPError as e:
-        return HttpResponse(e.getcode(), '', '')
+    except urllib.error.HTTPError as ex:
+        return HttpResponse(ex.getcode(), '', '')
     else:
         data = response.read()
         response_headers = response.info()
         return_code = response.getcode()
         return HttpResponse(return_code, response_headers, data)
 
-def post(url, headers={}, params=None):
+
+def post(url, headers=None, params=None):
     """Send synchronous post request
 
     """
+    headers = headers or {}
     if params is not None:
         if type(params) is not dict:
             raise Exception("The params should be dict type")
 
-    req = urllib.request.Request(url=url, headers=headers, data=params, method='POST')
+    req = urllib.request.Request(
+        url=url, headers=headers, data=params, method='POST')
 
-    with urllib.request.urlopen(req) as f:
-        assert f.getcode() >= 200 and f.getcode() < 300
-        data = f.read()
-        response_headers = f.info()
-        return_code = f.getcode()
+    with urllib.request.urlopen(req) as response:
+        assert response.getcode() >= 200 and response.getcode() < 300
+        data = response.read()
+        response_headers = response.info()
+        return_code = response.getcode()
         return HttpResponse(return_code, response_headers, data)
 
 
@@ -100,7 +107,8 @@ async def async_get(url, headers=None, params=None, session=aiohttp):
 
     async with session.get(url, headers=headers, params=params) as response:
         assert response.status >= 200 and response.status < 300
-        #change "result = await response.json()" to "result = await response.read()"
+        # change "result = await response.json()" to "result = await
+        # response.read()"
         data = await response.read()
         return HttpResponse(response.status, response.headers, data)
 
@@ -125,14 +133,17 @@ async def async_post(url, headers=None, params=None, session=aiohttp):
         data = await response.read()
         return HttpResponse(response.status, response.headers, data)
 
+
 def get_list(urls, limit=30, headers=None, params=None):
     loop = asyncio.get_event_loop()
     results = []
     with aiohttp.ClientSession(loop=loop) as session:
         for i in range(0, len(urls), limit):
-            tasks = [ asyncio.ensure_future(async_get(url, headers, params, session)) for url in urls[i:i+limit]]
+            tasks = [asyncio.ensure_future(async_get(url, headers, params, session))
+                     for url in urls[i:i + limit]]
             results += loop.run_until_complete(asyncio.gather(*tasks))
     return [result.get_content() for result in results]
+
 
 def download_single_file(url, file_path, headers, params=None):
     """Download file using one thread
@@ -146,20 +157,24 @@ def download_single_file(url, file_path, headers, params=None):
         file.write(result)
     return file_path
 
-def download_multi_files(urls, save_dir, common_suffix='', headers={}, process_pool_size=(os.cpu_count() or 1)):
+
+def download_multi_files(urls, save_dir, common_suffix='', headers=None, \
+    process_pool_size=(os.cpu_count() or 1)):
     """ Use multiprocess to download multiple files one time
     """
+    headers = headers or {}
     if not isinstance(urls, list):
         raise Exception("The urls should be list type")
-    if not os.path.exists(save_dir):
+    if not path.exists(save_dir):
         raise Exception("The directory not exists")
     if len(urls) < 1:
         return []
-    pool = multiprocessing.Pool(processes=process_pool_size)
     process_results = []
+    pool = multiprocessing.Pool(processes=process_pool_size)
     for url in urls:
-        file_path = os.path.join(os.path.abspath(save_dir), url[url.rindex("/")+1 : ]) + common_suffix
-        process_result = pool.apply_async(download_single_file, (url, file_path, headers))
+        file_path = path.join(path.abspath(save_dir), url[url.rindex("/") + 1:]) + common_suffix
+        process_result = pool.apply_async(
+            download_single_file, (url, file_path, headers))
         process_results.append(process_result)
     pool.close()
     pool.join()
@@ -180,6 +195,8 @@ class HttpConnection:
 
     @property
     def headers(self):
+        '''return the headers
+        '''
         return self.__headers
 
     @headers.setter
@@ -199,7 +216,7 @@ class HttpConnection:
         if response.get_headers().get("Set-Cookie") is not None:
             self.__headers["Cookie"] = response.get_headers().get("Set-Cookie")
         return response
-    
+
     def head(self, url, params=None):
         response = head(self.__host + url, self.headers, params)
         if response.get_headers().get("Set-Cookie") is not None:
@@ -213,41 +230,47 @@ class HttpConnection:
         return response
 
     def download_files(self, urls, save_dir, common_suffix=''):
-        return download_multi_files(urls, save_dir, common_suffix=common_suffix, headers=self.__headers)
+        return download_multi_files([self.__host + url for url in urls], save_dir,
+                                    common_suffix=common_suffix, headers=self.__headers)
 
     async def async_get(self, url, params):
         response = await async_get(self.__host + url, self.headers, params)
         if response.get_headers().get("Set-Cookie") is not None:
-            self.headers = {"Cookie" : response.get_headers().get("Set-Cookie")}
+            self.headers = {"Cookie": response.get_headers().get("Set-Cookie")}
         return response
 
     async def async_post(self, url, params):
         response = await async_post(self.__host + url, self.headers, params)
         if response.get_headers().get("Set-Cookie") is not None:
-            self.headers = {"Cookie" : response.get_headers().get("Set-Cookie")}
+            self.headers = {"Cookie": response.get_headers().get("Set-Cookie")}
         return response
+
 
 class HttpResponse():
     """ Encapsulate http response headers, content, and status code in this class
     """
+
     def __init__(self, return_code, headers, content):
         self.__return_code = return_code
         self.__headers = headers
         self.__content = content
+
     def get_headers(self):
         """ return the response headers
         """
         return self.__headers or {}
+
     def get_content(self):
         """ return the response content in bytes
         """
         return self.__content
+
     def get_return_code(self):
         """ return the response status code
         """
         return self.__return_code
+
     def get_content_json(self, encode="UTF-8"):
         """ return the response content in json
         """
         return json.loads(str(self.__content, encode))
-

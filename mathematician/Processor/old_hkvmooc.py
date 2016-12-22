@@ -20,6 +20,7 @@ re_ISO_8601_duration = re.compile(
     r"(?P<seconds>[0-9]+([,.][0-9]+)?S)?)?$"
 )
 
+
 def parse_duration(datestring):
     if not isinstance(datestring, str):
         raise TypeError("Expecting a string %r" % datestring)
@@ -41,6 +42,7 @@ def parse_duration(datestring):
     else:
         raise BaseException("there must be something woring in this time string")
     return ret
+
 
 class FormatCourseStructFile(PipeModule):
 
@@ -299,12 +301,22 @@ class FormatEnrollmentFile(PipeModule):
         processed_data['data'][DBc.COLLECTION_USER] = list(users.values())
         return processed_data
 
+
 class FormatLogFile(PipeModule):
 
     order = 3
 
     def __init__(self):
         super().__init__()
+
+    def try_parsing_date(self, text):
+        pattern_time = {"%Y-%m-%dT%H:%M:%S.%f+00:00","%Y-%m-%dT%H:%M:%S+00:00"}
+        for pattern in pattern_time:
+            try:
+                return datetime.strptime(text, pattern)
+            except ValueError:
+                pass
+        raise ValueError('no valid date format found')
 
     def load_data(self, data_filenames):
         '''
@@ -328,7 +340,7 @@ class FormatLogFile(PipeModule):
         pattern_wrong_username = r'"username"\s*:\s*"",'
         pattern_right_eventsource = r'"event_source"\s*:\s*"browser"'
         pattern_right_eventtype = r'"event_type"\s*:\s*"(hide_transcript|load_video|' + \
-            r'pause_video|play_video|seek_video|show_transcript|speed_change_video|stop_video|'+ \
+            r'pause_video|play_video|seek_video|show_transcript|speed_change_video|stop_video|' + \
             r'video_hide_cc_menu|video_show_cc_menu)"'
 
         pattern_context = r',?\s*("context"\s*:\s*{[^}]*})'
@@ -462,7 +474,13 @@ class DumpToDB(PipeModule):
             user[DBc.FIELD_USER_DROPPED_COURSE_IDS] = list(
                 user[DBc.FIELD_USER_DROPPED_COURSE_IDS])
 
+        for video in db_data[DBc.COLLECTION_VIDEO]:
+            temp_hotness = video[DBc.FIELD_VIDEO_TEMPORAL_HOTNESS]
+            video[DBc.FIELD_VIDEO_TEMPORAL_HOTNESS] = [
+                {"date": k, "value": v} for k, v in temp_hotness.items()]
+        
         # insert to db
+        print('ready to dump to db')
         for collection_name in db_data:
             print(collection_name)
             collection = self.db.get_collection(collection_name)
@@ -486,7 +504,6 @@ class SetEncoder(json.JSONEncoder):
 
 class OutputFile(PipeModule):
 
-
     order = 999
 
     def __init__(self):
@@ -497,6 +514,8 @@ class OutputFile(PipeModule):
         write_file.write(json.dumps(raw_data, cls=SetEncoder))
         write_file.close()
         return raw_data
+
+
 class PreprocessFormatLogFile():
 
     order = 3
@@ -524,10 +543,9 @@ class PreprocessFormatLogFile():
             right_match_eventtype_pattern)
         results = []
 
-
         data_to_be_processed = self.load_data(raw_data_filenames)
 
-        for single_file in data_to_be_processed:       
+        for single_file in data_to_be_processed:
             for line in single_file:
                 event_type = re_search_right_eventtype_pattern.search(line)
                 if re_filter_wrong_pattern.search(line) is None and re_search_right_eventsource_pattern.search(line) is not None and event_type is not None:

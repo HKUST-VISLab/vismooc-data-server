@@ -98,3 +98,5 @@ ENV/
 #test data
 test-data
 #main.py
+vismooc-test-data
+config.json

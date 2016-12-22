@@ -1,18 +1,41 @@
+'''All the config fields of data server
+'''
+import json
+
+
 class ThirdPartyKeys:
+    '''Third party keys
+    '''
     Youtube_key = "AIzaSyBvOV3z5LB78NB-yv1osqQQ4A9eY7Xg5r0"
     HKMooc_key = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ" + \
-    "pc3MiOiJkYXRhYXBpLmhrbW9vYy5oayIsImF1ZCI6InVzZXIudmlzb" + \
-    "W9vYyIsImV4cCI6MTUxMDk3NzUxODQwMSwiaWF0IjoxNDc5NDQxNTE" + \
-    "4NDAxfQ.MJukG7r-8Sfv6DYWZIGcfZUyDEptkfyHM33rrUaucts "
+        "pc3MiOiJkYXRhYXBpLmhrbW9vYy5oayIsImF1ZCI6InVzZXIudmlzb" + \
+        "W9vYyIsImV4cCI6MTUxMDk3NzUxODQwMSwiaWF0IjoxNDc5NDQxNTE" + \
+        "4NDAxfQ.MJukG7r-8Sfv6DYWZIGcfZUyDEptkfyHM33rrUaucts "
+
 
 class FilenameConfig:
+    '''File names of raw data
+    '''
     Clickstream_suffix = "-clickstream-log"
     Data_dir = "/vismooc-test-data/"
-    MongoDB_Name = "dbsnapshots_mongodb"
-    SQLDB_Name = "dbsnapshots_mysqldb"
-    MetaDBRecord_Name = "meta_db_record"
+    MongoDB_FILE = "dbsnapshots_mongodb"
+    SQLDB_FILE = "dbsnapshots_mysqldb"
+    META_DB_RECORD = "meta_db_record"
+    ACTIVE_VERSIONS = "mongodb/edxapp/modulestore.active_versions.json"
+    STRUCTURES = "mongodb/edxapp/modulestore.structures.json"
+
+class DataSource:
+    '''Urls of datasources
+    '''
+    HOST = "https://dataapi2.hkmooc.hk"
+    ACCESS_TOKENS_URL = "/resources/access_tokens"
+    CLICKSTREAMS_URL = "/resources/clickstreams"
+    MONGODB_URL = "/resources/dbsnapshots_mongodb"
+    SQLDB_URL = "/resources/dbsnapshots_mysqldb"
 
 class DBConfig:
+    '''Config of database
+    '''
     DB_HOST = "localhost"
     DB_PORT = 27017
     DB_NAME = "test-vismooc-newData-temp"
@@ -61,6 +84,7 @@ class DBConfig:
     FIELD_USER_COUNTRY = "country"
     FIELD_USER_COURSE_IDS = "courseIds"
     FIELD_USER_DROPPED_COURSE_IDS = "droppedCourseIds"
+    FIELD_USER_COURSE_ROLE = "courseRoles"
 
     COLLECTION_ENROLLMENT = "enrollments"
     FIELD_ENROLLMENT_COURSE_ID = "courseId"
@@ -84,6 +108,7 @@ class DBConfig:
     FIELD_VIDEO_LOG_ORIGINAL_ID = "originalId"
     FIELD_VIDEO_LOG_USER_ID = "userId"
     FIELD_VIDEO_LOG_VIDEO_ID = "videoId"
+    FIELD_VIDEO_LOG_COURSE_ID = "courseId"
     FIELD_VIDEO_LOG_TIMESTAMP = "timestamp"
     FIELD_VIDEO_LOG_TYPE = "type"
     FIELD_VIDEO_LOG_METAINFO = "metaInfo"
@@ -273,6 +298,10 @@ class DBConfig:
                     {
                         FIELD_GENERAL_NAME: FIELD_USER_DROPPED_COURSE_IDS,
                         FIELD_GENERAL_VALIDATION: {"$type": "array"}
+                    },
+                    {
+                        FIELD_GENERAL_NAME: FIELD_USER_COURSE_ROLE,
+                        FIELD_GENERAL_VALIDATION: {"$type": "object"}
                     }
                 ],
                 COLLECTION_GENERAL_INDEX:
@@ -326,7 +355,7 @@ class DBConfig:
                     },
                     {
                         FIELD_GENERAL_NAME: FIELD_VIDEO_TEMPORAL_HOTNESS,
-                        FIELD_GENERAL_VALIDATION: {"$type": "int"}
+                        FIELD_GENERAL_VALIDATION: {"$type": "object"}
                     },
                     {
                         FIELD_GENERAL_NAME: FIELD_VIDEO_METAINFO,
@@ -382,6 +411,10 @@ class DBConfig:
                         FIELD_GENERAL_VALIDATION: {"$type": "objectId"}
                     },
                     {
+                        FIELD_GENERAL_NAME: FIELD_VIDEO_LOG_COURSE_ID,
+                        FIELD_GENERAL_VALIDATION: {"$type": "objectId"}
+                    },
+                    {
                         FIELD_GENERAL_NAME: FIELD_VIDEO_LOG_TIMESTAMP,
                         FIELD_GENERAL_VALIDATION: {"$type": "timestamp"}
                     },
@@ -416,3 +449,62 @@ class DBConfig:
             }
         ]
     }
+
+
+def init_config(config_file_path):
+    ''' Init all the configuration from a config file
+    '''
+
+    with open(config_file_path, 'r') as file:
+        try:
+            config_json = json.load(file)
+        except json.JSONDecodeError as ex:
+            print('Decode init json file failed')
+            print(ex.msg)
+            return
+
+    mongo_config = config_json.get('mongo')
+    # init mongo db
+    if mongo_config:
+        DBConfig.DB_HOST = mongo_config.get('host') or DBConfig.DB_HOST
+        DBConfig.DB_NAME = mongo_config.get('name') or DBConfig.DB_NAME
+        DBConfig.DB_PORT = mongo_config.get('port') or DBConfig.DB_PORT
+
+    dataserver_config = config_json.get('data_server')
+    if dataserver_config:
+        # init data server sources
+        data_sources_config = dataserver_config.get('data_sources')
+        if data_sources_config:
+            DataSource.HOST = data_sources_config.get(
+                'data_source_host') or DataSource.HOST
+            DataSource.ACCESS_TOKENS_URL = data_sources_config.get(
+                '/resources/access_tokens') or DataSource.ACCESS_TOKENS_URL
+            DataSource.CLICKSTREAMS_URL = data_sources_config.get(
+                'clickstreams_url') or DataSource.CLICKSTREAMS_URL
+            DataSource.MONGODB_URL = data_sources_config.get(
+                'mongoDB_url') or DataSource.MONGODB_URL
+            DataSource.SQLDB_URL = data_sources_config.get(
+                'SQLDB_url') or DataSource.SQLDB_URL
+
+        # init the data file NameError
+        data_filenames = dataserver_config.get("data_filenames")
+        if data_filenames:
+            FilenameConfig.Data_dir = data_filenames.get("data_dir")
+            FilenameConfig.MongoDB_FILE = data_filenames.get(
+                "mongodb_file") or FilenameConfig.MongoDB_FILE
+            FilenameConfig.SQLDB_FILE = data_filenames.get(
+                "sqldb_file") or FilenameConfig.SQLDB_FILE
+            FilenameConfig.META_DB_RECORD = data_filenames.get(
+                "meta_db_record") or FilenameConfig.META_DB_RECORD
+            FilenameConfig.ACTIVE_VERSIONS = data_filenames.get(
+                "active_versions") or FilenameConfig.ACTIVE_VERSIONS
+            FilenameConfig.STRUCTURES = data_filenames.get(
+                "structures") or FilenameConfig.STRUCTURES
+
+        # init 3rd party keys
+        third_party_keys = dataserver_config.get('third_party_keys')
+        if third_party_keys:
+            ThirdPartyKeys.Youtube_key = third_party_keys.get(
+                'Youtube_key') or ThirdPartyKeys.Youtube_key
+            ThirdPartyKeys.HKMooc_key = third_party_keys.get(
+                'HKMOOC_key') or ThirdPartyKeys.HKMooc_key
