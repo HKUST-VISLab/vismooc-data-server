@@ -212,6 +212,7 @@ class FormatCourseStructFile(PipeModule):
         result = httphelper.get(url, header)
         if result.get_return_code() < 200 or result.get_return_code() >= 300:
             return -1
+        video_length = -1
         try:
             bio = io.BytesIO(result.get_content())
             data = bio.read(8)
