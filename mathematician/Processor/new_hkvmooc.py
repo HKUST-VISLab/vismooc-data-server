@@ -262,7 +262,7 @@ class FormatCourseStructFile(PipeModule):
             records = split(one_access_role)
             if len(records) < 2:
                 continue
-            if records[3] != 'instructor' or records[3] != "staffs":
+            if records[3] != 'instructor' or records[3] != "staff":
                 continue
             course_id = records[2]
             try:
