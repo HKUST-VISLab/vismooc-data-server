@@ -123,7 +123,7 @@ class DownloadFileFromServer():
         print("Begin to download DB snapshots, totally "+str(len(urls))+" files, pleas wait")
         downloaded_files = self.__http_connection.download_files(urls, save_dir)
         print("Finish download DB snapshots")
-        print("The files we downloaded is "+",".join(download_files))
+        print("The files we downloaded is "+",".join(downloaded_files))
         for file_path in downloaded_files:
             if FC.MongoDB_FILE in file_path:
                 self.decompress_files([file_path, ], "gtar")
