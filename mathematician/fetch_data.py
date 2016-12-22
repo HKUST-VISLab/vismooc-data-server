@@ -123,6 +123,7 @@ class DownloadFileFromServer():
         print("Begin to download DB snapshots, totally "+str(len(urls))+" files, pleas wait")
         downloaded_files = self.__http_connection.download_files(urls, save_dir)
         print("Finish download DB snapshots")
+        print("The files we downloaded is "+",".join(downloaded_files))
         for file_path in downloaded_files:
             if FC.MongoDB_FILE in file_path:
                 self.decompress_files([file_path, ], "gtar")
@@ -131,8 +132,8 @@ class DownloadFileFromServer():
                 item[DBC.FIELD_METADBFILES_CREATEAT] = now
                 item[DBC.FIELD_METADBFILES_ETAG] = etag
                 item[DBC.FIELD_METADBFILES_FILEPATH] = os.path.join(
-                    save_dir, FC.SQLDB_FILE)
-                item[DBC.FIELD_METADBFILES_TYPE] = DBC.TYPE_MYSQL
+                    save_dir, FC.MongoDB_FILE)
+                item[DBC.FIELD_METADBFILES_TYPE] = DBC.TYPE_MONGO
                 new_metadb_items.append(item)
             if FC.SQLDB_FILE in file_path:
                 self.decompress_files([file_path, ], "gzip")
@@ -141,8 +142,8 @@ class DownloadFileFromServer():
                 item[DBC.FIELD_METADBFILES_CREATEAT] = now
                 item[DBC.FIELD_METADBFILES_ETAG] = etag
                 item[DBC.FIELD_METADBFILES_FILEPATH] = os.path.join(
-                    save_dir, FC.MongoDB_FILE)
-                item[DBC.FIELD_METADBFILES_TYPE] = FC.MongoDB_FILE
+                    save_dir, FC.SQLDB_FILE)
+                item[DBC.FIELD_METADBFILES_TYPE] = DBC.TYPE_MYSQL
                 new_metadb_items.append(item)
         self._db.get_collection(DBC.COLLECTION_METADBFILES).insert_many(new_metadb_items)
         return new_metadb_items
@@ -176,8 +177,8 @@ class DownloadFileFromServer():
                     # os.remove(file_path)
 
     def bson2json(self, dir):
-        file_to_be_process = set([FC.ACTIVE_VERSIONS[FC.ACTIVE_VERSIONS.rindex('/')+1:],
-                                  FC.STRUCTURES[FC.STRUCTURES.rindex('/')+1:]])
+        file_to_be_process = set([FC.ACTIVE_VERSIONS[FC.ACTIVE_VERSIONS.rindex('/')+1:FC.ACTIVE_VERSIONS.rindex('.')]+".bson",
+                                  FC.STRUCTURES[FC.STRUCTURES.rindex('/')+1:FC.STRUCTURES.rindex('.')]+".bson"])
         files = [os.path.join(dir, file) for file in os.listdir(dir)]
         for file in files:
             if os.path.isdir(file):
