@@ -177,8 +177,8 @@ class DownloadFileFromServer():
                     # os.remove(file_path)
 
     def bson2json(self, dir):
-        file_to_be_process = set([FC.ACTIVE_VERSIONS[FC.ACTIVE_VERSIONS.rindex('/')+1:],
-                                  FC.STRUCTURES[FC.STRUCTURES.rindex('/')+1:]])
+        file_to_be_process = set([FC.ACTIVE_VERSIONS[FC.ACTIVE_VERSIONS.rindex('/')+1:FC.ACTIVE_VERSIONS.rindex('.')]+".bson",
+                                  FC.STRUCTURES[FC.STRUCTURES.rindex('/')+1:FC.STRUCTURES.rindex('.')]+".bson"])
         files = [os.path.join(dir, file) for file in os.listdir(dir)]
         for file in files:
             if os.path.isdir(file):
