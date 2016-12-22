@@ -133,7 +133,7 @@ class DownloadFileFromServer():
                 item[DBC.FIELD_METADBFILES_ETAG] = etag
                 item[DBC.FIELD_METADBFILES_FILEPATH] = os.path.join(
                     save_dir, FC.MongoDB_FILE)
-                item[DBC.FIELD_METADBFILES_TYPE] = DBC.MongoDB_FILE
+                item[DBC.FIELD_METADBFILES_TYPE] = DBC.TYPE_MONGO
                 new_metadb_items.append(item)
             if FC.SQLDB_FILE in file_path:
                 self.decompress_files([file_path, ], "gzip")
@@ -143,7 +143,7 @@ class DownloadFileFromServer():
                 item[DBC.FIELD_METADBFILES_ETAG] = etag
                 item[DBC.FIELD_METADBFILES_FILEPATH] = os.path.join(
                     save_dir, FC.SQLDB_FILE)
-                item[DBC.FIELD_METADBFILES_TYPE] = FC.SQLDB_FILE
+                item[DBC.FIELD_METADBFILES_TYPE] = DBC.TYPE_MYSQL
                 new_metadb_items.append(item)
         self._db.get_collection(DBC.COLLECTION_METADBFILES).insert_many(new_metadb_items)
         return new_metadb_items
