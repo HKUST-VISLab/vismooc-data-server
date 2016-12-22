@@ -366,7 +366,6 @@ class FormatCourseStructFile(PipeModule):
             except BaseException as ex:
                 print(ex)
                 print("Wrong at "+course_original_id)
-                continue
 
         # fetch the video duration from youtube_api_v3
         urls = [self.youtube_api + '&id=' +\
@@ -463,7 +462,6 @@ class FormatUserFile(PipeModule):
             except BaseException as ex:
                 print(ex)
                 print("Wrong at " + user_id)
-                continue
 
         processed_data = raw_data
         # user collection needs courseIds and droppedCourseIds
