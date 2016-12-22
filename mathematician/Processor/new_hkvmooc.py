@@ -344,6 +344,8 @@ class FormatCourseStructFile(PipeModule):
                 course[DBc.FIELD_COURSE_DISPLAY_NUMBER_WITH_DEFAULT] = course_records[6]
                 course_structure = self.course_structures.get(course_original_id)
                 # TODO
+                if course_original_id == "HKUST+COMP102_1+2016_Q4_R1":
+                    print(course_structure)
                 if course_structure:
                     for block in course_structure.get('blocks'):
                         if block.get('block_type') == 'course':
