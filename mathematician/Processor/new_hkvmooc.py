@@ -212,23 +212,28 @@ class FormatCourseStructFile(PipeModule):
         result = httphelper.get(url, header)
         if result.get_return_code() < 200 or result.get_return_code() >= 300:
             return -1
-        bio = io.BytesIO(result.get_content())
-        data = bio.read(8)
-        al, an = struct.unpack('>I4s', data)
-        an = an.decode()
-        assert an == 'ftyp'
-        bio.read(al - 8)
-        data = bio.read(8)
-        al, an = struct.unpack('>I4s', data)
-        an = an.decode()
-        assert an == 'moov'
-        data = bio.read(8)
-        al, an = struct.unpack('>I4s', data)
-        an = an.decode()
-        assert an == 'mvhd'
-        data = bio.read(20)
-        infos = struct.unpack('>12x2I', data)
-        video_length = int(infos[1]) // int(infos[0])
+        try:
+            bio = io.BytesIO(result.get_content())
+            data = bio.read(8)
+            al, an = struct.unpack('>I4s', data)
+            an = an.decode()
+            assert an == 'ftyp'
+            bio.read(al - 8)
+            data = bio.read(8)
+            al, an = struct.unpack('>I4s', data)
+            an = an.decode()
+            assert an == 'moov'
+            data = bio.read(8)
+            al, an = struct.unpack('>I4s', data)
+            an = an.decode()
+            assert an == 'mvhd'
+            data = bio.read(20)
+            infos = struct.unpack('>12x2I', data)
+            video_length = int(infos[1]) // int(infos[0])
+        except BaseException as ex:
+            print(ex)
+            print("parse_video_duration error:"+url)
+            video_length = -1
         return video_length
 
     def process(self, raw_data, raw_data_filenames=None):
