@@ -41,13 +41,17 @@ class PipeLine:
         self._processors = []
 
     def input_file(self, filename):
-        if type(filename) is not str or len(filename) == 0:
+        '''Put in the path to the input file
+        '''
+        if isinstance(filename, str) is False or len(filename) == 0:
             raise TypeError('filename should be a non-empty str')
         self.__raw_data_filenames.append(filename)
         return self
 
     def input_files(self, filenames):
-        if type(filenames) is not list:
+        '''Put in the list of path to the input file
+        '''
+        if isinstance(filenames, list) is False:
             raise TypeError('filenames should be a non-empty list')
         self.__raw_data_filenames += filenames
         return self
