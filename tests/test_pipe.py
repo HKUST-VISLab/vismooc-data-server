@@ -27,10 +27,12 @@ class TestPipeClass(unittest.TestCase):
                       'when input a filename, pipe should return itself')
 
     def test_input_file_with_wrong_params(self):
-        self.assertIsNone(self.pipeline.input_file(None),
-                          'when input is empty, pipe should return none')
-        self.assertIsNone(self.pipeline.input_file(1),
-                          'when input is not dict type, pipe should return none')
+        with self.assertRaises(TypeError, 'when input is dict type, pipe should raise error'):
+            self.pipeline.input_file(None)
+        with self.assertRaises(TypeError, 'when input is dict type, pipe should raise error'):
+            self.pipeline.input_file(1)
+        with self.assertRaises(TypeError, 'when input is empty-str, pipe should raise error'):
+            self.pipeline.input_file("")
 
     def test_pipe_with_right_params(self):
         processor = MoocProcessor()
