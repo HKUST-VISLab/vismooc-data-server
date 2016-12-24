@@ -8,7 +8,7 @@ import struct
 from datetime import timedelta, datetime
 import queue
 from bson import ObjectId
-import mathematician.httphelper as httphelper
+from ..http_helper import get as http_get, get_list as http_get_list
 from ..pipe import PipeModule
 from ..DB.mongo_dbhelper import MongoDB
 from ..config import DBConfig as DBc, ThirdPartyKeys, FilenameConfig
@@ -209,7 +209,7 @@ class FormatCourseStructFile(PipeModule):
 
     def parse_video_duration(self, url):
         header = {"Range": "bytes=0-100"}
-        result = httphelper.get(url, header)
+        result = http_get(url, header)
         if result.get_return_code() < 200 or result.get_return_code() >= 300:
             return -1
         video_length = -1
@@ -394,7 +394,7 @@ class FormatCourseStructFile(PipeModule):
         urls = [self.youtube_api + '&id=' +
                 youtube_id for youtube_id in tmp_youtube_video_dict.keys()]
         broken_youtube_id = set(tmp_youtube_video_dict.keys())
-        results = httphelper.get_list(urls, limit=60)
+        results = http_get_list(urls, limit=60)
         for result in results:
             result = json.loads(str(result, 'utf-8'))
             items = result.get("items") or []
