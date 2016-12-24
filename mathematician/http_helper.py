@@ -5,13 +5,14 @@ import os
 from os import path as path
 import multiprocessing
 import json
+import time
 # import hashlib
 import ssl
 import asyncio
 import aiohttp
 
 
-def head(url, headers=None, params=None):
+def head(url, headers=None, params=None, retry_times=5, delay=1):
     """Send synchronous head request
 
     """
@@ -25,24 +26,23 @@ def head(url, headers=None, params=None):
         else:
             raise Exception("The params should be dict type")
 
-    # print(url)
-    context = ssl._create_unverified_context()
+    context = ssl.create_default_context()
     url = urllib.request.quote(url.encode('utf8'), ':/%?=&')
-    # print(url)
     req = urllib.request.Request(url=url, headers=headers, method='HEAD')
-    try:
-        response = urllib.request.urlopen(req, context=context, timeout=100)
-    except urllib.error.HTTPError as e:
-        print(e.info())
-        return HttpResponse(e.getcode(), '', '')
-    else:
-        data = response.read()
-        response_headers = response.info()
-        return_code = response.getcode()
-        return HttpResponse(return_code, response_headers, data)
+    for attempt_number in range(retry_times):
+        try:
+            print("Try "+str(attempt_number)+"th times to HEAD "+url+".")
+            response = urllib.request.urlopen(req, context=context, timeout=100)
+        except urllib.error.HTTPError as ex:
+            print("HTTP HEAD error "+ ex.info()+" at "+url)
+            time.sleep(delay)
+        else:
+            data = response.read()
+            response_headers = response.info()
+            return_code = response.getcode()
+            return HttpResponse(return_code, response_headers, data)
 
-
-def get(url, headers=None, params=None):
+def get(url, headers=None, params=None, retry_time=5, delay=1):
     """Send synchronous get request
 
     """
@@ -56,39 +56,45 @@ def get(url, headers=None, params=None):
         else:
             raise Exception("The params should be dict type")
 
-    context = ssl._create_unverified_context()
+    context = ssl.create_default_context()
     url = urllib.request.quote(url.encode('utf8'), ':/%?=&')
     req = urllib.request.Request(url=url, headers=headers, method='GET')
-    try:
-        response = urllib.request.urlopen(req, context=context)
-    except urllib.error.HTTPError as ex:
-        return HttpResponse(ex.getcode(), '', '')
-    else:
-        data = response.read()
-        response_headers = response.info()
-        return_code = response.getcode()
-        return HttpResponse(return_code, response_headers, data)
+    for attempt_number in range(retry_time):
+        try:
+            print("Try "+str(attempt_number)+"th times to GET "+url+".")
+            response = urllib.request.urlopen(req, context=context)
+        except urllib.error.HTTPError as ex:
+            print("HTTP GET error "+ ex.info()+" at "+url)
+            time.sleep(delay)
+        else:
+            data = response.read()
+            response_headers = response.info()
+            return_code = response.getcode()
+            return HttpResponse(return_code, response_headers, data)
 
 
-def post(url, headers=None, params=None):
+def post(url, headers=None, params=None, retry_time=5, delay=1):
     """Send synchronous post request
 
     """
     headers = headers or {}
     if params is not None:
-        if type(params) is not dict:
+        if isinstance(params, dict):
             raise Exception("The params should be dict type")
 
-    req = urllib.request.Request(
-        url=url, headers=headers, data=params, method='POST')
-
-    with urllib.request.urlopen(req) as response:
-        assert response.getcode() >= 200 and response.getcode() < 300
-        data = response.read()
-        response_headers = response.info()
-        return_code = response.getcode()
-        return HttpResponse(return_code, response_headers, data)
-
+    req = urllib.request.Request(url=url, headers=headers, data=params, method='POST')
+    for attempt_number in range(retry_time):
+        try:
+            print("Try "+str(attempt_number)+"th times to POST "+url+".")
+            response = urllib.request.urlopen(req)
+        except urllib.error.HTTPError as ex:
+            print("HTTP POST error "+ex.info()+" at "+url)
+            time.sleep(delay)
+        else:
+            data = response.read()
+            response_headers = response.info()
+            return_code = response.getcode()
+            return HttpResponse(return_code, response_headers, data)
 
 async def async_get(url, headers=None, params=None, session=aiohttp):
     """Out of dated
@@ -102,13 +108,11 @@ async def async_get(url, headers=None, params=None, session=aiohttp):
             loop.close()
     """
     if params is not None:
-        if type(params) is not dict:
+        if isinstance(params, dict):
             raise Exception("The params should be dict type")
 
     async with session.get(url, headers=headers, params=params) as response:
         assert response.status >= 200 and response.status < 300
-        # change "result = await response.json()" to "result = await
-        # response.read()"
         data = await response.read()
         return HttpResponse(response.status, response.headers, data)
 
@@ -125,7 +129,7 @@ async def async_post(url, headers=None, params=None, session=aiohttp):
             loop.close()
     """
     if params is not None:
-        if type(params) is not dict:
+        if isinstance(params, dict):
             raise Exception("The params should be dict type")
 
     async with session.post(url, headers=headers, body=params) as response:
@@ -135,6 +139,8 @@ async def async_post(url, headers=None, params=None, session=aiohttp):
 
 
 def get_list(urls, limit=30, headers=None, params=None):
+    '''Get a list of urls async
+    '''
     loop = asyncio.get_event_loop()
     results = []
     with aiohttp.ClientSession(loop=loop) as session:
@@ -145,10 +151,10 @@ def get_list(urls, limit=30, headers=None, params=None):
     return [result.get_content() for result in results]
 
 
-def download_single_file(url, file_path, headers, params=None):
+def download_single_file(url, file_path, headers, params=None, retry_time=5, delay=1):
     """Download file using one thread
     """
-    result = get(url, headers=headers, params=params)
+    result = get(url, headers, params, retry_time, delay)
     code = result.get_return_code()
     if code < 200 or code >= 300:
         return
@@ -156,7 +162,6 @@ def download_single_file(url, file_path, headers, params=None):
     with open(file_path, 'wb+') as file:
         file.write(result)
     return file_path
-
 
 def download_multi_files(urls, save_dir, common_suffix='', headers=None, \
     process_pool_size=(os.cpu_count() or 1)):
@@ -206,40 +211,53 @@ class HttpConnection:
         self.__headers = headers
 
     def set_header(self, key, value):
+        '''Set a field of header
+        '''
         if key is None or value is None:
             raise TypeError('The key and value of a header must not be None')
         self.__headers[key] = value
 
     def get(self, url, params=None):
+        '''The http GET method
+        '''
         response = get(self.__host + url, self.headers, params)
-        # print(self.__host + url)
         if response.get_headers().get("Set-Cookie") is not None:
             self.__headers["Cookie"] = response.get_headers().get("Set-Cookie")
         return response
 
     def head(self, url, params=None):
+        '''The http HEAD method
+        '''
         response = head(self.__host + url, self.headers, params)
         if response.get_headers().get("Set-Cookie") is not None:
             self.__headers["Cookie"] = response.get_headers().get("Set-Cookie")
         return response
 
     def post(self, url, params):
+        '''The http POST method
+        '''
         response = post(self.__host + url, self.headers, params)
         if response.get_headers().get("Set-Cookie") is not None:
             self.__headers["Cookie"] = response.get_headers().get("Set-Cookie")
         return response
 
     def download_files(self, urls, save_dir, common_suffix=''):
+        '''Download a set of files
+        '''
         return download_multi_files([self.__host + url for url in urls], save_dir,
                                     common_suffix=common_suffix, headers=self.__headers)
 
     async def async_get(self, url, params):
+        '''The async http GET method
+        '''
         response = await async_get(self.__host + url, self.headers, params)
         if response.get_headers().get("Set-Cookie") is not None:
             self.headers = {"Cookie": response.get_headers().get("Set-Cookie")}
         return response
 
     async def async_post(self, url, params):
+        '''The async http POST method
+        '''
         response = await async_post(self.__host + url, self.headers, params)
         if response.get_headers().get("Set-Cookie") is not None:
             self.headers = {"Cookie": response.get_headers().get("Set-Cookie")}
