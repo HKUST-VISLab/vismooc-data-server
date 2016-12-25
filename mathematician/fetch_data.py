@@ -4,7 +4,6 @@
 import tarfile
 import gzip
 import os
-import json
 from datetime import datetime
 from . import http_helper as http
 from .DB import mongo_dbhelper
@@ -157,10 +156,10 @@ class DownloadFileFromServer():
                 info("Finish decompressing the mongo snapshot")
                 # cache the file info if  it has been downloaded successfully
                 item = {
-                    DBC.FIELD_METADBFILES_CREATEAT:now,
-                    DBC.FIELD_METADBFILES_ETAG:mongo_etag,
-                    DBC.FIELD_METADBFILES_FILEPATH:os.path.join(save_dir, FC.MongoDB_FILE),
-                    DBC.FIELD_METADBFILES_TYPE:DBC.TYPE_MONGO
+                    DBC.FIELD_METADBFILES_CREATEAT: now,
+                    DBC.FIELD_METADBFILES_ETAG: mongo_etag,
+                    DBC.FIELD_METADBFILES_FILEPATH: os.path.join(save_dir, FC.MongoDB_FILE),
+                    DBC.FIELD_METADBFILES_TYPE: DBC.TYPE_MONGO
                 }
                 new_meta_items.append(item)
             if FC.SQLDB_FILE in file_path:
@@ -169,10 +168,10 @@ class DownloadFileFromServer():
                 info("Finish decompressing the mysql snapshot")
                 # cache the file info if  it has been downloaded successfully
                 item = {
-                    DBC.FIELD_METADBFILES_CREATEAT:now,
-                    DBC.FIELD_METADBFILES_ETAG:mysql_etag,
-                    DBC.FIELD_METADBFILES_FILEPATH:os.path.join(save_dir, FC.SQLDB_FILE),
-                    DBC.FIELD_METADBFILES_TYPE:DBC.TYPE_MYSQL
+                    DBC.FIELD_METADBFILES_CREATEAT: now,
+                    DBC.FIELD_METADBFILES_ETAG: mysql_etag,
+                    DBC.FIELD_METADBFILES_FILEPATH: os.path.join(save_dir, FC.SQLDB_FILE),
+                    DBC.FIELD_METADBFILES_TYPE: DBC.TYPE_MYSQL
                 }
                 new_meta_items.append(item)
         info('Begin to cache the metainfo of dbsnapshots into mongoDB')
@@ -181,14 +180,14 @@ class DownloadFileFromServer():
         return new_meta_items
 
     def decompress_files(self, file_paths, compress_algorithm):
-        """ This method is to verify and decompress file using specified algorithm
-            use md5 to verify files' data intergrity
-            the parameter `file_md5` is a dict in which key is file name you want
-            to check and value is md5 value
+        # TODO try to optimize this part of code, add Exception handler
+        """ This method is to verify and decompress file using specified algorithm.
+            Use md5 to verify files' data intergrity.
+            The parameter `file_md5` is a dict in which key is file name you want
+            to check and value is md5 value.
         """
         if compress_algorithm not in ["gzip", "gtar"]:
-            raise Exception(
-                "Unsupported compress algorithm " + compress_algorithm)
+            raise Exception("Unsupported compress algorithm " + compress_algorithm)
 
         for file_path in file_paths:
             if not os.path.exists(file_path):
@@ -203,20 +202,17 @@ class DownloadFileFromServer():
                 with tarfile.open(file_path, 'r') as tar:
                     tar_root = tar.getnames()[0]
                     tar.extractall(path=os.path.dirname(file_path))
-                    # print(os.path.join(os.path.dirname(file_path), tar_root))
-                    self.bson2json(os.path.join(
-                        os.path.dirname(file_path), tar_root))
-                    # os.remove(file_path)
+                    self.bson2json(os.path.join(os.path.dirname(file_path), tar_root))
 
-    def bson2json(self, dir):
+    def bson2json(self, dir_name):
+        # TODO try to optimize this part of code, add Exception handler
+        '''Convert all bson files under specific dir to json files
+        '''
         file_to_be_process = set([FC.ACTIVE_VERSIONS[FC.ACTIVE_VERSIONS.rindex('/') + 1:FC.ACTIVE_VERSIONS.rindex('.')] + ".bson",
                                   FC.STRUCTURES[FC.STRUCTURES.rindex('/') + 1:FC.STRUCTURES.rindex('.')] + ".bson"])
-        files = [os.path.join(dir, file) for file in os.listdir(dir)]
+        files = [os.path.join(dir_name, file) for file in os.listdir(dir_name)]
         for file in files:
-            if os.path.isdir(file):
-                self.bson2json(file)
-            elif os.path.isfile(file) and os.path.basename(file) in file_to_be_process:
-                cmd = "bsondump " + file + " > " + \
-                    file[0:file.rindex('.') + 1] + 'json'
-                output = os.system(cmd)
+            if os.path.isfile(file) and os.path.basename(file) in file_to_be_process:
+                cmd = "bsondump " + file + " > " + file[0:file.rindex('.') + 1] + 'json'
+                os.system(cmd)
                 # os.remove(file)
