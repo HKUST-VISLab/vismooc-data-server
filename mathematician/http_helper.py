@@ -35,7 +35,7 @@ def head(url, headers=None, params=None, retry_times=5, delay=1):
             info("Try " + str(attempt_number) + "th times to HEAD " + url + ".")
             response = urllib.request.urlopen(req, context=context, timeout=100)
         except urllib.error.HTTPError as ex:
-            warn("HTTP HEAD error " + str(ex.info()) + " at " + url)
+            warn("HTTP HEAD error " + str(ex.getcode()) + " at " + url)
             time.sleep(delay)
         else:
             data = response.read()
@@ -66,7 +66,7 @@ def get(url, headers=None, params=None, retry_time=5, delay=1):
             info("Try " + str(attempt_number) + "th times to GET " + url + ".")
             response = urllib.request.urlopen(req, context=context)
         except urllib.error.HTTPError as ex:
-            warn("HTTP GET error " + str(ex.info()) + " at " + url)
+            warn("HTTP GET error " + str(ex.getcode()) + " at " + url)
             time.sleep(delay)
         else:
             data = response.read()
@@ -90,7 +90,7 @@ def post(url, headers=None, params=None, retry_time=5, delay=1):
             info("Try " + str(attempt_number) + "th times to POST " + url + ".")
             response = urllib.request.urlopen(req)
         except urllib.error.HTTPError as ex:
-            warn("HTTP POST error " + str(ex.info()) + " at " + url)
+            warn("HTTP POST error " + str(ex.getcode()) + " at " + url)
             time.sleep(delay)
         else:
             data = response.read()
@@ -175,7 +175,7 @@ def download_single_file(url, file_path, headers, params=None, retry_time=5, del
             info("Try " + str(attempt_number) + "th times to download " + url + ".")
             response = urllib.request.urlopen(req, context=context)
         except urllib.error.HTTPError as ex:
-            warn("HTTP GET error " + str(ex.info()) + " at " + url)
+            warn("HTTP GET error " + str(ex.getcode()) + " at " + url)
             time.sleep(delay)
         else:
             return_code = response.getcode()
