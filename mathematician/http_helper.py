@@ -154,14 +154,48 @@ def get_list(urls, limit=30, headers=None, params=None):
 def download_single_file(url, file_path, headers, params=None, retry_time=5, delay=1):
     """Download file using one thread
     """
-    result = get(url, headers, params, retry_time, delay)
-    code = result.get_return_code()
-    if code < 200 or code >= 300:
-        return
-    result = result.get_content()
-    with open(file_path, 'wb+') as file:
-        file.write(result)
-    return file_path
+    print("opening url:", url)
+    headers = headers or {}
+    if params is not None:
+        if isinstance(params, dict):
+            url = url + '?'
+            for key in params:
+                url = url + key + '=' + params[key] + '&'
+            url = url[0: -1]
+        else:
+            raise Exception("The params should be dict type")
+
+    context = ssl.create_default_context()
+    url = urllib.request.quote(url.encode('utf8'), ':/%?=&')
+    req = urllib.request.Request(url=url, headers=headers, method='GET')
+    for attempt_number in range(retry_time):
+        try:
+            print("Try "+str(attempt_number)+"th times to download "+url+".")
+            response = urllib.request.urlopen(req, context=context)
+        except urllib.error.HTTPError as ex:
+            print("HTTP GET error "+ ex.info()+" at "+url)
+            time.sleep(delay)
+        else:
+            return_code = response.getcode()
+            response_headers = response.info()
+            print(response_headers)
+            file_total_length = response_headers[46]
+            data_blocks = []
+            total = 0
+            progress_length = 100
+            while True:
+                block = response.read(1024)
+                if not len(block):
+                    break
+                data_blocks.append(block)
+                total += len(block)
+                hash = ((progress_length*total)//fileTotalbytes)
+                print("[{}{}] {}%".format('#' * hash, ' ' * (progress_length-hash), int(total/fileTotalbytes*100)), end="\r")
+            data = b''.join(data_blocks)
+            response.close()
+            with open(file_path, 'wb+') as file:
+                file.write(data)
+            return file_path
 
 def download_multi_files(urls, save_dir, common_suffix='', headers=None, \
     process_pool_size=(os.cpu_count() or 1)):
