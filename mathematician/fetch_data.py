@@ -9,6 +9,7 @@ from datetime import datetime
 from . import http_helper as http
 from .DB import mongo_dbhelper
 from .config import DBConfig as DBC, DataSource as DS, ThirdPartyKeys as TPK, FilenameConfig as FC
+from .logger import warn, info
 
 
 class DownloadFileFromServer():
@@ -20,38 +21,55 @@ class DownloadFileFromServer():
         self.__host = host
         self.__http_connection = http.HttpConnection(self.__host)
         self.__lastest_clickstream_time = 0
-        self.__db_data = {}
+        self.__metainfo_downloaded = {}
         self.__save_dir = save_dir
-        self._db = mongo_dbhelper.MongoDB(DBC.DB_HOST, DBC.DB_NAME, DBC.DB_PORT)
-        self.get_db_data()
+        self._db = mongo_dbhelper.MongoDB(
+            DBC.DB_HOST, DBC.DB_NAME, DBC.DB_PORT)
+        self.get_metainfo_downloaded()
 
-    def get_db_data(self):
+    def get_metainfo_downloaded(self):
         """Fetch meta db files data from db"""
-        metadbfiles = self._db.get_collection(DBC.COLLECTION_METADBFILES).find({})
+        metadbfiles = self._db.get_collection(
+            DBC.COLLECTION_METADBFILES).find({})
         for item in metadbfiles:
-            self.__db_data[item[DBC.FIELD_METADBFILES_ETAG]] = item
+            self.__metainfo_downloaded[item[DBC.FIELD_METADBFILES_ETAG]] = item
             if item[DBC.FIELD_METADBFILES_TYPE] == DBC.TYPE_CLICKSTREAM and \
                     item[DBC.FIELD_METADBFILES_CREATEAT] > self.__lastest_clickstream_time:
                 self.__lastest_clickstream_time = item[
                     DBC.FIELD_METADBFILES_CREATEAT]
 
     def get_token_from_server(self):
-        """ Get the Access Token from server using API Key
+        """ Get the Access Token from server using API Key.
+            If cannot get the token sucessfully, this method will return None.
         """
         self.__http_connection.headers = {
             "Authorization": "Token " + self.__api_key}
         response = self.__http_connection.post(DS.ACCESS_TOKENS_URL, None)
-        assert response.get_return_code() == 200
-        response_json = response.get_content_json()
-        self.__token = response_json.get("collection").get("items")[
-            0].get("accessToken")
-        self.__http_connection.headers = {
-            "Authorization": "Token " + self.__token}
-        return self.__token
+        if response.get_return_code() == 200:
+            try:
+                collection = response.get_content_json().get("collection")
+                items = collection.get("items")
+                self.__token = items[0].get("accessToken")
+            except AttributeError as ex:
+                warn("In get_token_from_server(), cannot get target attribute from the\
+                      response")
+                print(ex)
+            except TypeError as ex:
+                warn(
+                    "In get_token_from_server(), cannot get the first item from the items")
+                print(ex)
+            else:
+                self.__http_connection.headers = {
+                    "Authorization": "Token " + self.__token}
+                return self.__token
+        else:
+            warn("In get_token_from_serer(), the return code of server is not 200")
 
     def get_click_stream(self, start=0, end=0, save_dir=None):
-        """Get click stream from server, the parameters start
-           and end should be unix timestamp in millisecond
+        """Get click stream from server, the parameters start and end should be unix timestamp in\
+           millisecon.
+           If the log file is required sucessfully, the metainfo of these files will be returned,
+           otherise a NoneType will be returned.
         """
         self.get_token_from_server()
         now = int(datetime.now().timestamp())
@@ -59,94 +77,108 @@ class DownloadFileFromServer():
         end = now * 1000
         save_dir = save_dir or self.__save_dir
 
+        info("Start is " + str(start) + " , End is " + str(end))
         response = self.__http_connection.get(DS.CLICKSTREAMS_URL,
                                               {"since": str(start), "before": str(end)})
-        print("Start is " + str(start) + " , End is " + str(end))
-        assert response.get_return_code() == 200
-        items = response.get_content_json().get("collection")
-        items = items.get("items") if items else []
-        file_urls = []
-        md5s = {}
-        for item in items:
-            href = item['href']
-            file_urls.append(href[href.index(DS.HOST) + len(DS.HOST):])
-            md5s[href[href.rindex("/") + 1:]] = item.get('md5')
+        if response.get_return_code() == 200:
+            try:
+                collection = response.get_content_json().get("collection")
+                items = collection.get("items")
+            except AttributeError as ex:
+                warn("In get_click_stream(), cannot get target attribute(`collection` or `items`)\
+                     from the response")
+                print(ex)
+            file_urls = []
+            md5s = {}
+            try:
+                for item in items:
+                    href = item.get('href')
+                    file_urls.append(href[href.index(DS.HOST) + len(DS.HOST):])
+                    md5s[href[href.rindex("/") + 1:]] = item.get('md5')
+            except AttributeError as ex:
+                warn("In get_click_stream(), cannot get target attribute(`href` or `md5`) from\
+                     items")
+                print(ex)
 
-        print('Begin to download log-files, totally ' + str(len(file_urls)) + " files, please wait")
-        downloaded_files = self.__http_connection.download_files(
-            file_urls, save_dir, common_suffix=FC.Clickstream_suffix)
-        print('Finish downloading log-fiels')
-        print('Begin to decompress log-files')
-        self.decompress_files(downloaded_files, "gzip")
-        print('Finish decompress log-files')
-        # cache the metaInfo of log files into database
-        print('Begin to cache the metainfo of log-files into mongoDB')
-        new_items = [{
-            DBC.FIELD_METADBFILES_CREATEAT: now,
-            DBC.FIELD_METADBFILES_FILEPATH: file_path,
-            DBC.FIELD_METADBFILES_ETAG: md5s.get(file_path[file_path.rindex(os.sep) + 1:]),
-            DBC.FIELD_METADBFILES_TYPE: DBC.TYPE_CLICKSTREAM
-        } for file_path in downloaded_files if os.path.exists(file_path)]
-        # if no log has been downloaded, add a empty log record
-        if len(new_items) < 1:
-            new_items.append({
+            info('Begin to download log-files, totally ' +
+                 str(len(file_urls)) + " files, please wait")
+            downloaded_files = self.__http_connection.download_files(
+                file_urls, save_dir, common_suffix=FC.Clickstream_suffix)
+            info('Finish downloading log-fiels')
+            info('Begin to decompress log-files')
+            self.decompress_files(downloaded_files, "gzip")
+            info('Finish decompress log-files')
+            # cache the metaInfo of log files into database
+            info('Begin to cache the metainfo of log-files into mongoDB')
+            new_meta_items = [{
                 DBC.FIELD_METADBFILES_CREATEAT: now,
-                DBC.FIELD_METADBFILES_FILEPATH: save_dir + "/no_log",
-                DBC.FIELD_METADBFILES_ETAG: str(now) + "-no_log",
+                DBC.FIELD_METADBFILES_FILEPATH: file_path,
+                DBC.FIELD_METADBFILES_ETAG: md5s.get(file_path[file_path.rindex(os.sep) + 1:]),
                 DBC.FIELD_METADBFILES_TYPE: DBC.TYPE_CLICKSTREAM
-            })
-        self._db.get_collection(DBC.COLLECTION_METADBFILES).insert_many(new_items)
-        print('Finish caching the metainfo of log-files into mongoDB')
-        return new_items
+            } for file_path in downloaded_files if os.path.exists(file_path)]
+            # if no log has been downloaded, add a empty log record
+            if len(new_meta_items) > 1:
+                self._db.get_collection(DBC.COLLECTION_METADBFILES).insert_many(new_meta_items)
+            else:
+                info('No log file has been downloaded, maybe the url is invalided or no log file\
+                     has been generated yet')
+            info('Finish caching the metainfo of log-files into mongoDB')
+            return new_meta_items
+        else:
+            warn("In get_click_stream(), the return code of server is not 200")
 
-    def get_mongodb_and_mysqldb_snapshot(self, save_dir=None):
+    def get_mongo_and_mysql_snapshot(self, save_dir=None):
         """ Download mongodb and mysql snapshot
         """
         self.get_token_from_server()
-        save_dir = save_dir or self.__save_dir
         now = int(datetime.now().timestamp())
-        new_metadb_items = []
+        save_dir = save_dir or self.__save_dir
+        new_meta_items = []
 
         # check what file should be downloaded
-        print("Begin to analyze which snapshots need to be downloaded")
+        info("Begin to analyze which snapshots need to be downloaded")
         urls = []
-        etag = self.__http_connection.head(
-            DS.MONGODB_URL).get_headers().get("ETag")
-        if etag and etag not in self.__db_data.keys():
+        mongo_etag = self.__http_connection.head(DS.MONGODB_URL).get_headers().get("ETag")
+        if mongo_etag and mongo_etag not in self.__metainfo_downloaded.keys():
             urls.append(DS.MONGODB_URL)
 
-        etag = self.__http_connection.head(
-            DS.SQLDB_URL).get_headers().get("ETag")
-        if etag and etag not in self.__db_data.keys():
+        mysql_etag = self.__http_connection.head(DS.SQLDB_URL).get_headers().get("ETag")
+        if mysql_etag and mysql_etag not in self.__metainfo_downloaded.keys():
             urls.append(DS.SQLDB_URL)
 
-        print("Begin to download DB snapshots, totally "+str(len(urls))+" files, pleas wait")
+        info("Begin to download DB snapshots, totally " + str(len(urls)) + " files, pleas wait")
         downloaded_files = self.__http_connection.download_files(urls, save_dir)
-        print("Finish download DB snapshots")
-        print("The files we downloaded is "+",".join(downloaded_files))
+        info("Finish download DB snapshots. The files we downloaded is " +
+             ",".join(downloaded_files))
         for file_path in downloaded_files:
             if FC.MongoDB_FILE in file_path:
+                info("Begin to decompress the mongo snapshot")
                 self.decompress_files([file_path, ], "gtar")
+                info("Finish decompressing the mongo snapshot")
                 # cache the file info if  it has been downloaded successfully
-                item = {}
-                item[DBC.FIELD_METADBFILES_CREATEAT] = now
-                item[DBC.FIELD_METADBFILES_ETAG] = etag
-                item[DBC.FIELD_METADBFILES_FILEPATH] = os.path.join(
-                    save_dir, FC.MongoDB_FILE)
-                item[DBC.FIELD_METADBFILES_TYPE] = DBC.TYPE_MONGO
-                new_metadb_items.append(item)
+                item = {
+                    DBC.FIELD_METADBFILES_CREATEAT:now,
+                    DBC.FIELD_METADBFILES_ETAG:mongo_etag,
+                    DBC.FIELD_METADBFILES_FILEPATH:os.path.join(save_dir, FC.MongoDB_FILE),
+                    DBC.FIELD_METADBFILES_TYPE:DBC.TYPE_MONGO
+                }
+                new_meta_items.append(item)
             if FC.SQLDB_FILE in file_path:
+                info("Begin to decompress the mysql snapshot")
                 self.decompress_files([file_path, ], "gzip")
+                info("Finish decompressing the mysql snapshot")
                 # cache the file info if  it has been downloaded successfully
-                item = {}
-                item[DBC.FIELD_METADBFILES_CREATEAT] = now
-                item[DBC.FIELD_METADBFILES_ETAG] = etag
-                item[DBC.FIELD_METADBFILES_FILEPATH] = os.path.join(
-                    save_dir, FC.SQLDB_FILE)
-                item[DBC.FIELD_METADBFILES_TYPE] = DBC.TYPE_MYSQL
-                new_metadb_items.append(item)
-        self._db.get_collection(DBC.COLLECTION_METADBFILES).insert_many(new_metadb_items)
-        return new_metadb_items
+                item = {
+                    DBC.FIELD_METADBFILES_CREATEAT:now,
+                    DBC.FIELD_METADBFILES_ETAG:mysql_etag,
+                    DBC.FIELD_METADBFILES_FILEPATH:os.path.join(save_dir, FC.SQLDB_FILE),
+                    DBC.FIELD_METADBFILES_TYPE:DBC.TYPE_MYSQL
+                }
+                new_meta_items.append(item)
+        info('Begin to cache the metainfo of dbsnapshots into mongoDB')
+        self._db.get_collection(DBC.COLLECTION_METADBFILES).insert_many(new_meta_items)
+        info('Finish caching the metainfo of dbsnapshots into mongoDB')
+        return new_meta_items
 
     def decompress_files(self, file_paths, compress_algorithm):
         """ This method is to verify and decompress file using specified algorithm
@@ -177,8 +209,8 @@ class DownloadFileFromServer():
                     # os.remove(file_path)
 
     def bson2json(self, dir):
-        file_to_be_process = set([FC.ACTIVE_VERSIONS[FC.ACTIVE_VERSIONS.rindex('/')+1:FC.ACTIVE_VERSIONS.rindex('.')]+".bson",
-                                  FC.STRUCTURES[FC.STRUCTURES.rindex('/')+1:FC.STRUCTURES.rindex('.')]+".bson"])
+        file_to_be_process = set([FC.ACTIVE_VERSIONS[FC.ACTIVE_VERSIONS.rindex('/') + 1:FC.ACTIVE_VERSIONS.rindex('.')] + ".bson",
+                                  FC.STRUCTURES[FC.STRUCTURES.rindex('/') + 1:FC.STRUCTURES.rindex('.')] + ".bson"])
         files = [os.path.join(dir, file) for file in os.listdir(dir)]
         for file in files:
             if os.path.isdir(file):
