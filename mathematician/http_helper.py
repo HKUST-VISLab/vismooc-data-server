@@ -10,6 +10,7 @@ import time
 import ssl
 import asyncio
 import aiohttp
+from .logger import info, warn
 
 
 def head(url, headers=None, params=None, retry_times=5, delay=1):
@@ -31,16 +32,17 @@ def head(url, headers=None, params=None, retry_times=5, delay=1):
     req = urllib.request.Request(url=url, headers=headers, method='HEAD')
     for attempt_number in range(retry_times):
         try:
-            print("Try "+str(attempt_number)+"th times to HEAD "+url+".")
+            info("Try " + str(attempt_number) + "th times to HEAD " + url + ".")
             response = urllib.request.urlopen(req, context=context, timeout=100)
         except urllib.error.HTTPError as ex:
-            print("HTTP HEAD error "+ ex.info()+" at "+url)
+            warn("HTTP HEAD error " + ex.info() + " at " + url)
             time.sleep(delay)
         else:
             data = response.read()
             response_headers = response.info()
             return_code = response.getcode()
             return HttpResponse(return_code, response_headers, data)
+
 
 def get(url, headers=None, params=None, retry_time=5, delay=1):
     """Send synchronous get request
@@ -61,10 +63,10 @@ def get(url, headers=None, params=None, retry_time=5, delay=1):
     req = urllib.request.Request(url=url, headers=headers, method='GET')
     for attempt_number in range(retry_time):
         try:
-            print("Try "+str(attempt_number)+"th times to GET "+url+".")
+            info("Try " + str(attempt_number) + "th times to GET " + url + ".")
             response = urllib.request.urlopen(req, context=context)
         except urllib.error.HTTPError as ex:
-            print("HTTP GET error "+ ex.info()+" at "+url)
+            warn("HTTP GET error " + ex.info() + " at " + url)
             time.sleep(delay)
         else:
             data = response.read()
@@ -85,10 +87,10 @@ def post(url, headers=None, params=None, retry_time=5, delay=1):
     req = urllib.request.Request(url=url, headers=headers, data=params, method='POST')
     for attempt_number in range(retry_time):
         try:
-            print("Try "+str(attempt_number)+"th times to POST "+url+".")
+            info("Try " + str(attempt_number) + "th times to POST " + url + ".")
             response = urllib.request.urlopen(req)
         except urllib.error.HTTPError as ex:
-            print("HTTP POST error "+ex.info()+" at "+url)
+            warn("HTTP POST error " + ex.info() + " at " + url)
             time.sleep(delay)
         else:
             data = response.read()
@@ -170,10 +172,10 @@ def download_single_file(url, file_path, headers, params=None, retry_time=5, del
     req = urllib.request.Request(url=url, headers=headers, method='GET')
     for attempt_number in range(retry_time):
         try:
-            print("Try "+str(attempt_number)+"th times to download "+url+".")
+            info("Try " + str(attempt_number) + "th times to download " + url + ".")
             response = urllib.request.urlopen(req, context=context)
         except urllib.error.HTTPError as ex:
-            print("HTTP GET error "+ ex.info()+" at "+url)
+            warn("HTTP GET error " + ex.info() + " at " + url)
             time.sleep(delay)
         else:
             return_code = response.getcode()
@@ -189,16 +191,18 @@ def download_single_file(url, file_path, headers, params=None, retry_time=5, del
                     break
                 data_blocks.append(block)
                 total += len(block)
-                hash = ((progress_length*total)//fileTotalbytes)
-                print("[{}{}] {}%".format('#' * hash, ' ' * (progress_length-hash), int(total/fileTotalbytes*100)), end="\r")
+                progress = ((progress_length * total) / file_total_length)
+                info("[{}{}] {}%".format('#' * progress, ' ' * (progress_length - progress),
+                                         int(total / file_total_length * 100)), end="\r")
             data = b''.join(data_blocks)
             response.close()
             with open(file_path, 'wb+') as file:
                 file.write(data)
             return file_path
 
-def download_multi_files(urls, save_dir, common_suffix='', headers=None, \
-    process_pool_size=(os.cpu_count() or 1)):
+
+def download_multi_files(urls, save_dir, common_suffix='', headers=None,
+                         process_pool_size=(os.cpu_count() or 1)):
     """ Use multiprocess to download multiple files one time
     """
     headers = headers or {}
@@ -222,6 +226,7 @@ def download_multi_files(urls, save_dir, common_suffix='', headers=None, \
         if process_result.get():
             results.append(process_result.get())
     return results
+
 
 class HttpConnection:
     """This class is proposed to provide data-fetch interface
@@ -325,4 +330,10 @@ class HttpResponse():
     def get_content_json(self, encode="UTF-8"):
         """ return the response content in json
         """
-        return json.loads(str(self.__content, encode))
+        try:
+            json_results = json.loads(str(self.__content, encode))
+        except json.decoder.JSONDecodeError as ex:
+            print("In get_content_json(), cannot decode the content of http response")
+            print(ex.msg)
+        else:
+            return json_results
