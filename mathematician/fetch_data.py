@@ -14,10 +14,10 @@ from .logger import warn, info
 class DownloadFileFromServer():
     """Download file from server"""
 
-    def __init__(self, save_dir, host=DS.HOST, api_key=TPK.HKMooc_key):
-        self.__api_key = api_key
+    def __init__(self, save_dir, host=None, api_key=None):
+        self.__api_key = api_key or TPK.HKMooc_key
         self.__token = None
-        self.__host = host
+        self.__host = host or DS.HOST
         self.__http_connection = http.HttpConnection(self.__host)
         self.__lastest_clickstream_time = 0
         self.__metainfo_downloaded = {}
@@ -28,8 +28,7 @@ class DownloadFileFromServer():
 
     def get_metainfo_downloaded(self):
         """Fetch meta db files data from db"""
-        metadbfiles = self._db.get_collection(
-            DBC.COLLECTION_METADBFILES).find({})
+        metadbfiles = self._db.get_collection(DBC.COLLECTION_METADBFILES).find({})
         for item in metadbfiles:
             self.__metainfo_downloaded[item[DBC.FIELD_METADBFILES_ETAG]] = item
             if item[DBC.FIELD_METADBFILES_TYPE] == DBC.TYPE_CLICKSTREAM and \
@@ -41,8 +40,7 @@ class DownloadFileFromServer():
         """ Get the Access Token from server using API Key.
             If cannot get the token sucessfully, this method will return None.
         """
-        self.__http_connection.headers = {
-            "Authorization": "Token " + self.__api_key}
+        self.__http_connection.headers = {"Authorization": "Token " + self.__api_key}
         response = self.__http_connection.post(DS.ACCESS_TOKENS_URL, None)
         if response.get_return_code() == 200:
             try:
