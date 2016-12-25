@@ -81,7 +81,6 @@ class PipeLine:
         """
         self._processed_data = {'created_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                                 'data': {}}
-
         for processor in sorted(self._processors, key=lambda d: d.order):
             self._processed_data = processor.process(self._processed_data,
                                                      self.__raw_data_filenames)
@@ -96,5 +95,4 @@ class PipeLine:
         """
         if self._processed_data is None:
             self.excute()
-
         return self._processed_data

@@ -14,7 +14,6 @@ class MoocProcessor(PipeModule):
         raw_data = {"data": raw_data_filenames[0]}
         return raw_data
 
-
 class TestPipeClass(unittest.TestCase):
     '''Unit test for pipe module
     '''
@@ -27,12 +26,22 @@ class TestPipeClass(unittest.TestCase):
                       'when input a filename, pipe should return itself')
 
     def test_input_file_with_wrong_params(self):
-        with self.assertRaises(TypeError, 'when input is dict type, pipe should raise error'):
+        with self.assertRaises(TypeError, msg='when input is not dict type, pipe should raise error'):
             self.pipeline.input_file(None)
-        with self.assertRaises(TypeError, 'when input is dict type, pipe should raise error'):
+        with self.assertRaises(TypeError, msg='when input is not dict type, pipe should raise error'):
             self.pipeline.input_file(1)
-        with self.assertRaises(TypeError, 'when input is empty-str, pipe should raise error'):
+        with self.assertRaises(TypeError, msg='when input is empty-str, pipe should raise error'):
             self.pipeline.input_file("")
+
+    def test_input_files_with_right_params(self):
+        test_input_files = ["a test file"]
+        self.assertIs(self.pipeline.input_files(test_input_files), self.pipeline,
+                      "when input a list of filenames, pipe should return itself")
+
+    def test_input_files_with_wrong_params(self):
+        test_input_files = "a wrong files"
+        with self.assertRaises(TypeError, msg="when input is not a list, pipe will raise TypeError"):
+            self.pipeline.input_files(test_input_files)
 
     def test_pipe_with_right_params(self):
         processor = MoocProcessor()
@@ -43,11 +52,8 @@ class TestPipeClass(unittest.TestCase):
                       'should return raw data if processor do nothing')
 
     def test_pipe_with_wrong_params(self):
-        self.assertIsNone(self.pipeline.pipe({}),
-                          'when pipe a none-PipeModule instance, pipe will return None')
-        processor = MoocProcessor()
-        self.assertIsNone(self.pipeline.pipe(processor),
-                          'when no input data, pipe will return None')
+        with self.assertRaises(TypeError, msg='when pipe a none-PipeModule instance, a TypeError is raised'):
+            self.pipeline.pipe({})
 
     def test_outout(self):
         self.assertIsInstance(self.pipeline.output()["created_date"], str,
@@ -57,5 +63,5 @@ class TestPipeClass(unittest.TestCase):
                               'when no input data, output will return a object with property data')
         test_input = "a file"
         processor = MoocProcessor()
-        self.assertIs(self.pipeline.input_file(test_input).pipe(processor).output()["data"],
+        self.assertIs(self.pipeline.input_file(test_input).pipe(processor).excute().output()["data"],
                       test_input, 'when data has been input, output will return processed_data')
