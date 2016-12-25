@@ -178,7 +178,6 @@ def download_single_file(url, file_path, headers, params=None, retry_time=5, del
             warn("HTTP GET error " + str(ex.getcode()) + " at " + url)
             time.sleep(delay)
         else:
-            return_code = response.getcode()
             response_headers = response.info()
             print(response_headers)
             file_total_length = response_headers[46]
@@ -260,24 +259,33 @@ class HttpConnection:
         '''The http GET method
         '''
         response = get(self.__host + url, self.headers, params)
-        if response.get_headers().get("Set-Cookie") is not None:
-            self.__headers["Cookie"] = response.get_headers().get("Set-Cookie")
+        if response is not None:
+            if response.get_headers().get("Set-Cookie") is not None:
+                self.__headers["Cookie"] = response.get_headers().get("Set-Cookie")
+        else:
+            warn("The response of HttpConnection GET is None")
         return response
 
     def head(self, url, params=None):
         '''The http HEAD method
         '''
         response = head(self.__host + url, self.headers, params)
-        if response.get_headers().get("Set-Cookie") is not None:
-            self.__headers["Cookie"] = response.get_headers().get("Set-Cookie")
+        if response is not None:
+            if response.get_headers().get("Set-Cookie") is not None:
+                self.__headers["Cookie"] = response.get_headers().get("Set-Cookie")
+        else:
+            warn("The response of HttpConnection HEAD is None")
         return response
 
     def post(self, url, params):
         '''The http POST method
         '''
         response = post(self.__host + url, self.headers, params)
-        if response.get_headers().get("Set-Cookie") is not None:
-            self.__headers["Cookie"] = response.get_headers().get("Set-Cookie")
+        if response is not None:
+            if response.get_headers().get("Set-Cookie") is not None:
+                self.__headers["Cookie"] = response.get_headers().get("Set-Cookie")
+        else:
+            warn("The response of HttpConnection POST is None")
         return response
 
     def download_files(self, urls, save_dir, common_suffix=''):
@@ -290,16 +298,23 @@ class HttpConnection:
         '''The async http GET method
         '''
         response = await async_get(self.__host + url, self.headers, params)
-        if response.get_headers().get("Set-Cookie") is not None:
-            self.headers = {"Cookie": response.get_headers().get("Set-Cookie")}
+        if response is not None:
+            if response.get_headers().get("Set-Cookie") is not None:
+                self.__headers["Cookie"] = response.get_headers().get("Set-Cookie")
+        else:
+            warn("The response of HttpConnection async_GET is None")
         return response
 
     async def async_post(self, url, params):
         '''The async http POST method
         '''
         response = await async_post(self.__host + url, self.headers, params)
-        if response.get_headers().get("Set-Cookie") is not None:
-            self.headers = {"Cookie": response.get_headers().get("Set-Cookie")}
+        if response is not None:
+            if response.get_headers().get("Set-Cookie") is not None:
+                self.headers = {"Cookie": response.get_headers().get("Set-Cookie")}
+        else:
+            warn("The response of HttpConnection async_POST is None")
+        
         return response
 
 
