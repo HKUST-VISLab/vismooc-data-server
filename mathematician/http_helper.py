@@ -22,7 +22,7 @@ def head(url, headers=None, params=None, retry_times=5, delay=1):
         if isinstance(params, dict):
             url = url + '?'
             for key in params:
-                url = url + key + '=' + params[key] + '&'
+                url = url + key + '=' + str(params[key]) + '&'
             url = url[0: -1]
         else:
             raise Exception("The params should be dict type")
@@ -53,7 +53,7 @@ def get(url, headers=None, params=None, retry_time=5, delay=1):
         if isinstance(params, dict):
             url = url + '?'
             for key in params:
-                url = url + key + '=' + params[key] + '&'
+                url = url + key + '=' + str(params[key]) + '&'
             url = url[0: -1]
         else:
             raise Exception("The params should be dict type")
