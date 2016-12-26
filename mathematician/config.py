@@ -6,6 +6,7 @@ class ThirdPartyKeys:
     '''Third party keys
     '''
     Youtube_key = None
+    HKMooc_access_token = None
     HKMooc_key = None
 
 class FilenameConfig:

@@ -14,9 +14,9 @@ from .logger import warn, info
 class DownloadFileFromServer():
     """Download file from server"""
 
-    def __init__(self, save_dir, host=None, api_key=None):
+    def __init__(self, save_dir, host=None, api_key=None, access_token=None):
         self.__api_key = api_key or TPK.HKMooc_key
-        self.__token = None
+        self.__token = access_token or TPK.HKMooc_access_token
         self.__host = host or DS.HOST
         self.__http_connection = http.HttpConnection(self.__host)
         self.__lastest_clickstream_time = 0
@@ -36,31 +36,32 @@ class DownloadFileFromServer():
                 self.__lastest_clickstream_time = item[
                     DBC.FIELD_METADBFILES_CREATEAT]
 
-    def get_token_from_server(self):
+    def set_token(self):
         """ Get the Access Token from server using API Key.
             If cannot get the token sucessfully, this method will return None.
         """
-        self.__http_connection.headers = {"Authorization": "Token " + self.__api_key}
-        response = self.__http_connection.post(DS.ACCESS_TOKENS_URL, None)
-        if response.get_return_code() == 200:
-            try:
-                collection = response.get_content_json().get("collection")
-                items = collection.get("items")
-                self.__token = items[0].get("accessToken")
-            except AttributeError as ex:
-                warn("In get_token_from_server(), cannot get target attribute from the\
-                      response")
-                print(ex)
-            except TypeError as ex:
-                warn(
-                    "In get_token_from_server(), cannot get the first item from the items")
-                print(ex)
-            else:
-                self.__http_connection.headers = {
-                    "Authorization": "Token " + self.__token}
-                return self.__token
+        if self.__token:
+            self.__http_connection.headers = {"Authorization": "Token " + self.__token}
+            return True
         else:
-            warn("In get_token_from_serer(), the return code of server is not 200")
+            self.__http_connection.headers = {"Authorization": "Token " + self.__api_key}
+            response = self.__http_connection.post(DS.ACCESS_TOKENS_URL, None)
+            if response.get_return_code() == 200:
+                try:
+                    collection = response.get_content_json().get("collection")
+                    items = collection.get("items")
+                    self.__token = items[0].get("accessToken")
+                except AttributeError as ex:
+                    warn("In set_token(), cannot get target attribute from the response")
+                    print(ex)
+                except TypeError as ex:
+                    warn("In set_token(), cannot get the first item from the items")
+                    print(ex)
+                else:
+                    self.__http_connection.headers = {"Authorization": "Token " + self.__token}
+                    return True
+            else:
+                warn("In get_token_from_serer(), the return code of server is not 200")
 
     def get_click_stream(self, start=0, end=0, save_dir=None):
         """Get click stream from server, the parameters start and end should be unix timestamp in\
@@ -68,7 +69,7 @@ class DownloadFileFromServer():
            If the log file is required sucessfully, the metainfo of these files will be returned,
            otherise a NoneType will be returned.
         """
-        self.get_token_from_server()
+        self.set_token()
         now = int(datetime.now().timestamp())
         start = self.__lastest_clickstream_time * 1000
         end = now * 1000
@@ -127,7 +128,7 @@ class DownloadFileFromServer():
     def get_mongo_and_mysql_snapshot(self, save_dir=None):
         """ Download mongodb and mysql snapshot
         """
-        self.get_token_from_server()
+        self.set_token()
         now = int(datetime.now().timestamp())
         save_dir = save_dir or self.__save_dir
         new_meta_items = []
