@@ -26,11 +26,11 @@ class TestPipeClass(unittest.TestCase):
                       'when input a filename, pipe should return itself')
 
     def test_input_file_with_wrong_params(self):
-        with self.assertRaises(TypeError, msg='when input is not dict type, pipe should raise error'):
+        with self.assertRaises(TypeError, msg='when input a non-dict type, error will be raised'):
             self.pipeline.input_file(None)
-        with self.assertRaises(TypeError, msg='when input is not dict type, pipe should raise error'):
+        with self.assertRaises(TypeError, msg='when input is not dict type, error will be raised'):
             self.pipeline.input_file(1)
-        with self.assertRaises(TypeError, msg='when input is empty-str, pipe should raise error'):
+        with self.assertRaises(TypeError, msg='when input is empty-str, error will be raised'):
             self.pipeline.input_file("")
 
     def test_input_files_with_right_params(self):
