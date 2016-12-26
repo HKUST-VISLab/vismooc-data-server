@@ -19,6 +19,8 @@ class TestHTTPHelperClass(unittest.TestCase):
             http.head(url=url, params="adsf")
         with self.assertRaises(Exception, msg="The params of GET should be dict type"):
             http.get(url=url, params="asdf")
+        with self.assertRaises(Exception, msg="The params of POST should be dict type"):
+            http.post(url=url, params="asdf")
 
     @patch('urllib.request.urlopen')
     def test_head_with_right_params(self, mock_urlopen):
