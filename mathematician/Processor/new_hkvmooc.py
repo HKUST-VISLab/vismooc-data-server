@@ -150,7 +150,6 @@ class ExtractRawData(PipeModule):
                     if fields and children:
                         new_children = []
                         for child in children:
-                            # TODO
                             new_children.append(blocks_dict[child[1]])
                             block_queue.put(blocks_dict[child[1]])
                             blocks.remove(blocks_dict.get(child[1]))
@@ -322,7 +321,6 @@ class FormatCourseStructFile(PipeModule):
                     course_year_match.group(COURSE_YEAR)
                 course[DBc.FIELD_COURSE_INSTRUCTOR] = course_instructors.get(
                     course_original_id) or []
-                # TODO
                 course[DBc.FIELD_COURSE_STATUS] = None
                 course[DBc.FIELD_COURSE_URL] = None
                 course[DBc.FIELD_COURSE_IMAGE_URL] = course_records[11]
@@ -343,7 +341,6 @@ class FormatCourseStructFile(PipeModule):
                 course[DBc.FIELD_COURSE_MOBILE_AVAILABLE] = course_records[23]
                 course[DBc.FIELD_COURSE_DISPLAY_NUMBER_WITH_DEFAULT] = course_records[6]
                 course_structure = self.course_structures.get(course_original_id)
-                # TODO
                 if course_original_id == "HKUST+COMP102_1+2016_Q4_R1":
                     print(course_structure)
                 if course_structure:
@@ -364,7 +361,6 @@ class FormatCourseStructFile(PipeModule):
                                                     (fields.get('html5_sources')
                                                      and fields.get('html5_sources')[0])
                                                 video[DBc.FIELD_VIDEO_TEMPORAL_HOTNESS] = {}
-                                                # TODO
                                                 video[DBc.FIELD_VIDEO_DURATION] = self.video_url_duration.get(
                                                     video[DBc.FIELD_VIDEO_URL])
                                                 video[DBc.FIELD_VIDEO_DESCRIPTION] = fields.get(
@@ -612,8 +608,6 @@ class FormatLogFile(PipeModule):
 
         events = []
         denselogs = {}
-        # TODO maybe raw_logs is not needed
-        # raw_logs = []
         pattern_time = "%Y-%m-%dT%H:%M:%S.%f+00:00"
         count = 0
         for data_to_be_processed in all_data_to_be_processed:
@@ -704,10 +698,6 @@ class FormatLogFile(PipeModule):
                             if date_time not in temporal_hotness:
                                 temporal_hotness[date_time] = 0
                             temporal_hotness[date_time] += 1
-
-                        # TODO maybe raw_log is not needed
-                        # line = line.replace('.,', ',', 1)
-                        # raw_logs.append(json.loads(line))
                 except BaseException as ex:
                     print(ex)
                     print("log file parse problem")

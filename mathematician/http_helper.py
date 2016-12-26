@@ -6,6 +6,7 @@ from os import path as path
 import multiprocessing
 import json
 import time
+import datetime
 # import hashlib
 import ssl
 import asyncio
@@ -46,7 +47,6 @@ def head(url, headers=None, params=None, retry_times=5, delay=1):
 
 def get(url, headers=None, params=None, retry_time=5, delay=1):
     """Send synchronous get request
-
     """
     headers = headers or {}
     if params is not None:
@@ -81,7 +81,7 @@ def post(url, headers=None, params=None, retry_time=5, delay=1):
     """
     headers = headers or {}
     if params is not None:
-        if isinstance(params, dict):
+        if isinstance(params, dict) is False:
             raise Exception("The params should be dict type")
 
     req = urllib.request.Request(url=url, headers=headers, data=params, method='POST')
@@ -110,7 +110,7 @@ async def async_get(url, headers=None, params=None, session=aiohttp):
             loop.close()
     """
     if params is not None:
-        if isinstance(params, dict):
+        if isinstance(params, dict) is False:
             raise Exception("The params should be dict type")
 
     async with session.get(url, headers=headers, params=params) as response:
@@ -131,7 +131,7 @@ async def async_post(url, headers=None, params=None, session=aiohttp):
             loop.close()
     """
     if params is not None:
-        if isinstance(params, dict):
+        if isinstance(params, dict) is False:
             raise Exception("The params should be dict type")
 
     async with session.post(url, headers=headers, body=params) as response:
@@ -153,11 +153,13 @@ def get_list(urls, limit=30, headers=None, params=None):
     return [result.get_content() for result in results]
 
 
-def download_single_file(url, file_path, headers, params=None, retry_time=5, delay=1):
+def download_single_file(url, file_path=None, headers=None, params=None,\
+                         retry_time=5, delay=1):
     """Download file using one thread
     """
     print("opening url:", url)
     headers = headers or {}
+    file_path = file_path or "./new_download_file_"+str(datetime.datetime.now())
     if params is not None:
         if isinstance(params, dict):
             url = url + '?'
