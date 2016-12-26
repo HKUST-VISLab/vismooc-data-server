@@ -504,3 +504,4 @@ def init_config(config_file_path):
                 'Youtube_key') or ThirdPartyKeys.Youtube_key
             ThirdPartyKeys.HKMooc_key = third_party_keys.get(
                 'HKMOOC_key') or ThirdPartyKeys.HKMooc_key
+            ThirdPartyKeys.HKMooc_access_token = third_party_keys.get('HKMOOC_access_token') or ThirdPartyKeys.HKMooc_access_token
