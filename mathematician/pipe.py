@@ -41,13 +41,17 @@ class PipeLine:
         self._processors = []
 
     def input_file(self, filename):
-        if type(filename) is not str or len(filename) == 0:
+        '''Put in the path to the input file
+        '''
+        if isinstance(filename, str) is False or len(filename) == 0:
             raise TypeError('filename should be a non-empty str')
         self.__raw_data_filenames.append(filename)
         return self
 
     def input_files(self, filenames):
-        if type(filenames) is not list:
+        '''Put in the list of path to the input file
+        '''
+        if isinstance(filenames, list) is False:
             raise TypeError('filenames should be a non-empty list')
         self.__raw_data_filenames += filenames
         return self
@@ -77,7 +81,6 @@ class PipeLine:
         """
         self._processed_data = {'created_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                                 'data': {}}
-
         for processor in sorted(self._processors, key=lambda d: d.order):
             self._processed_data = processor.process(self._processed_data,
                                                      self.__raw_data_filenames)
@@ -92,5 +95,4 @@ class PipeLine:
         """
         if self._processed_data is None:
             self.excute()
-
         return self._processed_data
