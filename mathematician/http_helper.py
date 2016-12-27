@@ -30,7 +30,7 @@ def head(url, headers=None, params=None, retry_times=5, delay=1):
 
     context = ssl.create_default_context()
     url = urllib.request.quote(url.encode('utf8'), ':/%?=&')
-    req = urllib.request.Request(url=url, headers=headers, method='HEAD')
+    req = urllib.request.Request(url=url, headers=headers, method='GET')
     for attempt_number in range(retry_times):
         try:
             info("Try " + str(attempt_number) + "th times to HEAD " + url + ".")
@@ -39,10 +39,10 @@ def head(url, headers=None, params=None, retry_times=5, delay=1):
             warn("HTTP HEAD error " + str(ex.getcode()) + " at " + url)
             time.sleep(delay)
         else:
-            data = response.read()
             response_headers = response.info()
             return_code = response.getcode()
-            return HttpResponse(return_code, response_headers, data)
+            response.close()
+            return HttpResponse(return_code, response_headers, None)
 
 
 def get(url, headers=None, params=None, retry_time=5, delay=1):
@@ -181,8 +181,11 @@ def download_single_file(url, file_path=None, headers=None, params=None,\
             time.sleep(delay)
         else:
             response_headers = response.info()
-            print(response_headers)
-            file_total_length = response_headers[46]
+            print("Content-Length:"+response_headers['Content-Length'])
+            print("Last-Modified"+response_headers["Last-Modified"])
+            print("Content-MD5"+response_headers["Content-MD5"])
+            print("ETag:"+response_headers["ETag"])
+            file_total_length = int(response_headers['Content-Length'])
             data_blocks = []
             total = 0
             progress_length = 100
@@ -192,7 +195,7 @@ def download_single_file(url, file_path=None, headers=None, params=None,\
                     break
                 data_blocks.append(block)
                 total += len(block)
-                progress = ((progress_length * total) / file_total_length)
+                progress = int((progress_length * total) / file_total_length)
                 info("[{}{}] {}%".format('#' * progress, ' ' * (progress_length - progress),
                                          int(total / file_total_length * 100)), end="\r")
             data = b''.join(data_blocks)
