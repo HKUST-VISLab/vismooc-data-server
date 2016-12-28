@@ -7,7 +7,7 @@ import multiprocessing
 import json
 import time
 import datetime
-# import hashlib
+import hashlib
 import ssl
 import asyncio
 import aiohttp
@@ -153,13 +153,13 @@ def get_list(urls, limit=30, headers=None, params=None):
     return [result.get_content() for result in results]
 
 
-def download_single_file(url, file_path=None, headers=None, params=None,\
+def download_single_file(url, file_path=None, headers=None, params=None, md5_checksum=None,
                          retry_time=5, delay=1):
     """Download file using one thread
     """
     print("opening url:", url)
     headers = headers or {}
-    file_path = file_path or "./new_download_file_"+str(datetime.datetime.now())
+    file_path = file_path or "./new_download_file_" + str(datetime.datetime.now())
     if params is not None:
         if isinstance(params, dict):
             url = url + '?'
@@ -181,10 +181,6 @@ def download_single_file(url, file_path=None, headers=None, params=None,\
             time.sleep(delay)
         else:
             response_headers = response.info()
-            print("Content-Length:"+response_headers['Content-Length'])
-            print("Last-Modified"+response_headers["Last-Modified"])
-            print("Content-MD5"+response_headers["Content-MD5"])
-            print("ETag:"+response_headers["ETag"])
             file_total_length = int(response_headers['Content-Length'])
             data_blocks = []
             total = 0
@@ -200,28 +196,44 @@ def download_single_file(url, file_path=None, headers=None, params=None,\
                                          int(total / file_total_length * 100)), end="\r")
             data = b''.join(data_blocks)
             response.close()
+            if md5_checksum is not None:
+                md5_returned = hashlib.md5(data).hexdigest()
+                if md5_checksum == md5_returned:
+                    info("MD5 of " + url + " is verified")
+                else:
+                    warn("MD5 of " + url + " verification failed!. File downloaded failed!")
+                    return
             with open(file_path, 'wb+') as file:
                 file.write(data)
             return file_path
 
 
-def download_multi_files(urls, save_dir, common_suffix='', headers=None,
+def download_multi_files(urls, save_dir, common_suffix='', headers=None, md5_checksums=None,
                          process_pool_size=(os.cpu_count() or 1)):
     """ Use multiprocess to download multiple files one time
     """
     headers = headers or {}
-    if not isinstance(urls, list):
+    if isinstance(urls, list) is False:
         raise Exception("The urls should be list type")
-    if not path.exists(save_dir):
-        raise Exception("The directory not exists")
     if len(urls) < 1:
         return []
+    # check md5s
+    if md5_checksums is not None:
+        if isinstance(md5_checksums, list) is False:
+            raise Exception("The md5_checksums should be list type")
+        len_urls = len(urls)
+        len_md5s = len(md5_checksums)
+        if len_md5s < len_urls:
+            len_md5s += [None] * (len_urls - len_md5s)
+    if not path.exists(save_dir):
+        raise Exception("The directory not exists")
+
     process_results = []
     pool = multiprocessing.Pool(processes=process_pool_size)
-    for url in urls:
+    for url, md5_checksum in zip(urls, md5_checksums):
         file_path = path.join(path.abspath(save_dir), url[url.rindex("/") + 1:]) + common_suffix
         process_result = pool.apply_async(
-            download_single_file, (url, file_path, headers))
+            download_single_file, (url, file_path, headers, None, md5_checksum))
         process_results.append(process_result)
     pool.close()
     pool.join()
@@ -230,7 +242,6 @@ def download_multi_files(urls, save_dir, common_suffix='', headers=None,
         if process_result.get():
             results.append(process_result.get())
     return results
-
 
 class HttpConnection:
     """This class is proposed to provide data-fetch interface
@@ -293,11 +304,12 @@ class HttpConnection:
             warn("The response of HttpConnection POST is None")
         return response
 
-    def download_files(self, urls, save_dir, common_suffix=''):
+    def download_files(self, urls, save_dir, common_suffix='', md5_checksums=None):
         '''Download a set of files
         '''
         return download_multi_files([self.__host + url for url in urls], save_dir,
-                                    common_suffix=common_suffix, headers=self.__headers)
+                                    common_suffix=common_suffix, headers=self.__headers,
+                                    md5_checksums=md5_checksums)
 
     async def async_get(self, url, params):
         '''The async http GET method
@@ -319,7 +331,7 @@ class HttpConnection:
                 self.headers = {"Cookie": response.get_headers().get("Set-Cookie")}
         else:
             warn("The response of HttpConnection async_POST is None")
-        
+
         return response
 
 
