@@ -11,7 +11,7 @@ import hashlib
 import ssl
 import asyncio
 import aiohttp
-from .logger import info, warn
+from .logger import info, warn, progressbar
 
 
 def head(url, headers=None, params=None, retry_times=5, delay=1):
@@ -183,17 +183,14 @@ def download_single_file(url, file_path=None, headers=None, params=None, md5_che
             response_headers = response.info()
             file_total_length = int(response_headers['Content-Length'])
             data_blocks = []
-            total = 0
-            progress_length = 100
+            file_progress_length = 0
             while True:
                 block = response.read(1024)
                 if not len(block):
                     break
                 data_blocks.append(block)
-                total += len(block)
-                progress = int((progress_length * total) / file_total_length)
-                info("[{}{}] {}%".format('#' * progress, ' ' * (progress_length - progress),
-                                         int(total / file_total_length * 100)), end="\r")
+                file_progress_length += len(block)
+                progressbar(url, file_progress_length, file_total_length)
             data = b''.join(data_blocks)
             response.close()
             if md5_checksum is not None:
