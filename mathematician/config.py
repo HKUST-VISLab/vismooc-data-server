@@ -133,6 +133,7 @@ class DBConfig:
     FIELD_METADBFILES_LAST_MODIFIED = "lastModified"
     FIELD_METADBFILES_TYPE = "type"
     FIELD_METADBFILES_FILEPATH = "filepath"
+    FIELD_METADBFILES_PROCESSED = "processed"
 
     TYPE_MYSQL = "mysql"
     TYPE_MONGO = "mongo"
@@ -466,6 +467,10 @@ class DBConfig:
                     {
                         FIELD_GENERAL_NAME: FIELD_METADBFILES_CREATEDAT,
                         FIELD_GENERAL_VALIDATION: {"$type", "timestamp"}
+                    },
+                    {
+                        FIELD_GENERAL_NAME: FIELD_METADBFILES_PROCESSED,
+                        FIELD_GENERAL_VALIDATION: {"$type", "boolean"}
                     }
                 ],
                 COLLECTION_GENERAL_INDEX:
