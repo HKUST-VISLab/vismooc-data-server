@@ -39,10 +39,11 @@ class TestHTTPHelperClass(unittest.TestCase):
         context_manager = MagicMock()
         context_manager.getcode.return_value = 200
         context_manager.read.return_value = "It is a return"
+        context_manager.info.return_value = {"a_header":"a_header"}
         mock_urlopen.return_value = context_manager
 
         response = http.head("http://foo.com")
         self.assertEqual(response.get_return_code(), 200, "The return code should be 200")
-        self.assertEqual(response.get_content(), "It is a return",
-                         "The return content should be `It is a return`")
-    
+        self.assertEqual(response.get_headers(), {"a_header":"a_header"}, "The return headers\
+                         should be `{'a_header':'a_header'}`")
+        self.assertEqual(response.get_content(), None, "The return content should be None")
