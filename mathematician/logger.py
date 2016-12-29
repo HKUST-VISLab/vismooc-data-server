@@ -2,6 +2,7 @@
 '''
 import logging
 from datetime import datetime
+
 VISMOOC_LOGGER = logging.getLogger("vismooc")
 VISMOOC_LOGGER.setLevel(logging.INFO)
 
@@ -30,9 +31,6 @@ def progressbar(filename, progress, total):
     progress_length = int((int(progress) * PROGRESS_LENGTH)/ int(total))
     time_now = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
     str_template = "\r%s-vismooc-%s-[%s%s] %d%% | %s"
-    # sys.stdout.write(str_template % (time_now, 'DOWNLOADING', '#' * progress_length,
-    #                                  ' ' * (PROGRESS_LENGTH - progress_length),
-    #                                  int(progress / total * 100), filename))
     print(str_template % (time_now, 'DOWNLOADING', '#' * progress_length,
                           ' ' * (PROGRESS_LENGTH - progress_length),
                           int(progress / total * 100), filename), end='', flush=True)
