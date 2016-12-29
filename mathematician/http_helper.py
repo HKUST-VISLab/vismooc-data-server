@@ -153,14 +153,14 @@ def get_list(urls, limit=30, headers=None, params=None):
     return [result.get_content() for result in results]
 
 
-def download_single_file(url, file_path=None, headers=None, params=None, md5_checksum=None,
-                         retry_time=5, delay=1):
+def download_single_file(url, save_dir=None, headers=None, params=None, common_suffix='',
+                         md5_checksum=None, retry_time=5, delay=1):
     """Download file using one thread
     """
     print("opening url:", url)
     headers = headers or {}
-    file_path = file_path or "./new_download_file_"
-    file_path = path.join(path.abspath(file_path), url[url.rindex("/") + 1:])
+    file_path = save_dir or "./new_download_file_"
+    file_path = path.join(path.abspath(file_path), url[url.rindex("/") + 1:]) + common_suffix
     if params is not None:
         if isinstance(params, dict):
             url = url + '?'
@@ -220,7 +220,7 @@ def download_single_file(url, file_path=None, headers=None, params=None, md5_che
             return file_path
 
 def download_multi_files(urls, save_dir, headers=None, common_suffix='', md5_checksums=None,
-                         process_pool_size=(os.cpu_count() or 1)):
+                         retry_time=5, delay=1, process_pool_size=(os.cpu_count() or 1)):
     """ Use multiprocess to download multiple files one time
     """
     headers = headers or {}
@@ -242,9 +242,9 @@ def download_multi_files(urls, save_dir, headers=None, common_suffix='', md5_che
     process_results = []
     pool = multiprocessing.Pool(processes=process_pool_size)
     for url, md5_checksum in zip(urls, md5_checksums):
-        file_path = path.join(path.abspath(save_dir), url[url.rindex("/") + 1:]) + common_suffix
-        process_result = pool.apply_async(
-            download_single_file, (url, file_path, headers, None, md5_checksum))
+        process_result = pool.apply_async(download_single_file, (url, save_dir, headers, None,
+                                                                 common_suffix, md5_checksum,
+                                                                 retry_time, delay))
         process_results.append(process_result)
     pool.close()
     pool.join()
@@ -315,16 +315,19 @@ class HttpConnection:
             warn("The response of HttpConnection POST is None")
         return response
 
-    def download_file(self, url, save_dir, md5_checksum=None):
+    def download_file(self, url, save_dir, common_suffix='', md5_checksum=None, retry_time=5,
+                      delay=1):
         '''Download a single file
         '''
-        return download_single_file(self.__host + url, save_dir, self.__headers, None, md5_checksum)
+        return download_single_file(self.__host + url, save_dir, self.__headers, None,
+                                    common_suffix, md5_checksum, retry_time, delay)
 
-    def download_files(self, urls, save_dir, common_suffix='', md5_checksums=None):
+    def download_files(self, urls, save_dir, common_suffix='', md5_checksums=None, retry_time=5,
+                       delay=1):
         '''Download a set of files
         '''
         return download_multi_files([self.__host + url for url in urls], save_dir, self.__headers,
-                                    common_suffix, md5_checksums)
+                                    common_suffix, md5_checksums, retry_time, delay)
 
     async def async_get(self, url, params):
         '''The async http GET method
