@@ -13,13 +13,19 @@ from .logger import warn, info
 
 class DownloadFileFromServer():
     """Download file from server"""
+    FILED_LAST_MODIFIED = "Last-Modified"
+    FIELD_ETAG = "ETag"
+    FIELD_MD5 = "Content-MD5"
+    FIELD_CONTENT_TYPE = "Content-Type"
 
     def __init__(self, save_dir, host=None, api_key=None, access_token=None):
         self.__api_key = api_key or TPK.HKMooc_key
         self.__token = access_token or TPK.HKMooc_access_token
         self.__host = host or DS.HOST
         self.__http_connection = http.HttpConnection(self.__host)
-        self.__lastest_clickstream_time = 0
+        self.__latest_clickstream_ts = 0
+        self.__latest_mongo_ts = 0
+        self.__latest_mysql_ts = 0
         self.__metainfo_downloaded = {}
         self.__save_dir = save_dir
         self._db = mongo_dbhelper.MongoDB(
@@ -31,10 +37,14 @@ class DownloadFileFromServer():
         metadbfiles = self._db.get_collection(DBC.COLLECTION_METADBFILES).find({})
         for item in metadbfiles:
             self.__metainfo_downloaded[item[DBC.FIELD_METADBFILES_ETAG]] = item
-            if item[DBC.FIELD_METADBFILES_TYPE] == DBC.TYPE_CLICKSTREAM and \
-                    item[DBC.FIELD_METADBFILES_CREATEAT] > self.__lastest_clickstream_time:
-                self.__lastest_clickstream_time = item[
-                    DBC.FIELD_METADBFILES_CREATEAT]
+            file_type = item[DBC.FIELD_METADBFILES_TYPE]
+            created_at = item[DBC.FIELD_METADBFILES_CREATEDAT]
+            if file_type == DBC.TYPE_CLICKSTREAM and created_at > self.__latest_clickstream_ts:
+                self.__latest_clickstream_ts = created_at
+            elif file_type == DBC.TYPE_MONGO and created_at > self.__latest_mongo_ts:
+                self.__latest_mongo_ts = created_at
+            elif file_type == DBC.TYPE_MYSQL and created_at > self.__latest_mysql_ts:
+                self.__latest_mysql_ts = created_at
 
     def set_token(self):
         """ Get the Access Token from server using API Key.
@@ -71,7 +81,7 @@ class DownloadFileFromServer():
         """
         self.set_token()
         now = int(datetime.now().timestamp())
-        start = self.__lastest_clickstream_time * 1000
+        start = self.__latest_clickstream_ts * 1000
         end = now * 1000
         save_dir = save_dir or self.__save_dir
 
@@ -109,7 +119,7 @@ class DownloadFileFromServer():
             # cache the metaInfo of log files into database
             info('Begin to cache the metainfo of log-files into mongoDB')
             new_meta_items = [{
-                DBC.FIELD_METADBFILES_CREATEAT: now,
+                DBC.FIELD_METADBFILES_CREATEDAT: now,
                 DBC.FIELD_METADBFILES_FILEPATH: file_path,
                 DBC.FIELD_METADBFILES_ETAG: md5s.get(file_path[file_path.rindex(os.sep) + 1:]),
                 DBC.FIELD_METADBFILES_TYPE: DBC.TYPE_CLICKSTREAM
@@ -125,6 +135,49 @@ class DownloadFileFromServer():
         else:
             warn("In get_click_stream(), the return code of server is not 200")
 
+    # def get_mongo_snapshot(self, save_dir=None):
+    #     '''Get the mongo snapshot
+    #     '''
+    #     self.set_token()
+    #     now = int(datetime.now().timestamp())
+    #     save_dir = save_dir or self.__save_dir
+    #     new_meta_items = []
+
+    #     # check what file should be downloaded
+    #     info("Begin to analyze which snapshots need to be downloaded")
+    #     urls = []
+    #     md5s = []
+
+    #     mysql_header = self.__http_connection.head(DS.SQLDB_URL).get_headers()
+    #     mysql_md5 = mysql_header.get(DownloadFileFromServer.FIELD_MD5)
+    #     mysql_etag = mysql_header.get(DownloadFileFromServer.FIELD_ETAG)
+    #     mysql_last_modified = mysql_header.get(DownloadFileFromServer.FILED_LAST_MODIFIED)
+    #     if mysql_etag and mysql_etag not in self.__metainfo_downloaded.keys():
+    #         urls.append(DS.SQLDB_URL)
+    #         md5s.append(mysql_md5)
+
+    #     info("Begin to download DB snapshots, totally " + str(len(urls)) + " files, pleas wait")
+    #     downloaded_files = self.__http_connection.download_file(urls[0], save_dir, md5_checksum=md5s[0])
+    #     info("Finish download DB snapshots. The files we downloaded is "+",".join(downloaded_files))
+    #     for file_path in downloaded_files:
+    #         if FC.SQLDB_FILE in file_path:
+    #             info("Begin to decompress the mysql snapshot")
+    #             self.decompress_files([file_path, ], "gzip")
+    #             info("Finish decompressing the mysql snapshot")
+    #             # cache the file info if  it has been downloaded successfully
+    #             item = {
+    #                 DBC.FIELD_METADBFILES_CREATEDAT: now,
+    #                 DBC.FIELD_METADBFILES_LAST_MODIFIED: mysql_last_modified,
+    #                 DBC.FIELD_METADBFILES_ETAG: mysql_etag,
+    #                 DBC.FIELD_METADBFILES_FILEPATH: os.path.join(save_dir, FC.SQLDB_FILE),
+    #                 DBC.FIELD_METADBFILES_TYPE: DBC.TYPE_MYSQL
+    #             }
+    #             new_meta_items.append(item)
+    #     info('Begin to cache the metainfo of dbsnapshots into mongoDB')
+    #     self._db.get_collection(DBC.COLLECTION_METADBFILES).insert_many(new_meta_items)
+    #     info('Finish caching the metainfo of dbsnapshots into mongoDB')
+    #     return new_meta_items
+
     def get_mongo_and_mysql_snapshot(self, save_dir=None):
         """ Download mongodb and mysql snapshot
         """
@@ -136,18 +189,26 @@ class DownloadFileFromServer():
         # check what file should be downloaded
         info("Begin to analyze which snapshots need to be downloaded")
         urls = []
-        mongo_etag = self.__http_connection.head(DS.MONGODB_URL).get_headers().get("ETag")
+        md5s = []
+        mongo_header = self.__http_connection.head(DS.MONGODB_URL).get_headers()
+        mongo_md5 = mongo_header.get(DownloadFileFromServer.FIELD_MD5)
+        mongo_etag = mongo_header.get(DownloadFileFromServer.FIELD_ETAG)
+        mongo_last_modified = mongo_header.get(DownloadFileFromServer.FILED_LAST_MODIFIED)
         if mongo_etag and mongo_etag not in self.__metainfo_downloaded.keys():
             urls.append(DS.MONGODB_URL)
+            md5s.append(mongo_md5)
 
-        mysql_etag = self.__http_connection.head(DS.SQLDB_URL).get_headers().get("ETag")
+        mysql_header = self.__http_connection.head(DS.SQLDB_URL).get_headers()
+        mysql_md5 = mysql_header.get(DownloadFileFromServer.FIELD_MD5)
+        mysql_etag = mysql_header.get(DownloadFileFromServer.FIELD_ETAG)
+        mysql_last_modified = mysql_header.get(DownloadFileFromServer.FILED_LAST_MODIFIED)
         if mysql_etag and mysql_etag not in self.__metainfo_downloaded.keys():
             urls.append(DS.SQLDB_URL)
+            md5s.append(mysql_md5)
 
         info("Begin to download DB snapshots, totally " + str(len(urls)) + " files, pleas wait")
-        downloaded_files = self.__http_connection.download_files(urls, save_dir)
-        info("Finish download DB snapshots. The files we downloaded is " +
-             ",".join(downloaded_files))
+        downloaded_files = self.__http_connection.download_files(urls, save_dir, md5_checksums=md5s)
+        info("Finish download DB snapshots. The files we downloaded is "+",".join(downloaded_files))
         for file_path in downloaded_files:
             if FC.MongoDB_FILE in file_path:
                 info("Begin to decompress the mongo snapshot")
@@ -155,10 +216,12 @@ class DownloadFileFromServer():
                 info("Finish decompressing the mongo snapshot")
                 # cache the file info if  it has been downloaded successfully
                 item = {
-                    DBC.FIELD_METADBFILES_CREATEAT: now,
+                    DBC.FIELD_METADBFILES_CREATEDAT: now,
+                    DBC.FIELD_METADBFILES_LAST_MODIFIED: mongo_last_modified,
                     DBC.FIELD_METADBFILES_ETAG: mongo_etag,
                     DBC.FIELD_METADBFILES_FILEPATH: os.path.join(save_dir, FC.MongoDB_FILE),
-                    DBC.FIELD_METADBFILES_TYPE: DBC.TYPE_MONGO
+                    DBC.FIELD_METADBFILES_TYPE: DBC.TYPE_MONGO,
+                    DBC.FIELD_METADBFILES_PROCESSED: False
                 }
                 new_meta_items.append(item)
             if FC.SQLDB_FILE in file_path:
@@ -167,10 +230,12 @@ class DownloadFileFromServer():
                 info("Finish decompressing the mysql snapshot")
                 # cache the file info if  it has been downloaded successfully
                 item = {
-                    DBC.FIELD_METADBFILES_CREATEAT: now,
+                    DBC.FIELD_METADBFILES_CREATEDAT: now,
+                    DBC.FIELD_METADBFILES_LAST_MODIFIED: mysql_last_modified,
                     DBC.FIELD_METADBFILES_ETAG: mysql_etag,
                     DBC.FIELD_METADBFILES_FILEPATH: os.path.join(save_dir, FC.SQLDB_FILE),
-                    DBC.FIELD_METADBFILES_TYPE: DBC.TYPE_MYSQL
+                    DBC.FIELD_METADBFILES_TYPE: DBC.TYPE_MYSQL,
+                    DBC.FIELD_METADBFILES_PROCESSED: False
                 }
                 new_meta_items.append(item)
         info('Begin to cache the metainfo of dbsnapshots into mongoDB')
