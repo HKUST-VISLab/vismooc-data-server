@@ -182,8 +182,15 @@ def download_single_file(url, save_dir=None, headers=None, params=None, common_s
             time.sleep(delay)
         else:
             response_headers = response.info()
-            file_total_length = int(response_headers['Content-Length'])
-            print(file_total_length)
+            content_type = response_headers.get('Content-Type')
+            file_ext = content_type[content_type.rindex('/')+1:] if content_type else None
+            if file_ext:
+                file_path += "." + file_ext
+            file_total_length = response_headers.get('Content-Length')
+            file_total_length = int(file_total_length) if file_total_length else 0
+            if file_total_length == 0:
+                info("The conent length of "+url+" is 0, finish downloading")
+                return
             inverse_file_total_length = 100 / file_total_length # in percentage
             file_progress_length = 0
             current_percent = -1
