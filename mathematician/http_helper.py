@@ -182,15 +182,20 @@ def download_single_file(url, file_path=None, headers=None, params=None, md5_che
         else:
             response_headers = response.info()
             file_total_length = int(response_headers['Content-Length'])
-            data_blocks = []
+            inverse_file_total_length = 100 / file_total_length # in percentage
             file_progress_length = 0
+            current_percent = -1
+            data_blocks = []
             while True:
                 block = response.read(1024)
                 if not len(block):
                     break
                 data_blocks.append(block)
                 file_progress_length += len(block)
-                progressbar(url, file_progress_length, file_total_length)
+                tmp_current_percent = int(file_progress_length * inverse_file_total_length)
+                if int(tmp_current_percent) > current_percent:
+                    current_percent = tmp_current_percent
+                    progressbar(url, file_progress_length, file_total_length)
             data = b''.join(data_blocks)
             response.close()
             if md5_checksum is not None:
@@ -204,8 +209,7 @@ def download_single_file(url, file_path=None, headers=None, params=None, md5_che
                 file.write(data)
             return file_path
 
-
-def download_multi_files(urls, save_dir, common_suffix='', headers=None, md5_checksums=None,
+def download_multi_files(urls, save_dir, headers=None, common_suffix='', md5_checksums=None,
                          process_pool_size=(os.cpu_count() or 1)):
     """ Use multiprocess to download multiple files one time
     """
@@ -301,12 +305,16 @@ class HttpConnection:
             warn("The response of HttpConnection POST is None")
         return response
 
+    def download_file(self, url, save_dir, common_suffix='', md5_checksum=None):
+        '''Download a single file
+        '''
+        return download_single_file(self.__host + url, save_dir, self.__headers, None, md5_checksum)
+
     def download_files(self, urls, save_dir, common_suffix='', md5_checksums=None):
         '''Download a set of files
         '''
-        return download_multi_files([self.__host + url for url in urls], save_dir,
-                                    common_suffix=common_suffix, headers=self.__headers,
-                                    md5_checksums=md5_checksums)
+        return download_multi_files([self.__host + url for url in urls], save_dir, self.__headers,
+                                    common_suffix, md5_checksums)
 
     async def async_get(self, url, params):
         '''The async http GET method
