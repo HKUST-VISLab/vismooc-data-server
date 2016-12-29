@@ -159,7 +159,8 @@ def download_single_file(url, file_path=None, headers=None, params=None, md5_che
     """
     print("opening url:", url)
     headers = headers or {}
-    file_path = file_path or "./new_download_file_" + str(datetime.datetime.now())
+    file_path = file_path or "./new_download_file_"
+    file_path = path.join(path.abspath(file_path), url[url.rindex("/") + 1:])
     if params is not None:
         if isinstance(params, dict):
             url = url + '?'
@@ -182,31 +183,40 @@ def download_single_file(url, file_path=None, headers=None, params=None, md5_che
         else:
             response_headers = response.info()
             file_total_length = int(response_headers['Content-Length'])
+            print(file_total_length)
             inverse_file_total_length = 100 / file_total_length # in percentage
             file_progress_length = 0
             current_percent = -1
-            data_blocks = []
-            while True:
-                block = response.read(1024)
-                if not len(block):
-                    break
-                data_blocks.append(block)
-                file_progress_length += len(block)
-                tmp_current_percent = int(file_progress_length * inverse_file_total_length)
-                if int(tmp_current_percent) > current_percent:
-                    current_percent = tmp_current_percent
-                    progressbar(url, file_progress_length, file_total_length)
-            data = b''.join(data_blocks)
-            response.close()
+            with open(file_path+".tmp", 'wb') as file:
+                while True:
+                    block = response.read(8192)
+                    if not block:
+                        break
+                    file_progress_length += len(block)
+                    tmp_current_percent = int(file_progress_length * inverse_file_total_length)
+                    if int(tmp_current_percent) > current_percent:
+                        current_percent = tmp_current_percent
+                        progressbar(url, file_progress_length, file_total_length)
+                    file.write(block)
+                response.close()
             if md5_checksum is not None:
-                md5_returned = hashlib.md5(data).hexdigest()
+                md5 = hashlib.md5()
+                with open(file_path+".tmp", "rb") as file:
+                    chunk_size = 128 * md5.block_size
+                    while True:
+                        chunk = file.read(chunk_size)
+                        if not chunk:
+                            break
+                        md5.update(chunk)
+                md5_returned = md5.hexdigest()
                 if md5_checksum == md5_returned:
                     info("MD5 of " + url + " is verified")
                 else:
                     warn("MD5 of " + url + " verification failed!. File downloaded failed!")
                     return
-            with open(file_path, 'wb+') as file:
-                file.write(data)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            os.rename(file_path+".tmp", file_path)
             return file_path
 
 def download_multi_files(urls, save_dir, headers=None, common_suffix='', md5_checksums=None,
@@ -305,7 +315,7 @@ class HttpConnection:
             warn("The response of HttpConnection POST is None")
         return response
 
-    def download_file(self, url, save_dir, common_suffix='', md5_checksum=None):
+    def download_file(self, url, save_dir, md5_checksum=None):
         '''Download a single file
         '''
         return download_single_file(self.__host + url, save_dir, self.__headers, None, md5_checksum)
