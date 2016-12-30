@@ -17,8 +17,8 @@ class FilenameConfig:
     MongoDB_FILE = "dbsnapshots_mongodb"
     SQLDB_FILE = "dbsnapshots_mysqldb"
     META_DB_RECORD = "meta_db_record"
-    ACTIVE_VERSIONS = "mongodb/edxapp/modulestore.active_versions.json"
-    STRUCTURES = "mongodb/edxapp/modulestore.structures.json"
+    ACTIVE_VERSIONS = "mongodb/edxapp/modulestore.active_versions.bson"
+    STRUCTURES = "mongodb/edxapp/modulestore.structures.bson"
 
 class DataSource:
     '''Urls of datasources
