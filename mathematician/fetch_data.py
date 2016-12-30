@@ -124,7 +124,7 @@ class DownloadFileFromServer():
                 DBC.FIELD_METADBFILES_PROCESSED: False,
             } for res in downloaded_files if os.path.exists(res.get_content())]
             # if no log has been downloaded, add a empty log record
-            if len(new_meta_items) > 1:
+            if len(new_meta_items) > 0:
                 self._db.get_collection(DBC.COLLECTION_METADBFILES).insert_many(new_meta_items)
             else:
                 info('No log file has been downloaded, maybe the url is invalided or no log file\
