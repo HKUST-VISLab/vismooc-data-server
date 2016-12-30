@@ -100,3 +100,4 @@ test-data
 #main.py
 vismooc-test-data
 config.json
+dbsnapshots_*

@@ -8,6 +8,7 @@ import struct
 from datetime import timedelta, datetime
 import queue
 from bson import ObjectId
+import bson
 from ..http_helper import get as http_get, get_list as http_get_list
 from ..pipe import PipeModule
 from ..DB.mongo_dbhelper import MongoDB
@@ -84,9 +85,9 @@ class ExtractRawData(PipeModule):
         re_pattern_insert_table = re.compile(pattern_insert)
         re_pattern_create_db = re.compile(pattern_create_db)
         current_db = None
-        structureIds = set()
-        structureId_to_courseId = {}
-        courseId_to_structure = {}
+        structureids = set()
+        structureid_to_courseid = {}
+        courseid_to_structure = {}
         block_queue = queue.Queue()
 
         module_structure_filename = None
@@ -112,32 +113,33 @@ class ExtractRawData(PipeModule):
                         table_name = match_table.group("table_name")
                         raw_data[table_name] = records
             elif FilenameConfig.ACTIVE_VERSIONS in filename:
-                with open(filename, 'r') as file:
-                    for line in file:
-                        record = json.loads(line)
+                with open(filename, 'rb') as file:
+                    for record in bson.decode_file_iter(file):
+                        # record = json.loads(line)
                         versions = record.get('versions')
-                        published_branch = versions.get('published-branch')
-                        if versions is not None and published_branch is None:
+                        if versions is None:
                             continue
-                        oid = published_branch.get('$oid')
-                        structureIds.add(oid)
-                        structureId_to_courseId[oid] = record['org'] + '+' + \
+                        published_branch = versions.get('published-branch')
+                        if published_branch is None:
+                            continue
+                        oid = str(published_branch)
+                        structureids.add(oid)
+                        structureid_to_courseid[oid] = record['org'] + '+' + \
                             record['course'].replace('.', '_') + '+' + record['run']
             elif FilenameConfig.STRUCTURES in filename:
                 module_structure_filename = filename
         # modulestore.active_version must be processed before modulestore.structures
-        if module_structure_filename and len(structureId_to_courseId) != 0:
-            with open(module_structure_filename, 'r') as file:
-                for line in file:
-                    record = json.loads(line)
-                    oid = record.get('_id').get('$oid')
-                    if oid in structureIds:
-                        courseId_to_structure[structureId_to_courseId[oid]] = record
-            for one_structure in courseId_to_structure.values():
+        if module_structure_filename and len(structureid_to_courseid) > 0:
+            with open(module_structure_filename, 'rb') as file:
+                for record in bson.decode_file_iter(file):
+                    oid = str(record.get('_id'))
+                    if oid in structureids:
+                        courseid_to_structure[structureid_to_courseid[oid]] = record
+            for structure in courseid_to_structure.values():
                 blocks_dict = {}
                 # construct a dictory which contains all blocks
                 # and get the root course block
-                blocks = one_structure.get("blocks")
+                blocks = structure.get("blocks")
                 for block in blocks:
                     blocks_dict[block.get("block_id")] = block
                     if block.get("block_type") == "course":
@@ -150,13 +152,12 @@ class ExtractRawData(PipeModule):
                     if fields and children:
                         new_children = []
                         for child in children:
-                            # TODO
                             new_children.append(blocks_dict[child[1]])
                             block_queue.put(blocks_dict[child[1]])
                             blocks.remove(blocks_dict.get(child[1]))
                             # blocks_to_remove.add(child[1])
                         item["fields"]["children"] = new_children
-            raw_data['course_in_mongo'] = courseId_to_structure
+            raw_data['course_in_mongo'] = courseid_to_structure
         return raw_data
 
 
@@ -322,7 +323,6 @@ class FormatCourseStructFile(PipeModule):
                     course_year_match.group(COURSE_YEAR)
                 course[DBc.FIELD_COURSE_INSTRUCTOR] = course_instructors.get(
                     course_original_id) or []
-                # TODO
                 course[DBc.FIELD_COURSE_STATUS] = None
                 course[DBc.FIELD_COURSE_URL] = None
                 course[DBc.FIELD_COURSE_IMAGE_URL] = course_records[11]
@@ -343,7 +343,6 @@ class FormatCourseStructFile(PipeModule):
                 course[DBc.FIELD_COURSE_MOBILE_AVAILABLE] = course_records[23]
                 course[DBc.FIELD_COURSE_DISPLAY_NUMBER_WITH_DEFAULT] = course_records[6]
                 course_structure = self.course_structures.get(course_original_id)
-                # TODO
                 if course_original_id == "HKUST+COMP102_1+2016_Q4_R1":
                     print(course_structure)
                 if course_structure:
@@ -364,7 +363,6 @@ class FormatCourseStructFile(PipeModule):
                                                     (fields.get('html5_sources')
                                                      and fields.get('html5_sources')[0])
                                                 video[DBc.FIELD_VIDEO_TEMPORAL_HOTNESS] = {}
-                                                # TODO
                                                 video[DBc.FIELD_VIDEO_DURATION] = self.video_url_duration.get(
                                                     video[DBc.FIELD_VIDEO_URL])
                                                 video[DBc.FIELD_VIDEO_DESCRIPTION] = fields.get(
@@ -612,8 +610,6 @@ class FormatLogFile(PipeModule):
 
         events = []
         denselogs = {}
-        # TODO maybe raw_logs is not needed
-        # raw_logs = []
         pattern_time = "%Y-%m-%dT%H:%M:%S.%f+00:00"
         count = 0
         for data_to_be_processed in all_data_to_be_processed:
@@ -704,10 +700,6 @@ class FormatLogFile(PipeModule):
                             if date_time not in temporal_hotness:
                                 temporal_hotness[date_time] = 0
                             temporal_hotness[date_time] += 1
-
-                        # TODO maybe raw_log is not needed
-                        # line = line.replace('.,', ',', 1)
-                        # raw_logs.append(json.loads(line))
                 except BaseException as ex:
                     print(ex)
                     print("log file parse problem")

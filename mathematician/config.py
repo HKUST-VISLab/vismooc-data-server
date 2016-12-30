@@ -6,6 +6,7 @@ class ThirdPartyKeys:
     '''Third party keys
     '''
     Youtube_key = None
+    HKMooc_access_token = None
     HKMooc_key = None
 
 class FilenameConfig:
@@ -16,8 +17,8 @@ class FilenameConfig:
     MongoDB_FILE = "dbsnapshots_mongodb"
     SQLDB_FILE = "dbsnapshots_mysqldb"
     META_DB_RECORD = "meta_db_record"
-    ACTIVE_VERSIONS = "mongodb/edxapp/modulestore.active_versions.json"
-    STRUCTURES = "mongodb/edxapp/modulestore.structures.json"
+    ACTIVE_VERSIONS = "mongodb/edxapp/modulestore.active_versions.bson"
+    STRUCTURES = "mongodb/edxapp/modulestore.structures.bson"
 
 class DataSource:
     '''Urls of datasources
@@ -128,10 +129,11 @@ class DBConfig:
 
     COLLECTION_METADBFILES = "metadbfiles"
     FIELD_METADBFILES_ETAG = "etag"
-    FIELD_METADBFILES_CREATEAT = "createAt"
-    # FIELD_METADBFILES_NAME = "name"
+    FIELD_METADBFILES_CREATEDAT = "createdAt"
+    FIELD_METADBFILES_LAST_MODIFIED = "lastModified"
     FIELD_METADBFILES_TYPE = "type"
     FIELD_METADBFILES_FILEPATH = "filepath"
+    FIELD_METADBFILES_PROCESSED = "processed"
 
     TYPE_MYSQL = "mysql"
     TYPE_MONGO = "mongo"
@@ -441,6 +443,51 @@ class DBConfig:
                         INDEX_GENERAL_INDEX_ORDER: 1
                     }
                 ]
+            },
+            {
+                COLLECTION_GENERAL_NAME: COLLECTION_METADBFILES,
+                COLLECTION_GENERAL_FIELDS:
+                [
+                    {
+                        FIELD_GENERAL_NAME: FIELD_METADBFILES_TYPE,
+                        FIELD_GENERAL_VALIDATION: {"$type", "string"}
+                    },
+                    {
+                        FIELD_GENERAL_NAME: FIELD_METADBFILES_LAST_MODIFIED,
+                        FIELD_GENERAL_VALIDATION: {"$type", "timestamp"}
+                    },
+                    {
+                        FIELD_GENERAL_NAME: FIELD_METADBFILES_FILEPATH,
+                        FIELD_GENERAL_VALIDATION: {"$type", "string"}
+                    },
+                    {
+                        FIELD_GENERAL_NAME: FIELD_METADBFILES_ETAG,
+                        FIELD_GENERAL_VALIDATION: {"$type", "string"}
+                    },
+                    {
+                        FIELD_GENERAL_NAME: FIELD_METADBFILES_CREATEDAT,
+                        FIELD_GENERAL_VALIDATION: {"$type", "timestamp"}
+                    },
+                    {
+                        FIELD_GENERAL_NAME: FIELD_METADBFILES_PROCESSED,
+                        FIELD_GENERAL_VALIDATION: {"$type", "boolean"}
+                    }
+                ],
+                COLLECTION_GENERAL_INDEX:
+                [
+                    {
+                        FIELD_GENERAL_NAME: FIELD_METADBFILES_TYPE,
+                        INDEX_GENERAL_INDEX_ORDER: 1
+                    },
+                    {
+                        FIELD_GENERAL_NAME: FIELD_METADBFILES_ETAG,
+                        INDEX_GENERAL_INDEX_ORDER: 1
+                    },
+                    {
+                        FIELD_GENERAL_NAME: FIELD_METADBFILES_LAST_MODIFIED,
+                        INDEX_GENERAL_INDEX_ORDER: 1
+                    }
+                ]
             }
         ]
     }
@@ -449,7 +496,6 @@ class DBConfig:
 def init_config(config_file_path):
     ''' Init all the configuration from a config file
     '''
-
     with open(config_file_path, 'r') as file:
         try:
             config_json = json.load(file)
@@ -503,3 +549,4 @@ def init_config(config_file_path):
                 'Youtube_key') or ThirdPartyKeys.Youtube_key
             ThirdPartyKeys.HKMooc_key = third_party_keys.get(
                 'HKMOOC_key') or ThirdPartyKeys.HKMooc_key
+            ThirdPartyKeys.HKMooc_access_token = third_party_keys.get('HKMOOC_access_token') or ThirdPartyKeys.HKMooc_access_token
