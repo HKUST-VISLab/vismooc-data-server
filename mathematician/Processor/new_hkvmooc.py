@@ -7,9 +7,10 @@ import io
 import struct
 from datetime import timedelta, datetime
 import queue
-from bson import ObjectId
-import bson
 import urllib
+# from bson import ObjectId
+import bson
+
 from ..logger import warn, info
 from ..http_helper import get as http_get, get_list as http_get_list
 from ..pipe import PipeModule
@@ -28,8 +29,9 @@ re_ISO_8601_duration = re.compile(
     r"(?P<seconds>[0-9]+([,.][0-9]+)?S)?)?$"
 )
 
-
 def parse_duration(datestring):
+    '''Parse the duration of youtube video to human readable timestamp
+    '''
     if not isinstance(datestring, str):
         raise TypeError("Expecting a string %r" % datestring)
     match = re_ISO_8601_duration.match(datestring)
@@ -162,7 +164,6 @@ class ExtractRawData(PipeModule):
             raw_data['course_in_mongo'] = courseid_to_structure
         return raw_data
 
-
 class FormatCourseStructFile(PipeModule):
 
     order = 1
@@ -222,7 +223,7 @@ class FormatCourseStructFile(PipeModule):
             warn("May be ssl and certificate problem in parse video duration")
             warn(ex)
             return -1
-        if result.get_return_code() < 200 or result.get_return_code() >= 300:
+        if result and (result.get_return_code() < 200 or result.get_return_code() >= 300):
             return -1
         video_length = -1
         try:
@@ -279,7 +280,7 @@ class FormatCourseStructFile(PipeModule):
             records = split(one_access_role)
             if len(records) < 2:
                 continue
-            if records[3] != 'instructor' or records[3] != "staff":
+            if records[3] != 'instructor' and records[3] != "staff":
                 continue
             course_id = records[2]
             try:
@@ -293,8 +294,8 @@ class FormatCourseStructFile(PipeModule):
             course_instructors.setdefault(course_id, []).append(user_id)
 
         pattern_time = "%Y-%m-%d %H:%M:%S.%f"
-        COURSE_YEAR = "course_year"
-        course_year_pattern = r'^course-[\w|:|\+]+(?P<' + COURSE_YEAR + r'>[0-9]{4})\w*'
+        course_year = "course_year"
+        course_year_pattern = r'^course-[\w|:|\+]+(?P<' + course_year + r'>[0-9]{4})\w*'
         re_course_year = re.compile(course_year_pattern)
         videos = {}
         courses = {}
@@ -308,16 +309,16 @@ class FormatCourseStructFile(PipeModule):
                 # if the course info already exist, then skip it
                 if course.get(course_records[3]):
                     continue
-                course_start_time = datetime.strptime(
-                    course_records[8], pattern_time) if course_records[8] != "NULL" else None
-                course_end_time = datetime.strptime(
-                    course_records[9], pattern_time) if course_records[9] != "NULL" else None
-                advertised_start_time = datetime.strptime(
-                    course_records[10], pattern_time) if course_records[10] != "NULL" else None
-                enrollment_start_time = datetime.strptime(
-                    course_records[26], pattern_time) if course_records[26] != "NULL" else None
-                enrollment_end_time = datetime.strptime(
-                    course_records[27], pattern_time) if course_records[27] != "NULL" else None
+                course_start_time = datetime.strptime(course_records[8], pattern_time).timestamp()\
+                                    if course_records[8] != "NULL" else None
+                course_end_time = datetime.strptime(course_records[9], pattern_time).timestamp()\
+                                  if course_records[9] != "NULL" else None
+                advertised_start_time = datetime.strptime(course_records[10], pattern_time)\
+                                        .timestamp() if course_records[10] != "NULL" else None
+                enrollment_start_time = datetime.strptime(course_records[26], pattern_time)\
+                                        .timestamp() if course_records[26] != "NULL" else None
+                enrollment_end_time = datetime.strptime(course_records[27], pattern_time)\
+                                      .timestamp() if course_records[27] != "NULL" else None
                 course_original_id = course_records[3]
                 try:
                     course_original_id = course_original_id[course_original_id.index(':') + 1:]
@@ -331,7 +332,7 @@ class FormatCourseStructFile(PipeModule):
                 course[DBc.FIELD_COURSE_NAME] = course_records[5]
                 course_year_match = re_course_year.search(course_original_id)
                 course[DBc.FIELD_COURSE_YEAR] = course_year_match and \
-                    course_year_match.group(COURSE_YEAR)
+                    course_year_match.group(course_year)
                 course[DBc.FIELD_COURSE_INSTRUCTOR] = course_instructors.get(
                     course_original_id) or []
                 course[DBc.FIELD_COURSE_STATUS] = None
@@ -339,14 +340,11 @@ class FormatCourseStructFile(PipeModule):
                 course[DBc.FIELD_COURSE_IMAGE_URL] = course_records[11]
                 course[DBc.FIELD_COURSE_DESCRIPTION] = course_records[35]
                 # a set of timestamp
-                course[DBc.FIELD_COURSE_STARTTIME] = course_start_time and course_start_time.timestamp()
-                course[DBc.FIELD_COURSE_ENDTIME] = course_end_time and course_end_time.timestamp()
-                course[DBc.FIELD_COURSE_ENROLLMENT_START] = enrollment_start_time \
-                    and enrollment_start_time.timestamp()
-                course[DBc.FIELD_COURSE_ENROLLMENT_END] = enrollment_end_time \
-                    and enrollment_end_time.timestamp()
-                course[DBc.FIELD_COURSE_ADVERTISED_START] = advertised_start_time \
-                    and advertised_start_time.timestamp()
+                course[DBc.FIELD_COURSE_STARTTIME] = course_start_time
+                course[DBc.FIELD_COURSE_ENDTIME] = course_end_time
+                course[DBc.FIELD_COURSE_ENROLLMENT_START] = enrollment_start_time
+                course[DBc.FIELD_COURSE_ENROLLMENT_END] = enrollment_end_time
+                course[DBc.FIELD_COURSE_ADVERTISED_START] = advertised_start_time
                 course[DBc.FIELD_COURSE_STUDENT_IDS] = set()
                 course[DBc.FIELD_COURSE_METAINFO] = None
                 course[DBc.FIELD_COURSE_ORG] = course_records[36]
@@ -441,16 +439,15 @@ class FormatUserFile(PipeModule):
         '''Load target file
         '''
         self.raw_user_profile = raw_data.get('auth_userprofile') or []
-        self.user_info = raw_data.get('auth_user') or []
+        self.user_info = raw_data.get('auth_user')
         self.course_access_role = raw_data.get('student_courseaccessrole') or []
 
     def process(self, raw_data, raw_data_filenames=None):
         info("Processing FormatUserFile")
         self.load_data(raw_data)
-        if self.raw_user_profile is not None:
-            for record in self.raw_user_profile:
-                fields = split(record)
-                self._userprofile[fields[16]] = fields
+        for record in self.raw_user_profile:
+            fields = split(record)
+            self._userprofile[fields[16]] = fields
         if self.user_info is None:
             return raw_data
 
@@ -463,7 +460,7 @@ class FormatUserFile(PipeModule):
                 course_id = course_id[course_id.index(':') + 1:]
             except ValueError as ex:
                 warn(ex)
-                warn(course_id)
+                warn("At process format user access role "+course_id)
             course_id = course_id.replace('.', '_')
             self.user_roles.setdefault(records[4], {}).setdefault(course_id, []).append(records[3])
 
@@ -535,12 +532,7 @@ class FormatEnrollmentFile(PipeModule):
                 records = split(enroll_item)
                 user_id = records[5]
                 course_id = records[1]
-                try:
-                    course_id = course_id[course_id.index(':') + 1:]
-                except ValueError as ex:
-                    warn(ex.args)
-                    warn(course_id)
-                    continue
+                course_id = course_id[course_id.index(':') + 1:]
                 course_id = course_id.replace('.', '_')
                 enrollment_time = datetime.strptime(records[2], pattern_time) \
                     if records[2] != "NULL" else None
@@ -548,8 +540,7 @@ class FormatEnrollmentFile(PipeModule):
                 enrollment[DBc.FIELD_ENROLLMENT_COURSE_ID] = course_id
                 enrollment[DBc.FIELD_ENROLLMENT_TIMESTAMP] = enrollment_time \
                     and enrollment_time.timestamp()
-                enrollment[DBc.FIELD_ENROLLMENT_ACTION] = FormatEnrollmentFile.action.get(records[
-                                                                                          3])
+                enrollment[DBc.FIELD_ENROLLMENT_ACTION] = FormatEnrollmentFile.action.get(records[3])
                 enrollments.append(enrollment)
                 # fill in user collection
                 if enrollment[DBc.FIELD_ENROLLMENT_ACTION] == FormatEnrollmentFile.ENROLL:
@@ -560,9 +551,12 @@ class FormatEnrollmentFile(PipeModule):
                     users[user_id][DBc.FIELD_USER_DROPPED_COURSE_IDS].add(course_id)
                     users[user_id][DBc.FIELD_USER_COURSE_IDS].discard(course_id)
                     courses[course_id][DBc.FIELD_COURSE_STUDENT_IDS].discard(user_id)
-            except BaseException as ex:
+            except ValueError as ex:
                 warn(ex)
-                warn("enrollment userId " + user_id + ", courseId " + course_id)
+                warn(course_id)
+            # except BaseException as ex:
+            #     warn(ex)
+            #     warn("enrollment userId " + user_id + ", courseId " + course_id)
 
         processed_data = raw_data
         # course and users collection are completed
@@ -757,13 +751,13 @@ class DumpToDB(PipeModule):
                 collection.insert_many(db_data[collection_name])
         return raw_data
 
-class SetEncoder(json.JSONEncoder):
-    # pylint: disable=E0202
+# class SetEncoder(json.JSONEncoder):
+#     # pylint: disable=E0202
 
-    def default(self, obj):
+#     def default(self, obj):
 
-        if type(obj) is set:
-            return list(obj)
-        elif isinstance(obj, ObjectId):
-            return str(obj)
-        return json.JSONEncoder.default(self, obj)
+#         if type(obj) is set:
+#             return list(obj)
+#         elif isinstance(obj, ObjectId):
+#             return str(obj)
+#         return json.JSONEncoder.default(self, obj)
