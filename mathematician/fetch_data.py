@@ -115,14 +115,20 @@ class DownloadFileFromServer():
             info('Finish decompress log-files')
             # cache the metaInfo of log files into database
             info('Begin to cache the metainfo of log-files into mongoDB')
-            new_meta_items = [{
-                DBC.FIELD_METADBFILES_CREATEDAT: now,
-                DBC.FIELD_METADBFILES_FILEPATH: res.get_content(),
-                DBC.FIELD_METADBFILES_ETAG: res.get_headers().get(FIELD_MD5),
-                DBC.FIELD_METADBFILES_TYPE: DBC.TYPE_CLICKSTREAM,
-                DBC.FIELD_METADBFILES_LAST_MODIFIED: res.get_headers().get(FIELD_LAST_MODIFIED),
-                DBC.FIELD_METADBFILES_PROCESSED: False,
-            } for res in downloaded_files if os.path.exists(res.get_content())]
+            new_meta_items = []
+            for res in downloaded_files:
+                headers = res.get_headers()
+                file_path = res.get_content()
+                file_path = file_path[:file_path.rindex('.')]
+                if os.path.exists(file_path):
+                    new_meta_items.append({
+                        DBC.FIELD_METADBFILES_CREATEDAT: now,
+                        DBC.FIELD_METADBFILES_FILEPATH: file_path,
+                        DBC.FIELD_METADBFILES_ETAG: headers.get(FIELD_MD5),
+                        DBC.FIELD_METADBFILES_TYPE: DBC.TYPE_CLICKSTREAM,
+                        DBC.FIELD_METADBFILES_LAST_MODIFIED: headers.get(FIELD_LAST_MODIFIED),
+                        DBC.FIELD_METADBFILES_PROCESSED: False,
+                    })
             # if no log has been downloaded, add a empty log record
             if len(new_meta_items) > 0:
                 self._db.get_collection(DBC.COLLECTION_METADBFILES).insert_many(new_meta_items)
@@ -203,7 +209,8 @@ class DownloadFileFromServer():
 
         info("Begin to download DB snapshots, totally " + str(len(urls)) + " files, pleas wait")
         downloaded_files = self.__http_connection.download_files(urls, save_dir)
-        info("Finish download DB snapshots. The files we downloaded is "+",".join(downloaded_files))
+        info("Finish download DB snapshots. The files we downloaded is "+
+             ",".join([res.get_content() for res in downloaded_files]))
         if len(urls) == 0:
             return new_meta_items
         for response in downloaded_files:
