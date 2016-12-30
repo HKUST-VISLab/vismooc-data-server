@@ -9,6 +9,8 @@ from datetime import timedelta, datetime
 import queue
 from bson import ObjectId
 import bson
+import urllib
+from ..logger import warn, info
 from ..http_helper import get as http_get, get_list as http_get_list
 from ..pipe import PipeModule
 from ..DB.mongo_dbhelper import MongoDB
@@ -92,7 +94,7 @@ class ExtractRawData(PipeModule):
 
         module_structure_filename = None
 
-        print("Processing ExtractRawData")
+        info("Processing ExtractRawData")
         for filename in raw_data_filenames:
             if FilenameConfig.SQLDB_FILE in filename:
                 with open(filename, 'r', encoding='utf-8') as file:
@@ -195,6 +197,8 @@ class FormatCourseStructFile(PipeModule):
         self.course_structures = raw_data.get('course_in_mongo') or {}
 
     def get_video_url_duration_from_sql(self):
+        '''Fetch video url and duration from sqlsnapshot
+        '''
         video_id_url = {}
         for video_encode_item in self.video_encode:
             video_encode_items = split(video_encode_item)
@@ -209,8 +213,15 @@ class FormatCourseStructFile(PipeModule):
                 self.video_url_duration[record[4]] = video_id_url[record[0]]
 
     def parse_video_duration(self, url):
+        '''Parse the video duration from the url
+        '''
         header = {"Range": "bytes=0-100"}
-        result = http_get(url, header)
+        try:
+            result = http_get(url, header)
+        except urllib.error.URLError as ex:
+            warn("May be ssl and certificate problem in parse video duration")
+            warn(ex)
+            return -1
         if result.get_return_code() < 200 or result.get_return_code() >= 300:
             return -1
         video_length = -1
@@ -233,12 +244,12 @@ class FormatCourseStructFile(PipeModule):
             infos = struct.unpack('>12x2I', data)
             video_length = int(infos[1]) // int(infos[0])
         except BaseException as ex:
-            print(ex)
-            print("Parse video: "+ url + "duration failed")
+            warn(ex)
+            warn("Parse video: "+ url + "duration failed")
         return video_length
 
     def process(self, raw_data, raw_data_filenames=None):
-        print("Processing FormatCourseStructFile")
+        info("Processing FormatCourseStructFile")
 
         self.load_data(raw_data)
         course_instructors = {}
@@ -274,8 +285,8 @@ class FormatCourseStructFile(PipeModule):
             try:
                 course_id = course_id[course_id.index(':') + 1:]
             except ValueError as ex:
-                print(ex)
-                print(course_id)
+                warn(ex)
+                warn(course_id)
                 continue
             course_id = course_id.replace('.', '_')
             user_id = records[4]
@@ -311,8 +322,8 @@ class FormatCourseStructFile(PipeModule):
                 try:
                     course_original_id = course_original_id[course_original_id.index(':') + 1:]
                 except ValueError as ex:
-                    print(ex)
-                    print(course_original_id)
+                    warn(ex)
+                    warn(course_original_id)
                     continue
                 course_original_id = course_original_id.replace('.', '_')
                 # construct the course object
@@ -343,8 +354,6 @@ class FormatCourseStructFile(PipeModule):
                 course[DBc.FIELD_COURSE_MOBILE_AVAILABLE] = course_records[23]
                 course[DBc.FIELD_COURSE_DISPLAY_NUMBER_WITH_DEFAULT] = course_records[6]
                 course_structure = self.course_structures.get(course_original_id)
-                if course_original_id == "HKUST+COMP102_1+2016_Q4_R1":
-                    print(course_structure)
                 if course_structure:
                     for block in course_structure.get('blocks'):
                         if block.get('block_type') == 'course':
@@ -385,8 +394,8 @@ class FormatCourseStructFile(PipeModule):
                                                     video_original_id)
                 courses[course_original_id] = course
             except BaseException as ex:
-                print(ex)
-                print("Wrong at " + course_original_id)
+                warn(ex)
+                warn("Wrong at " + course_original_id)
 
         # fetch the video duration from youtube_api_v3
         urls = [self.youtube_api + '&id=' +
@@ -436,7 +445,7 @@ class FormatUserFile(PipeModule):
         self.course_access_role = raw_data.get('student_courseaccessrole') or []
 
     def process(self, raw_data, raw_data_filenames=None):
-        print("Processing FormatUserFile")
+        info("Processing FormatUserFile")
         self.load_data(raw_data)
         if self.raw_user_profile is not None:
             for record in self.raw_user_profile:
@@ -453,8 +462,8 @@ class FormatUserFile(PipeModule):
             try:
                 course_id = course_id[course_id.index(':') + 1:]
             except ValueError as ex:
-                print(ex)
-                print(course_id)
+                warn(ex)
+                warn(course_id)
             course_id = course_id.replace('.', '_')
             self.user_roles.setdefault(records[4], {}).setdefault(course_id, []).append(records[3])
 
@@ -484,8 +493,8 @@ class FormatUserFile(PipeModule):
                 user[DBc.FIELD_USER_COURSE_ROLE] = self.user_roles.get(user_id) or {}
                 users[user[DBc.FIELD_USER_ORIGINAL_ID]] = user
             except BaseException as ex:
-                print(ex)
-                print("Wrong at " + user_id)
+                warn(ex)
+                warn("Wrong at " + user_id)
 
         processed_data = raw_data
         # user collection needs courseIds and droppedCourseIds
@@ -511,7 +520,7 @@ class FormatEnrollmentFile(PipeModule):
         self.course_enrollment = raw_data.get('student_courseenrollment') or []
 
     def process(self, raw_data, raw_data_filenames=None):
-        print("Processing FormatEnrollmentFile")
+        info("Processing FormatEnrollmentFile")
         self.load_data(raw_data)
         if self.course_enrollment is None:
             return raw_data
@@ -529,8 +538,8 @@ class FormatEnrollmentFile(PipeModule):
                 try:
                     course_id = course_id[course_id.index(':') + 1:]
                 except ValueError as ex:
-                    print(ex.args)
-                    print(course_id)
+                    warn(ex.args)
+                    warn(course_id)
                     continue
                 course_id = course_id.replace('.', '_')
                 enrollment_time = datetime.strptime(records[2], pattern_time) \
@@ -552,8 +561,8 @@ class FormatEnrollmentFile(PipeModule):
                     users[user_id][DBc.FIELD_USER_COURSE_IDS].discard(course_id)
                     courses[course_id][DBc.FIELD_COURSE_STUDENT_IDS].discard(user_id)
             except BaseException as ex:
-                print(ex)
-                print("enrollment userId " + user_id + ", courseId " + course_id)
+                warn(ex)
+                warn("enrollment userId " + user_id + ", courseId " + course_id)
 
         processed_data = raw_data
         # course and users collection are completed
@@ -580,7 +589,7 @@ class FormatLogFile(PipeModule):
                     yield raw_data
 
     def process(self, raw_data, raw_data_filenames=None):
-        print("Processing log files")
+        info("Processing log files")
         all_data_to_be_processed = self.load_data(raw_data_filenames)
 
         if all_data_to_be_processed is None:
@@ -614,7 +623,7 @@ class FormatLogFile(PipeModule):
         count = 0
         for data_to_be_processed in all_data_to_be_processed:
             count += 1
-            print("This is " + str(count) + "th log file")
+            info("This is " + str(count) + "th log file")
             for line in data_to_be_processed:
                 try:
                     event_type = re_right_eventtype.search(line)
@@ -649,15 +658,15 @@ class FormatLogFile(PipeModule):
                                 str_event_time = str_event_time[:str_event_time.index("+")] + \
                                     '.000000' + str_event_time[str_event_time.index("+"):]
                             except ValueError as ex:
-                                print(ex)
-                                print(str_event_time)
+                                warn(ex)
+                                warn(str_event_time)
                         course_id = event_context.get('course_id')
 
                         try:
                             course_id = course_id[course_id.index(':') + 1:]
                         except ValueError as ex:
-                            print(ex)
-                            print(course_id)
+                            warn(ex)
+                            warn(course_id)
                             continue
                         course_id = course_id.replace('.', '_')
                         target_attrs = {'path':'path', 'code':'code', 'currentTime':'currentTime',\
@@ -701,8 +710,8 @@ class FormatLogFile(PipeModule):
                                 temporal_hotness[date_time] = 0
                             temporal_hotness[date_time] += 1
                 except BaseException as ex:
-                    print(ex)
-                    print("log file parse problem")
+                    warn(ex)
+                    warn("log file parse problem")
 
         processed_data = raw_data
         processed_data['data'][DBc.COLLECTION_VIDEO_LOG] = events
@@ -719,7 +728,7 @@ class DumpToDB(PipeModule):
                                       DBc.COLLECTION_USER, DBc.COLLECTION_VIDEO]
 
     def process(self, raw_data, raw_data_filenames=None):
-        print("Insert data to DB")
+        info("Insert data to DB")
         db_data = raw_data['data']
         # cast from set to list
         courses = db_data.get(DBc.COLLECTION_COURSE)
@@ -746,9 +755,7 @@ class DumpToDB(PipeModule):
                 collection.delete_many({})
             if db_data[collection_name] and len(db_data[collection_name]) > 0:
                 collection.insert_many(db_data[collection_name])
-
         return raw_data
-
 
 class SetEncoder(json.JSONEncoder):
     # pylint: disable=E0202
