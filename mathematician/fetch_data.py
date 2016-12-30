@@ -22,7 +22,7 @@ class DownloadFileFromServer():
         self.__token = access_token or TPK.HKMooc_access_token
         self.__host = host or DS.HOST
         self.__http_connection = http.HttpConnection(self.__host)
-        self.__latest_clickstream_ts = 0
+        self.__latest_clickstream_ts = int((datetime.now() - timedelta(days=1)).timestamp())
         self.__latest_mongo_ts = 0
         self.__latest_mysql_ts = 0
         self.__metainfo_downloaded = {}
@@ -243,9 +243,6 @@ class DownloadFileFromServer():
 
     def decompress_files(self, file_paths, compress_algorithm):
         """ This method is to verify and decompress file using specified algorithm.
-            Use md5 to verify files' data intergrity.
-            The parameter `file_md5` is a dict in which key is file name you want
-            to check and value is md5 value.
         """
         if compress_algorithm not in ["gzip", "gtar"]:
             raise Exception("Unsupported compress algorithm " + compress_algorithm)
@@ -255,20 +252,19 @@ class DownloadFileFromServer():
                 continue
             if compress_algorithm == "gzip":
                 chunk_size = 1 << 16
-                with open(file_path, 'rb') as file:
+                with gzip.open(file_path, "rb") as file:
                     new_file_path = file_path[:file_path.rindex('.')]
-                    file_out = gzip.open(new_file_path, "wb")
+                    file_out = open(new_file_path, "wb")
                     while True:
                         chunk = file.read(chunk_size)
                         if not chunk:
                             break
                         file_out.write(chunk)
                     file_out.close()
-                    os.remove(file_path)
+                os.remove(file_path)
             elif compress_algorithm == "gtar":
                 try:
                     with tarfile.open(file_path, 'r') as tar:
-                        # tar_root = tar.getnames()[0]
                         tar.extractall(path=os.path.dirname(file_path))
                 except tarfile.TarError as ex:
                     warn("Extract file from mongodbsnapshot failed!")
