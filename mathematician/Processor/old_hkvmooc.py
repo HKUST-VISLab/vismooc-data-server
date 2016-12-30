@@ -2,7 +2,7 @@ import re
 import json
 from datetime import timedelta, datetime
 from operator import itemgetter
-import mathematician.httphelper as httphelper
+import mathematician.http_helper as httphelper
 from bson import ObjectId
 from ..pipe import PipeModule
 from ..DB.mongo_dbhelper import MongoDB
