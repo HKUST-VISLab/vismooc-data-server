@@ -182,18 +182,24 @@ def download_single_file(url, save_dir=None, headers=None, params=None, common_s
             time.sleep(delay)
         else:
             response_headers = response.info()
+            # get content type
             content_type = response_headers.get('Content-Type')
             file_ext = content_type[content_type.rindex('/')+1:] if content_type else None
             if file_ext:
                 file_path += "." + file_ext
+            # get content length
             file_total_length = response_headers.get('Content-Length')
             file_total_length = int(file_total_length) if file_total_length else 0
             if file_total_length == 0:
                 info("The conent length of "+url+" is 0, finish downloading")
                 return
+            # get md5
+            md5_checksum = response_headers.get("Content-MD5") or md5_checksum
+            # set progress info
             inverse_file_total_length = 100 / file_total_length # in percentage
             file_progress_length = 0
             current_percent = -1
+            # begin to download
             with open(file_path+".tmp", 'wb') as file:
                 while True:
                     block = response.read(8192)
@@ -206,7 +212,7 @@ def download_single_file(url, save_dir=None, headers=None, params=None, common_s
                         progressbar(url, file_progress_length, file_total_length)
                     file.write(block)
                 response.close()
-            if md5_checksum is not None:
+            if md5_checksum:
                 md5 = hashlib.md5()
                 with open(file_path+".tmp", "rb") as file:
                     chunk_size = 128 * md5.block_size
@@ -224,7 +230,7 @@ def download_single_file(url, save_dir=None, headers=None, params=None, common_s
             if os.path.exists(file_path):
                 os.remove(file_path)
             os.rename(file_path+".tmp", file_path)
-            return file_path
+            return HttpResponse(response.status, response.headers, file_path)
 
 def download_multi_files(urls, save_dir, headers=None, common_suffix='', md5_checksums=None,
                          retry_time=5, delay=1, process_pool_size=(os.cpu_count() or 1)):
@@ -243,6 +249,8 @@ def download_multi_files(urls, save_dir, headers=None, common_suffix='', md5_che
         len_md5s = len(md5_checksums)
         if len_md5s < len_urls:
             len_md5s += [None] * (len_urls - len_md5s)
+    else:
+        md5_checksums = [None] * len(urls)
     if not path.exists(save_dir):
         raise Exception("The directory not exists")
 
@@ -289,10 +297,10 @@ class HttpConnection:
             raise TypeError('The key and value of a header must not be None')
         self.__headers[key] = value
 
-    def get(self, url, params=None):
+    def get(self, url, params=None, retry_time=5, delay=1):
         '''The http GET method
         '''
-        response = get(self.__host + url, self.headers, params)
+        response = get(self.__host + url, self.headers, params, retry_time, delay)
         if response is not None:
             if response.get_headers().get("Set-Cookie") is not None:
                 self.__headers["Cookie"] = response.get_headers().get("Set-Cookie")
@@ -300,10 +308,10 @@ class HttpConnection:
             warn("The response of HttpConnection GET is None")
         return response
 
-    def head(self, url, params=None):
+    def head(self, url, params=None, retry_times=5, delay=1):
         '''The http HEAD method
         '''
-        response = head(self.__host + url, self.headers, params)
+        response = head(self.__host + url, self.headers, params, retry_times, delay)
         if response is not None:
             if response.get_headers().get("Set-Cookie") is not None:
                 self.__headers["Cookie"] = response.get_headers().get("Set-Cookie")
@@ -311,10 +319,10 @@ class HttpConnection:
             warn("The response of HttpConnection HEAD is None")
         return response
 
-    def post(self, url, params):
+    def post(self, url, params, retry_time=5, delay=1):
         '''The http POST method
         '''
-        response = post(self.__host + url, self.headers, params)
+        response = post(self.__host + url, self.headers, params, retry_time, delay)
         if response is not None:
             if response.get_headers().get("Set-Cookie") is not None:
                 self.__headers["Cookie"] = response.get_headers().get("Set-Cookie")
