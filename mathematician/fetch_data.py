@@ -221,8 +221,6 @@ class DownloadFileFromServer():
         items = self.get_click_stream()
         snapshots = self.get_mongo_and_mysql_snapshot(overlay=overlay)
         mongo_files = None
-        print(items)
-        print(snapshots)
         for snapshot in snapshots:
             if snapshot.get(DBC.FIELD_METADBFILES_TYPE) == DBC.TYPE_MONGO:
                 file_path = snapshot.get(DBC.FIELD_METADBFILES_FILEPATH)
@@ -233,7 +231,6 @@ class DownloadFileFromServer():
         files = [item.get(DBC.FIELD_METADBFILES_FILEPATH) for item in items]
         if mongo_files:
             files += mongo_files
-        print(files)
         return files
 
     def decompress_files(self, file_paths, compress_algorithm):
