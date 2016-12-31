@@ -42,6 +42,15 @@ def split(text, separator=','):
             results.append("".join(tmp_stack))
             return results
 
+def try_parse_date(date_str, pattern="%Y-%m-%d %H:%M:%S.%f"):
+    '''Try to parse a date string and get the timestamp
+        If can not parse the string based on certain pattern, return None
+    '''
+    try:
+        return datetime.strptime(date_str, pattern).timestamp()
+    except ValueError:
+        return None
+
 class ExtractRawData(PipeModule):
     """ Preprocess the file to extract different lines for different tables
     """
@@ -184,14 +193,7 @@ class ParseCourseStructFile(PipeModule):
         self.videos = {video[DBC.FIELD_VIDEO_ORIGINAL_ID]:video for video in video_collection}
         self.courses = {course[DBC.FIELD_COURSE_ORIGINAL_ID]:course for course in course_collection}
 
-    def try_parse_date(self, date_str, pattern="%Y-%m-%d %H:%M:%S.%f"):
-        '''Try to parse a date string and get the timestamp
-           If can not parse the string based on certain pattern, return None
-        '''
-        try:
-            return datetime.strptime(date_str, pattern).timestamp()
-        except ValueError:
-            return None
+
 
     def parse_video_duration(self, datestring):
         '''Parse the duration of youtube video to human readable timestamp
@@ -302,11 +304,11 @@ class ParseCourseStructFile(PipeModule):
                     continue
                 course_original_id = course_original_id.replace('.', '_')
                 course = self.courses.get(course_original_id) or {}
-                course_start_time = self.try_parse_date(records[8])
-                course_end_time = self.try_parse_date(records[9])
-                advertised_start_time = self.try_parse_date(records[10])
-                enrollment_start_time = self.try_parse_date(records[26])
-                enrollment_end_time = self.try_parse_date(records[27])
+                course_start_time = try_parse_date(records[8])
+                course_end_time = try_parse_date(records[9])
+                advertised_start_time = try_parse_date(records[10])
+                enrollment_start_time = try_parse_date(records[26])
+                enrollment_end_time = try_parse_date(records[27])
                 # construct the course object
                 course[DBC.FIELD_COURSE_ORIGINAL_ID] = course_original_id
                 course[DBC.FIELD_COURSE_NAME] = records[5]
@@ -518,7 +520,6 @@ class ParseEnrollmentFile(PipeModule):
         self.load_data(raw_data)
         if self.course_enrollment is None:
             return raw_data
-        pattern_time = "%Y-%m-%d %H:%M:%S.%f"
         courses = raw_data[RD_DATA][DBC.COLLECTION_COURSE]
         users = raw_data[RD_DATA][DBC.COLLECTION_USER]
 
@@ -531,8 +532,7 @@ class ParseEnrollmentFile(PipeModule):
                 course_id = records[1]
                 course_id = course_id[course_id.index(':') + 1:]
                 course_id = course_id.replace('.', '_')
-                enrollment_time = datetime.strptime(records[2], pattern_time).timestamp() \
-                    if records[2] != "NULL" else None
+                enrollment_time = try_parse_date(records[2])
                 enrollment[DBC.FIELD_ENROLLMENT_USER_ID] = user_id
                 enrollment[DBC.FIELD_ENROLLMENT_COURSE_ID] = course_id
                 enrollment[DBC.FIELD_ENROLLMENT_TIMESTAMP] = enrollment_time
