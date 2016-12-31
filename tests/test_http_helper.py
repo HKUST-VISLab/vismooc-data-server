@@ -21,7 +21,7 @@ class TestHTTPHelperClass(unittest.TestCase):
         url = "http://foo"
         params = {'a':1, 'b':2}
         http.head(url=url, params=params)
-        args, = mock_urlopen.call_args
+        args, kwargs = mock_urlopen.call_args
         full_url = args[0].get_full_url()
         right_url = url + '?'
         for key in params:
