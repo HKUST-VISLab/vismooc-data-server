@@ -9,7 +9,6 @@ import queue
 import urllib
 from os.path import isfile
 from datetime import timedelta, datetime
-# from bson import ObjectId
 import bson
 
 from ..logger import warn, info
@@ -160,17 +159,9 @@ class ParseCourseStructFile(PipeModule):
             r"(?P<minutes>[0-9]+([,.][0-9]+)?M)?"
             r"(?P<seconds>[0-9]+([,.][0-9]+)?S)?)?$"
         )
-        # self.course_video_videokey = {}
-        # self.course_video_coursekey = {}
-        # self.video_duration = {}
         self.videos = None
         self.courses = None
-        # self.video_url_duration = {}
-        # self.video_id_info = {}
         self.course_overview = None
-        # self.edx_videos = None
-        # self.edx_course_videos = None
-        # self.video_encode = None
         self.course_access_role = None
         self.course_structures = None
 
@@ -182,9 +173,6 @@ class ParseCourseStructFile(PipeModule):
         '''Load target file
         '''
         self.course_overview = raw_data.get('course_overviews_courseoverview') or []
-        # self.edx_videos = raw_data.get('edxval_video') or []
-        # self.edx_course_videos = raw_data.get('edxval_coursevideo') or []
-        # self.video_encode = raw_data.get('edxval_encodedvideo') or []
         self.course_access_role = raw_data.get('student_courseaccessrole') or []
         self.course_structures = raw_data.get(RD_COURSE_IN_MONGO) or {}
         database = raw_data[RD_DB]
@@ -192,8 +180,6 @@ class ParseCourseStructFile(PipeModule):
         course_collection = database.get_collection(DBC.COLLECTION_COURSE).find({})
         self.videos = {video[DBC.FIELD_VIDEO_ORIGINAL_ID]:video for video in video_collection}
         self.courses = {course[DBC.FIELD_COURSE_ORIGINAL_ID]:course for course in course_collection}
-
-
 
     def parse_video_duration(self, datestring):
         '''Parse the duration of youtube video to human readable timestamp
@@ -749,14 +735,3 @@ class DumpToDB(PipeModule):
             if db_data[collection_name] and len(db_data[collection_name]) > 0:
                 collection.insert_many(db_data[collection_name])
         return raw_data
-
-# class SetEncoder(json.JSONEncoder):
-#     # pylint: disable=E0202
-
-#     def default(self, obj):
-
-#         if type(obj) is set:
-#             return list(obj)
-#         elif isinstance(obj, ObjectId):
-#             return str(obj)
-#         return json.JSONEncoder.default(self, obj)

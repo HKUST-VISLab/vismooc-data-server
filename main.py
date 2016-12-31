@@ -3,18 +3,18 @@
 
 import sys
 import os
-from os import listdir, makedirs
-from os.path import isfile, join, exists, abspath
+from os import makedirs
+from os.path import exists
 from datetime import datetime, timezone, timedelta
-
 from mathematician.fetch_data import DownloadFileFromServer
 from mathematician.pipe import PipeLine
 from mathematician.Processor import ParseCourseStructFile, ParseEnrollmentFile,\
     ParseLogFile, ParseUserFile, ExtractRawData, DumpToDB
 from mathematician import config
 
-
 def app():
+    '''The main entry of our script
+    '''
     # Hong Kong Time
     now = datetime.now(timezone(timedelta(hours=8)))
     dir_name = str(now.year) + '-' + str(now.month) + '-' + str(now.day - 1)
