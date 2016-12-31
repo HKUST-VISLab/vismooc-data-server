@@ -170,7 +170,7 @@ class ExtractRawData(PipeModule):
             raw_data[RD_DB] = MongoDB(DBC.DB_HOST, DBC.DB_NAME)
         return raw_data
 
-class FormatCourseStructFile(PipeModule):
+class ParseCourseStructFile(PipeModule):
     '''Parse the mongodb to get course info and video info
     '''
     order = 1
@@ -217,7 +217,7 @@ class FormatCourseStructFile(PipeModule):
     #         video_id = video_encode_items[7]
     #         video_url = video_encode_items[3]
     #         if "http" not in video_url:
-    #             video_url = FormatCourseStructFile.YOUTUBE_URL_PREFIX + video_url
+    #             video_url = ParseCourseStructFile.YOUTUBE_URL_PREFIX + video_url
     #         video_id_url[video_id] = video_url
     #     for video_item in self.edx_videos:
     #         record = split(video_item)
@@ -262,7 +262,7 @@ class FormatCourseStructFile(PipeModule):
         return video_length
 
     def process(self, raw_data, raw_data_filenames=None):
-        info("Processing FormatCourseStructFile")
+        info("Processing ParseCourseStructFile")
 
         self.load_data(raw_data)
         course_instructors = {}
@@ -285,7 +285,7 @@ class FormatCourseStructFile(PipeModule):
             try:
                 course_id = course_id[course_id.index(':') + 1:]
             except ValueError as ex:
-                warn("In FormatCourseStructFile, cannot get courseId when try to get access role of\
+                warn("In ParseCourseStructFile, cannot get courseId when try to get access role of\
                      course:"+course_id)
                 warn(ex)
                 continue
@@ -319,7 +319,7 @@ class FormatCourseStructFile(PipeModule):
                 try:
                     course_original_id = course_original_id[course_original_id.index(':') + 1:]
                 except ValueError as ex:
-                    warn("In FormatCourseStructFile, cannot get courseId when try to get originalId\
+                    warn("In ParseCourseStructFile, cannot get courseId when try to get originalId\
                          of course:"+course_original_id)
                     warn(ex)
                     continue
@@ -363,7 +363,7 @@ class FormatCourseStructFile(PipeModule):
                                                 video[DBC.FIELD_VIDEO_ORIGINAL_ID] = video_original_id
                                                 video[DBC.FIELD_VIDEO_NAME] = fields.get(
                                                     'display_name')
-                                                video[DBC.FIELD_VIDEO_URL] = (fields.get('youtube_id_1_0') and FormatCourseStructFile.YOUTUBE_URL_PREFIX + fields.get('youtube_id_1_0')) or \
+                                                video[DBC.FIELD_VIDEO_URL] = (fields.get('youtube_id_1_0') and ParseCourseStructFile.YOUTUBE_URL_PREFIX + fields.get('youtube_id_1_0')) or \
                                                     (fields.get('html5_sources')
                                                      and fields.get('html5_sources')[0])
                                                 video[DBC.FIELD_VIDEO_TEMPORAL_HOTNESS] = {}
@@ -398,7 +398,7 @@ class FormatCourseStructFile(PipeModule):
                                                     video_original_id)
                 courses[course_original_id] = course
             except BaseException as ex:
-                warn("In FormatCourseStructFile, cannot get the course information of course:"\
+                warn("In ParseCourseStructFile, cannot get the course information of course:"\
                      +course_original_id)
                 warn(ex)
 
@@ -430,7 +430,7 @@ class FormatCourseStructFile(PipeModule):
         return processed_data
 
 
-class FormatUserFile(PipeModule):
+class ParseUserFile(PipeModule):
     '''Parse user information from db snapshot
     '''
     order = 2
@@ -455,7 +455,7 @@ class FormatUserFile(PipeModule):
         self.users = {user[DBC.FIELD_VIDEO_ORIGINAL_ID]: user for user in user_collection}
 
     def process(self, raw_data, raw_data_filenames=None):
-        info("Processing FormatUserFile")
+        info("Processing ParseUserFile")
         self.load_data(raw_data)
         for record in self.raw_user_profile:
             fields = split(record)
@@ -471,7 +471,7 @@ class FormatUserFile(PipeModule):
             try:
                 course_id = course_id[course_id.index(':') + 1:]
             except ValueError as ex:
-                warn("In FormatUserFile, cannot get courseId when try to get access role of\
+                warn("In ParseUserFile, cannot get courseId when try to get access role of\
                      course:"+course_id)
                 warn(ex)
             course_id = course_id.replace('.', '_')
@@ -502,7 +502,7 @@ class FormatUserFile(PipeModule):
                 user[DBC.FIELD_USER_COURSE_ROLE] = self.user_roles.get(user_id) or {}
                 self.users[user_id] = user
             except BaseException as ex:
-                warn("In FormatUserFile, cannot get the user information of record:"+record)
+                warn("In ParseUserFile, cannot get the user information of record:"+record)
                 warn(ex)
 
         processed_data = raw_data
