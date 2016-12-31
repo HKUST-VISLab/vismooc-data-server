@@ -4,6 +4,7 @@
 import tarfile
 import gzip
 import os
+from os.path import join
 from datetime import datetime, timedelta
 from . import http_helper as http
 from .DB import mongo_dbhelper
@@ -140,49 +141,7 @@ class DownloadFileFromServer():
         else:
             warn("In get_click_stream(), the return code of server is not 200")
 
-    def get_mongo_snapshot(self, save_dir=None):
-        '''Get the mongo snapshot
-        '''
-        self.set_token()
-        now = int(datetime.now().timestamp())
-        save_dir = save_dir or self.__save_dir
-        new_meta_items = []
-
-        # check what file should be downloaded
-        info("Begin to analyze which snapshots need to be downloaded")
-        urls = []
-        md5s = []
-
-        mysql_header = self.__http_connection.head(DS.SQLDB_URL).get_headers()
-        mysql_md5 = mysql_header.get(FIELD_MD5)
-        mysql_etag = mysql_header.get(FIELD_ETAG)
-        mysql_last_modified = mysql_header.get(FIELD_LAST_MODIFIED)
-        if mysql_etag and mysql_etag not in self.__metainfo_downloaded.keys():
-            urls.append(DS.SQLDB_URL)
-            md5s.append(mysql_md5)
-
-        info("Begin to download DB snapshots, totally " + str(len(urls)) + " files, pleas wait")
-        file_path = self.__http_connection.download_file(urls[0], save_dir, md5_checksum=md5s[0])
-        info("Finish download DB snapshots. The files we downloaded is " + file_path)
-        if FC.SQLDB_FILE in file_path:
-            info("Begin to decompress the mysql snapshot")
-            self.decompress_files([file_path, ], "gzip")
-            info("Finish decompressing the mysql snapshot")
-            # cache the file info if  it has been downloaded successfully
-            item = {
-                DBC.FIELD_METADBFILES_CREATEDAT: now,
-                DBC.FIELD_METADBFILES_LAST_MODIFIED: mysql_last_modified,
-                DBC.FIELD_METADBFILES_ETAG: mysql_etag,
-                DBC.FIELD_METADBFILES_FILEPATH: os.path.join(save_dir, FC.SQLDB_FILE),
-                DBC.FIELD_METADBFILES_TYPE: DBC.TYPE_MYSQL
-            }
-            new_meta_items.append(item)
-        info('Begin to cache the metainfo of dbsnapshots into mongoDB')
-        self._db.get_collection(DBC.COLLECTION_METADBFILES).insert_many(new_meta_items)
-        info('Finish caching the metainfo of dbsnapshots into mongoDB')
-        return new_meta_items
-
-    def get_mongo_and_mysql_snapshot(self, save_dir=None):
+    def get_mongo_and_mysql_snapshot(self, save_dir=None, overlay=False):
         """ Download mongodb and mysql snapshot
         """
         self.set_token()
@@ -197,15 +156,19 @@ class DownloadFileFromServer():
         # mongo_md5 = mongo_header.get(FIELD_MD5)
         mongo_etag = mongo_header.get(FIELD_ETAG)
         mongo_last_modified = mongo_header.get(FIELD_LAST_MODIFIED)
-        if mongo_etag and mongo_etag not in self.__metainfo_downloaded.keys():
+        if mongo_etag not in self.__metainfo_downloaded:
             urls.append(DS.MONGODB_URL)
+        elif overlay:
+            new_meta_items.append(self.__metainfo_downloaded[mongo_etag])
 
         mysql_header = self.__http_connection.head(DS.SQLDB_URL).get_headers()
         # mysql_md5 = mysql_header.get(FIELD_MD5)
         mysql_etag = mysql_header.get(FIELD_ETAG)
         mysql_last_modified = mysql_header.get(FIELD_LAST_MODIFIED)
-        if mysql_etag and mysql_etag not in self.__metainfo_downloaded.keys():
+        if mysql_etag not in self.__metainfo_downloaded:
             urls.append(DS.SQLDB_URL)
+        elif overlay:
+            new_meta_items.append(self.__metainfo_downloaded[mysql_etag])
 
         info("Begin to download DB snapshots, totally " + str(len(urls)) + " files, pleas wait")
         downloaded_files = self.__http_connection.download_files(urls, save_dir)
@@ -247,6 +210,31 @@ class DownloadFileFromServer():
         self._db.get_collection(DBC.COLLECTION_METADBFILES).insert_many(new_meta_items)
         info('Finish caching the metainfo of dbsnapshots into mongoDB')
         return new_meta_items
+
+    def get_files_to_be_processed(self, overlay=False):
+        '''Fetch the files to be processed
+           If there are new dbsnapshots, this function will download the new dbsnapshots and return
+           the file path to these snapshots. Otherise, you can decided whether the program should
+           re-process the snapshots by passing the param `overlay`(True for re-processing and False
+           for does not).
+        '''
+        items = self.get_click_stream()
+        snapshots = self.get_mongo_and_mysql_snapshot(overlay=overlay)
+        mongo_files = None
+        print(items)
+        print(snapshots)
+        for snapshot in snapshots:
+            if snapshot.get(DBC.FIELD_METADBFILES_TYPE) == DBC.TYPE_MONGO:
+                file_path = snapshot.get(DBC.FIELD_METADBFILES_FILEPATH)
+                file_path = file_path[:file_path.rindex(os.sep)]
+                mongo_files = [join(file_path, FC.ACTIVE_VERSIONS), join(file_path, FC.STRUCTURES)]
+            else:
+                items.append(snapshot)
+        files = [item.get(DBC.FIELD_METADBFILES_FILEPATH) for item in items]
+        if mongo_files:
+            files += mongo_files
+        print(files)
+        return files
 
     def decompress_files(self, file_paths, compress_algorithm):
         """ This method is to verify and decompress file using specified algorithm.
