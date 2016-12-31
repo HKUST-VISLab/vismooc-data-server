@@ -472,7 +472,7 @@ class ParseUserFile(PipeModule):
                 course_id = course_id[course_id.index(':') + 1:]
             except ValueError as ex:
                 warn("In ParseUserFile, cannot get courseId when try to get access role of\
-                     course:"+course_id)
+                     course:"+access_role)
                 warn(ex)
             course_id = course_id.replace('.', '_')
             self.user_roles.setdefault(records[4], {}).setdefault(course_id, []).append(records[3])
@@ -502,7 +502,8 @@ class ParseUserFile(PipeModule):
                 user[DBC.FIELD_USER_COURSE_ROLE] = self.user_roles.get(user_id) or {}
                 self.users[user_id] = user
             except BaseException as ex:
-                warn("In ParseUserFile, cannot get the user information of record:"+record)
+                warn("In ParseUserFile, cannot get the user information of record:"+record+", and\
+                     userProfile:"+user_profile)
                 warn(ex)
 
         processed_data = raw_data
