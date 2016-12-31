@@ -13,6 +13,7 @@ from mathematician.Processor import FormatCourseStructFile, FormatEnrollmentFile
     FormatLogFile, FormatUserFile, ExtractRawData, DumpToDB
 from mathematician import config
 
+
 def app():
     # Hong Kong Time
     now = datetime.now(timezone(timedelta(hours=8)))
@@ -23,10 +24,11 @@ def app():
     start_time = datetime.now()
     download = DownloadFileFromServer(dir_name)
     file_names = download.get_files_to_be_processed(True)
-    pipeLine = PipeLine()
-    pipeLine.input_files(file_names).pipe(FormatCourseStructFile()).pipe(FormatEnrollmentFile()).pipe(
-        FormatLogFile()).pipe(FormatUserFile()).pipe(ExtractRawData()).pipe(DumpToDB())
-    pipeLine.excute()
+    pipeline = PipeLine()
+    pipeline.input_files(file_names).pipe(FormatCourseStructFile()).pipe(
+        FormatEnrollmentFile()).pipe(FormatLogFile()).pipe(FormatUserFile()).pipe(
+            ExtractRawData()).pipe(DumpToDB())
+    pipeline.excute()
     print('spend time:' + str(datetime.now() - start_time))
 
 if __name__ == "__main__":
@@ -34,4 +36,3 @@ if __name__ == "__main__":
     if len(sys.argv) >= 2:
         config.init_config(sys.argv[1])
     app()
-
