@@ -50,6 +50,11 @@ def try_parse_date(date_str, pattern="%Y-%m-%d %H:%M:%S.%f"):
     except ValueError:
         return None
 
+def try_get_timestamp(date):
+    '''Try to get timestamp from a object
+    '''
+    return date and date.timestamp()
+
 class ExtractRawData(PipeModule):
     """ Preprocess the file to extract different lines for different tables
     """
@@ -274,8 +279,10 @@ class ParseCourseStructFile(PipeModule):
             course_instructors.setdefault(course_id, []).append(user_id)
 
         course_year = "course_year"
+        section_sep = ">>"
         course_year_pattern = r'^course-[\w|:|\+]+(?P<' + course_year + r'>[0-9]{4})\w*'
         re_course_year = re.compile(course_year_pattern)
+
         for course_item in self.course_overview:
             try:
                 records = split(course_item)
@@ -289,11 +296,7 @@ class ParseCourseStructFile(PipeModule):
                     continue
                 course_original_id = course_original_id.replace('.', '_')
                 course = self.courses.get(course_original_id) or {}
-                course_start_time = try_parse_date(records[8])
-                course_end_time = try_parse_date(records[9])
                 advertised_start_time = try_parse_date(records[10])
-                enrollment_start_time = try_parse_date(records[25])
-                enrollment_end_time = try_parse_date(records[26])
                 # construct the course object
                 course[DBC.FIELD_COURSE_ORIGINAL_ID] = course_original_id
                 course[DBC.FIELD_COURSE_NAME] = records[5]
@@ -306,11 +309,6 @@ class ParseCourseStructFile(PipeModule):
                 course[DBC.FIELD_COURSE_URL] = None
                 course[DBC.FIELD_COURSE_IMAGE_URL] = records[11]
                 course[DBC.FIELD_COURSE_DESCRIPTION] = records[34]
-                # a set of timestamp
-                course[DBC.FIELD_COURSE_STARTTIME] = course_start_time
-                course[DBC.FIELD_COURSE_ENDTIME] = course_end_time
-                course[DBC.FIELD_COURSE_ENROLLMENT_START] = enrollment_start_time
-                course[DBC.FIELD_COURSE_ENROLLMENT_END] = enrollment_end_time
                 course[DBC.FIELD_COURSE_ADVERTISED_START] = advertised_start_time
 
                 course[DBC.FIELD_COURSE_STUDENT_IDS] = set()
@@ -320,54 +318,54 @@ class ParseCourseStructFile(PipeModule):
                 course[DBC.FIELD_COURSE_MOBILE_AVAILABLE] = records[22]
                 course[DBC.FIELD_COURSE_DISPLAY_NUMBER_WITH_DEFAULT] = records[6]
                 course_structure = self.course_structures.get(course_original_id)
+
+                # pylint: disable=C0301
                 if course_structure:
-                    section_sep = ">>"
                     for block in course_structure.get('blocks'):
-                        if block.get('block_type') == 'course':
-                            for chapter in block['fields']['children']:
-                                for sequential in chapter['fields']['children']:
-                                    for vertical in sequential['fields']['children']:
-                                        for leaf in vertical['fields']['children']:
+                        if block.get('block_type') == 'course' and block.get('field'):
+                            block_field = block.get('field')
+                            course[DBC.FIELD_COURSE_STARTTIME] = try_get_timestamp(block_field.get('start'))
+                            course[DBC.FIELD_COURSE_ENDTIME] = try_get_timestamp(block_field.get('end'))
+                            course[DBC.FIELD_COURSE_ENROLLMENT_START] = try_get_timestamp(block_field.get('enrollment_start'))\
+                                                                        or course[DBC.FIELD_COURSE_STARTTIME]
+                            course[DBC.FIELD_COURSE_ENROLLMENT_END] = try_get_timestamp(block_field.get('enrollment_end'))
+                            course[DBC.FIELD_COURSE_NAME] = block_field.get('display_name')
+                            course[DBC.FIELD_COURSE_MOBILE_AVAILABLE] = block_field.get('mobile_available')
+                            for chapter_idx, chapter in enumerate(block_field['children']):
+                                for sequential_idx, sequential in enumerate(chapter['fields']['children']):
+                                    for vetical_idx, vertical in enumerate(sequential['fields']['children']):
+                                        for leaf_idx, leaf in enumerate(vertical['fields']['children']):
                                             if leaf.get('block_type') == 'video' and leaf.get("fields"):
                                                 fields = leaf.get('fields')
-                                                video_original_id = leaf.get('block_id')
-                                                video = {}
+                                                video_original_id = str(leaf.get('definition'))
+                                                video = self.videos.get(video_original_id) or {}
                                                 video[DBC.FIELD_VIDEO_ORIGINAL_ID] = video_original_id
-                                                video[DBC.FIELD_VIDEO_NAME] = fields.get(
-                                                    'display_name')
-                                                video[DBC.FIELD_VIDEO_URL] = (fields.get('youtube_id_1_0') and ParseCourseStructFile.YOUTUBE_URL_PREFIX + fields.get('youtube_id_1_0')) or \
-                                                    (fields.get('html5_sources')
-                                                     and fields.get('html5_sources')[0])
+                                                video[DBC.FIELD_VIDEO_NAME] = leaf_idx + section_sep + fields.get('display_name')
+                                                youtube_id = fields.get('youtube_id_1_0')
                                                 video[DBC.FIELD_VIDEO_TEMPORAL_HOTNESS] = {}
-                                                # this code seems is uselessfulle
-                                                # video[DBC.FIELD_VIDEO_DURATION] = self.video_url_duration.get(
-                                                #   video[DBC.FIELD_VIDEO_URL])
-                                                video[DBC.FIELD_VIDEO_DESCRIPTION] = fields.get(
-                                                    'display_name')
-                                                video[DBC.FIELD_VIDEO_SECTION] = chapter['fields']['display_name'] + section_sep + \
-                                                    sequential['fields']['display_name'] + \
-                                                    section_sep + vertical['fields']['display_name']
+                                                video[DBC.FIELD_VIDEO_DESCRIPTION] = fields.get('display_name')
+                                                video[DBC.FIELD_VIDEO_SECTION] = \
+                                                    chapter_idx + section_sep + chapter['fields']['display_name'] + section_sep +\
+                                                    sequential_idx + section_sep + sequential['fields']['display_name'] + section_sep +\
+                                                    vetical_idx + section_sep + vertical['fields']['display_name']
                                                 video[DBC.FIELD_VIDEO_COURSE_ID] = course_original_id
 
+                                                #TODO the logic need to be improved here
                                                 # if the url is unchange, use the old duration in db
-                                                new_url = video.get(DBC.FIELD_VIDEO_URL)
+                                                new_url = (youtube_id and ParseCourseStructFile.YOUTUBE_URL_PREFIX + youtube_id) or (fields.get('html5_sources') and fields.get('html5_sources')[0])
                                                 if video_original_id in self.videos:
-                                                    old_video = self.videos[video_original_id]
-                                                    old_url = old_video.get(DBC.FIELD_VIDEO_URL)
+                                                    old_url = video.get(DBC.FIELD_VIDEO_URL)
                                                     if  old_url == new_url:
-                                                        video[DBC.FIELD_VIDEO_DURATION] = old_video.get(DBC.FIELD_VIDEO_DURATION)
+                                                        video[DBC.FIELD_VIDEO_DURATION] = video.get(DBC.FIELD_VIDEO_DURATION)
                                                 # else if the url is from youtube
                                                 elif new_url and 'youtube' in new_url:
                                                     youtube_id = new_url[new_url.index('v=') + 2:]
-                                                    tmp_youtube_video_dict[
-                                                        youtube_id] = video_original_id
+                                                    tmp_youtube_video_dict[youtube_id] = video_original_id
                                                 # else if the url is from other website
                                                 elif new_url:
-                                                    tmp_other_video_dict.setdefault(
-                                                        new_url, []).append(video_original_id)
+                                                    tmp_other_video_dict.setdefault(new_url, []).append(video_original_id)
                                                 self.videos[video_original_id] = video
-                                                course.setdefault(DBC.FIELD_COURSE_VIDEO_IDS, []).append(
-                                                    video_original_id)
+                                                course.setdefault(DBC.FIELD_COURSE_VIDEO_IDS, []).append(video_original_id)
                 self.courses[course_original_id] = course
             except BaseException as ex:
                 warn("In ParseCourseStructFile, cannot get the course information of course:"\
@@ -398,6 +396,7 @@ class ParseCourseStructFile(PipeModule):
 
         processed_data = raw_data
         processed_data[RD_DATA][DBC.COLLECTION_VIDEO] = self.videos
+        print(self.videos)
         processed_data[RD_DATA][DBC.COLLECTION_COURSE] = self.courses
         return processed_data
 
@@ -423,7 +422,7 @@ class ParseUserFile(PipeModule):
         self.course_access_role = raw_data.get('student_courseaccessrole') or []
         database = raw_data[RD_DB]
         user_collection = database.get_collection(DBC.COLLECTION_USER).find({})
-        self.users = {user[DBC.FIELD_VIDEO_ORIGINAL_ID]: user for user in user_collection}
+        self.users = {user[DBC.FIELD_USER_ORIGINAL_ID]: user for user in user_collection}
 
     def process(self, raw_data, raw_data_filenames=None):
         info("Processing ParseUserFile")
@@ -535,9 +534,10 @@ class ParseEnrollmentFile(PipeModule):
                 warn("In ParseEnrollmentFile, cannot get the enrollment information of item:"+\
                      enroll_item)
                 warn(ex)
-            # except BaseException as ex:
-            #     warn(ex)
-            #     warn("enrollment userId " + user_id + ", courseId " + course_id)
+            except BaseException as ex:
+                warn("In ParseEnrollmentFile, cannot get the enrollment information of item:"+\
+                     enroll_item)
+                warn(ex)
 
         processed_data = raw_data
         # course and users collection are completed
