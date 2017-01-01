@@ -23,7 +23,7 @@ class DownloadFileFromServer():
         self.__token = access_token or TPK.HKMooc_access_token
         self.__host = host or DS.HOST
         self.__http_connection = http.HttpConnection(self.__host)
-        self.__latest_clickstream_ts = int((datetime.now() - timedelta(days=1)).timestamp())
+        self.__latest_clickstream_ts = 0 #int((datetime.now() - timedelta(days=1)).timestamp())
         self.__latest_mongo_ts = 0
         self.__latest_mysql_ts = 0
         self.__metainfo_downloaded = {}
