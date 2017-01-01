@@ -276,7 +276,6 @@ class ParseCourseStructFile(PipeModule):
         course_year = "course_year"
         course_year_pattern = r'^course-[\w|:|\+]+(?P<' + course_year + r'>[0-9]{4})\w*'
         re_course_year = re.compile(course_year_pattern)
-
         for course_item in self.course_overview:
             try:
                 records = split(course_item)
@@ -293,8 +292,8 @@ class ParseCourseStructFile(PipeModule):
                 course_start_time = try_parse_date(records[8])
                 course_end_time = try_parse_date(records[9])
                 advertised_start_time = try_parse_date(records[10])
-                enrollment_start_time = try_parse_date(records[26])
-                enrollment_end_time = try_parse_date(records[27])
+                enrollment_start_time = try_parse_date(records[25])
+                enrollment_end_time = try_parse_date(records[26])
                 # construct the course object
                 course[DBC.FIELD_COURSE_ORIGINAL_ID] = course_original_id
                 course[DBC.FIELD_COURSE_NAME] = records[5]
@@ -306,7 +305,7 @@ class ParseCourseStructFile(PipeModule):
                 course[DBC.FIELD_COURSE_STATUS] = None
                 course[DBC.FIELD_COURSE_URL] = None
                 course[DBC.FIELD_COURSE_IMAGE_URL] = records[11]
-                course[DBC.FIELD_COURSE_DESCRIPTION] = records[35]
+                course[DBC.FIELD_COURSE_DESCRIPTION] = records[34]
                 # a set of timestamp
                 course[DBC.FIELD_COURSE_STARTTIME] = course_start_time
                 course[DBC.FIELD_COURSE_ENDTIME] = course_end_time
@@ -316,12 +315,13 @@ class ParseCourseStructFile(PipeModule):
 
                 course[DBC.FIELD_COURSE_STUDENT_IDS] = set()
                 course[DBC.FIELD_COURSE_METAINFO] = None
-                course[DBC.FIELD_COURSE_ORG] = records[36]
-                course[DBC.FIELD_COURSE_LOWEST_PASSING_GRADE] = records[21]
-                course[DBC.FIELD_COURSE_MOBILE_AVAILABLE] = records[23]
+                course[DBC.FIELD_COURSE_ORG] = records[35]
+                course[DBC.FIELD_COURSE_LOWEST_PASSING_GRADE] = records[20]
+                course[DBC.FIELD_COURSE_MOBILE_AVAILABLE] = records[22]
                 course[DBC.FIELD_COURSE_DISPLAY_NUMBER_WITH_DEFAULT] = records[6]
                 course_structure = self.course_structures.get(course_original_id)
                 if course_structure:
+                    section_sep = ">>"
                     for block in course_structure.get('blocks'):
                         if block.get('block_type') == 'course':
                             for chapter in block['fields']['children']:
@@ -344,9 +344,9 @@ class ParseCourseStructFile(PipeModule):
                                                 #   video[DBC.FIELD_VIDEO_URL])
                                                 video[DBC.FIELD_VIDEO_DESCRIPTION] = fields.get(
                                                     'display_name')
-                                                video[DBC.FIELD_VIDEO_SECTION] = chapter['fields']['display_name'] + ', ' + \
+                                                video[DBC.FIELD_VIDEO_SECTION] = chapter['fields']['display_name'] + section_sep + \
                                                     sequential['fields']['display_name'] + \
-                                                    ', ' + vertical['fields']['display_name']
+                                                    section_sep + vertical['fields']['display_name']
                                                 video[DBC.FIELD_VIDEO_COURSE_ID] = course_original_id
 
                                                 # if the url is unchange, use the old duration in db
@@ -369,8 +369,6 @@ class ParseCourseStructFile(PipeModule):
                                                 course.setdefault(DBC.FIELD_COURSE_VIDEO_IDS, []).append(
                                                     video_original_id)
                 self.courses[course_original_id] = course
-                if course_original_id == "HKUST+bt001+2016_Q1_R1":
-                    print(str(course))
             except BaseException as ex:
                 warn("In ParseCourseStructFile, cannot get the course information of course:"\
                      +str(course_item))
