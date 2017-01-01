@@ -1,6 +1,5 @@
 '''Logger for vismooc data server
 '''
-import sys
 import logging
 from datetime import datetime
 
@@ -44,8 +43,3 @@ def progressbar(filename, progress, total):
                           int(progress_per_total * 100)), end='', flush=True)
     if progress == total:
         print('\n', end='', flush=True)
-    # sys.stdout.flush()
-
-if __name__ == "__main__":
-    for i in range(101):
-        progressbar("99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999",i, 100)
