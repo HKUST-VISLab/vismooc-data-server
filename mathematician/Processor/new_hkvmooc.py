@@ -298,6 +298,7 @@ class ParseCourseStructFile(PipeModule):
                 course = self.courses.get(course_original_id) or {}
                 advertised_start_time = try_parse_date(records[10])
                 # construct the course object
+                course[DBC.FIELD_COURSE_VIDEO_IDS] = set() # init the video id list
                 course[DBC.FIELD_COURSE_ORIGINAL_ID] = course_original_id
                 course[DBC.FIELD_COURSE_NAME] = records[5]
                 course_year_match = re_course_year.search(course_original_id)
@@ -322,8 +323,8 @@ class ParseCourseStructFile(PipeModule):
                 # pylint: disable=C0301
                 if course_structure:
                     for block in course_structure.get('blocks'):
-                        if block.get('block_type') == 'course' and block.get('field'):
-                            block_field = block.get('field')
+                        if block.get('block_type') == 'course' and block.get('fields'):
+                            block_field = block.get('fields')
                             course[DBC.FIELD_COURSE_STARTTIME] = try_get_timestamp(block_field.get('start'))
                             course[DBC.FIELD_COURSE_ENDTIME] = try_get_timestamp(block_field.get('end'))
                             course[DBC.FIELD_COURSE_ENROLLMENT_START] = try_get_timestamp(block_field.get('enrollment_start'))\
@@ -340,32 +341,29 @@ class ParseCourseStructFile(PipeModule):
                                                 video_original_id = str(leaf.get('definition'))
                                                 video = self.videos.get(video_original_id) or {}
                                                 video[DBC.FIELD_VIDEO_ORIGINAL_ID] = video_original_id
-                                                video[DBC.FIELD_VIDEO_NAME] = leaf_idx + section_sep + fields.get('display_name')
+                                                video[DBC.FIELD_VIDEO_NAME] = str(leaf_idx) + section_sep + fields.get('display_name')
                                                 youtube_id = fields.get('youtube_id_1_0')
                                                 video[DBC.FIELD_VIDEO_TEMPORAL_HOTNESS] = {}
                                                 video[DBC.FIELD_VIDEO_DESCRIPTION] = fields.get('display_name')
                                                 video[DBC.FIELD_VIDEO_SECTION] = \
-                                                    chapter_idx + section_sep + chapter['fields']['display_name'] + section_sep +\
-                                                    sequential_idx + section_sep + sequential['fields']['display_name'] + section_sep +\
-                                                    vetical_idx + section_sep + vertical['fields']['display_name']
+                                                    str(chapter_idx) + section_sep + chapter['fields']['display_name'] + section_sep +\
+                                                    str(sequential_idx) + section_sep + sequential['fields']['display_name'] + section_sep +\
+                                                    str(vetical_idx) + section_sep + vertical['fields']['display_name']
                                                 video[DBC.FIELD_VIDEO_COURSE_ID] = course_original_id
 
-                                                #TODO the logic need to be improved here
-                                                # if the url is unchange, use the old duration in db
                                                 new_url = (youtube_id and ParseCourseStructFile.YOUTUBE_URL_PREFIX + youtube_id) or (fields.get('html5_sources') and fields.get('html5_sources')[0])
-                                                if video_original_id in self.videos:
-                                                    old_url = video.get(DBC.FIELD_VIDEO_URL)
-                                                    if  old_url == new_url:
-                                                        video[DBC.FIELD_VIDEO_DURATION] = video.get(DBC.FIELD_VIDEO_DURATION)
-                                                # else if the url is from youtube
-                                                elif new_url and 'youtube' in new_url:
-                                                    youtube_id = new_url[new_url.index('v=') + 2:]
-                                                    tmp_youtube_video_dict[youtube_id] = video_original_id
-                                                # else if the url is from other website
-                                                elif new_url:
-                                                    tmp_other_video_dict.setdefault(new_url, []).append(video_original_id)
+                                                old_url = video.get(DBC.FIELD_VIDEO_URL)
+                                                if new_url != old_url:
+                                                    video[DBC.FIELD_VIDEO_URL] = new_url
+                                                    # if the url is from youtube
+                                                    if new_url and 'youtube' in new_url:
+                                                        youtube_id = new_url[new_url.index('v=') + 2:]
+                                                        tmp_youtube_video_dict[youtube_id] = video_original_id
+                                                    # else if the url is from other website
+                                                    elif new_url:
+                                                        tmp_other_video_dict.setdefault(new_url, []).append(video_original_id)
                                                 self.videos[video_original_id] = video
-                                                course.setdefault(DBC.FIELD_COURSE_VIDEO_IDS, []).append(video_original_id)
+                                                course.setdefault(DBC.FIELD_COURSE_VIDEO_IDS, set()).add(video_original_id)
                 self.courses[course_original_id] = course
             except BaseException as ex:
                 warn("In ParseCourseStructFile, cannot get the course information of course:"\
@@ -396,7 +394,6 @@ class ParseCourseStructFile(PipeModule):
 
         processed_data = raw_data
         processed_data[RD_DATA][DBC.COLLECTION_VIDEO] = self.videos
-        print(self.videos)
         processed_data[RD_DATA][DBC.COLLECTION_COURSE] = self.courses
         return processed_data
 
@@ -714,6 +711,8 @@ class DumpToDB(PipeModule):
             for course_info in courses.values():
                 course_info[DBC.FIELD_COURSE_STUDENT_IDS] = list(
                     course_info[DBC.FIELD_COURSE_STUDENT_IDS])
+                course_info[DBC.FIELD_COURSE_VIDEO_IDS] = list(
+                    course_info[DBC.FIELD_COURSE_VIDEO_IDS])
         if users:
             for user in users.values():
                 user[DBC.FIELD_USER_COURSE_IDS] = list(user[DBC.FIELD_USER_COURSE_IDS])
