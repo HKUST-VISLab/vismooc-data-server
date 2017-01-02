@@ -338,7 +338,7 @@ class ParseCourseStructFile(PipeModule):
                                         for leaf_idx, leaf in enumerate(vertical['fields']['children']):
                                             if leaf.get('block_type') == 'video' and leaf.get("fields"):
                                                 fields = leaf.get('fields')
-                                                video_original_id = str(leaf.get('definition'))
+                                                video_original_id = str(leaf.get('block_id'))
                                                 video = self.videos.get(video_original_id) or {}
                                                 video[DBC.FIELD_VIDEO_ORIGINAL_ID] = video_original_id
                                                 video[DBC.FIELD_VIDEO_NAME] = str(leaf_idx) + section_sep + fields.get('display_name')
