@@ -151,7 +151,7 @@ class ParseCourseStructFile(PipeModule):
     order = 1
     YOUTUBE_URL_PREFIX = 'https://www.youtube.com/watch?v='
 
-    def __init__(self):
+    def __init__(self, offline=False):
         super().__init__()
         self.re_ISO_8601_duration = re.compile(
             r"^(?P<sign>[+-])?"
@@ -164,6 +164,7 @@ class ParseCourseStructFile(PipeModule):
             r"(?P<minutes>[0-9]+([,.][0-9]+)?M)?"
             r"(?P<seconds>[0-9]+([,.][0-9]+)?S)?)?$"
         )
+        self.offline = offline
         self.videos = None
         self.courses = None
         self.course_overview = None
@@ -257,7 +258,7 @@ class ParseCourseStructFile(PipeModule):
         video[DBC.FIELD_VIDEO_ORIGINAL_ID] = video_original_id
         video_title = str(fields.get('display_name'))
         video[DBC.FIELD_VIDEO_NAME] = str(l_idx) + section_sep + video_title
-        video[DBC.FIELD_VIDEO_TEMPORAL_HOTNESS] = {}
+        video[DBC.FIELD_VIDEO_TEMPORAL_HOTNESS] = video.get(DBC.FIELD_VIDEO_TEMPORAL_HOTNESS) or {}
         video[DBC.FIELD_VIDEO_DESCRIPTION] = video_title
         video[DBC.FIELD_VIDEO_SECTION] = \
             str(c_idx) + section_sep + str(chapter['fields']['display_name']) + section_sep +\
@@ -382,28 +383,28 @@ class ParseCourseStructFile(PipeModule):
                 warn("In ParseCourseStructFile, cannot get the course information of course:"\
                      +str(course_item))
                 warn(ex)
-
-        # fetch the video duration from youtube_api_v3
-        urls = [self.youtube_api + '&id=' +
-                youtube_id for youtube_id in tmp_youtube_video_dict.keys()]
-        broken_youtube_id = set(tmp_youtube_video_dict.keys())
-        results = http_get_list(urls, limit=60)
-        for result in results:
-            result = json.loads(str(result, 'utf-8'))
-            items = result.get("items")
-            if items is None or len(items) <= 0:
-                continue
-            video_id = items[0].get("id")
-            broken_youtube_id.discard(video_id)
-            duration = self.parse_video_duration(items[0]["contentDetails"]["duration"])
-            self.videos[tmp_youtube_video_dict[video_id]][
-                DBC.FIELD_VIDEO_DURATION] = int(duration.total_seconds())
-        # fetch the video duration from other websites
-        for url in tmp_other_video_dict:
-            video_duration = self.fetch_video_duration(url)
-            video_ids = tmp_other_video_dict[url]
-            for video_id in video_ids:
-                self.videos[video_id][DBC.FIELD_VIDEO_DURATION] = video_duration
+        if self.offline is False:
+            # fetch the video duration from youtube_api_v3
+            urls = [self.youtube_api + '&id=' +
+                    youtube_id for youtube_id in tmp_youtube_video_dict.keys()]
+            broken_youtube_id = set(tmp_youtube_video_dict.keys())
+            results = http_get_list(urls, limit=60)
+            for result in results:
+                result = json.loads(str(result, 'utf-8'))
+                items = result.get("items")
+                if items is None or len(items) <= 0:
+                    continue
+                video_id = items[0].get("id")
+                broken_youtube_id.discard(video_id)
+                duration = self.parse_video_duration(items[0]["contentDetails"]["duration"])
+                self.videos[tmp_youtube_video_dict[video_id]][
+                    DBC.FIELD_VIDEO_DURATION] = int(duration.total_seconds())
+            # fetch the video duration from other websites
+            for url in tmp_other_video_dict:
+                video_duration = self.fetch_video_duration(url)
+                video_ids = tmp_other_video_dict[url]
+                for video_id in video_ids:
+                    self.videos[video_id][DBC.FIELD_VIDEO_DURATION] = video_duration
 
         processed_data = raw_data
         processed_data[RD_DATA][DBC.COLLECTION_VIDEO] = self.videos
@@ -611,7 +612,7 @@ class ParseLogFile(PipeModule):
         re_username = re.compile(pattern_username)
         re_time = re.compile(pattern_time)
         re_event_json_escape = re.compile(pattern_event_json_escape_)
-        temp_video_dict = raw_data['data'][DBC.COLLECTION_VIDEO]
+        videos = raw_data[RD_DATA][DBC.COLLECTION_VIDEO]
 
         events = []
         denselogs = {}
@@ -683,8 +684,7 @@ class ParseLogFile(PipeModule):
                         # ready to denselogs
                         denselog_time = datetime(event_time.year, event_time.month,
                                                  event_time.day).timestamp()
-                        denselogs_key = (video_id + str(denselog_time)) if video_id else \
-                            "none_video_id" + str(denselog_time)
+                        denselogs_key = "{0}_{1}_{2}".format(course_id, video_id, denselog_time)
                         if denselogs.get(denselogs_key) is None:
                             denselog = denselogs[denselogs_key] = {}
                             denselog[DBC.FIELD_VIDEO_DENSELOGS_COURSE_ID] = course_id
@@ -699,13 +699,15 @@ class ParseLogFile(PipeModule):
                         denselogs[denselogs_key].setdefault(
                             DBC.FIELD_VIDEO_DENSELOGS_CLICKS, []).append(click)
 
-                        if temp_video_dict.get(video_id):
-                            temporal_hotness = temp_video_dict[video_id][
+                        if video_id in videos:
+                            temporal_hotness = videos[video_id][
                                 DBC.FIELD_VIDEO_TEMPORAL_HOTNESS]
                             date_time = str(event_time.date())
                             if date_time not in temporal_hotness:
                                 temporal_hotness[date_time] = 0
                             temporal_hotness[date_time] += 1
+                            print(videos[video_id][
+                                DBC.FIELD_VIDEO_TEMPORAL_HOTNESS])
                 except BaseException as ex:
                     warn("In ParseLogFile, some problem happend:"+line)
                     warn(ex)
