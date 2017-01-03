@@ -555,10 +555,10 @@ class ParseEnrollmentFile(PipeModule):
                 warn("In ParseEnrollmentFile, cannot get the enrollment information of item:"+\
                      enroll_item)
                 warn(ex)
-            # except BaseException as ex:
-            #     warn("In ParseEnrollmentFile, cannot get the enrollment information of item:"+\
-            #          enroll_item)
-            #     warn(ex)
+            except BaseException as ex:
+                warn("In ParseEnrollmentFile, cannot get the enrollment information of item:"+\
+                     enroll_item)
+                warn(ex)
 
         processed_data = raw_data
         # course and users collection are completed
