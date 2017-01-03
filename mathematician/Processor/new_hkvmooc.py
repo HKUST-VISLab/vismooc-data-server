@@ -4,6 +4,7 @@
 import re
 import json
 import io
+import traceback
 import struct
 import queue
 import urllib
@@ -247,6 +248,25 @@ class ParseCourseStructFile(PipeModule):
             warn(ex)
         return video_length
 
+    def construct_video(self, course_id, c_idx, chapter, s_idx, sequential, v_idx, vertical,
+                        l_idx, leaf, fields):
+        '''Construct a video object based on the mongodb snapshot
+        '''
+        section_sep = ">>"
+        video_original_id = str(leaf.get('block_id'))
+        video = self.videos.get(video_original_id) or {}
+        video[DBC.FIELD_VIDEO_ORIGINAL_ID] = video_original_id
+        video_title = str(fields.get('display_name'))
+        video[DBC.FIELD_VIDEO_NAME] = str(l_idx) + section_sep + video_title
+        video[DBC.FIELD_VIDEO_TEMPORAL_HOTNESS] = {}
+        video[DBC.FIELD_VIDEO_DESCRIPTION] = video_title
+        video[DBC.FIELD_VIDEO_SECTION] = \
+            str(c_idx) + section_sep + str(chapter['fields']['display_name']) + section_sep +\
+            str(s_idx) + section_sep + str(sequential['fields']['display_name']) + section_sep +\
+            str(v_idx) + section_sep + str(vertical['fields']['display_name'])
+        video[DBC.FIELD_VIDEO_COURSE_ID] = course_id
+        return video
+
     def process(self, raw_data, raw_data_filenames=None):
         info("Processing ParseCourseStructFile")
 
@@ -338,19 +358,14 @@ class ParseCourseStructFile(PipeModule):
                                         for leaf_idx, leaf in enumerate(vertical['fields']['children']):
                                             if leaf.get('block_type') == 'video' and leaf.get("fields"):
                                                 fields = leaf.get('fields')
-                                                video_original_id = str(leaf.get('block_id'))
-                                                video = self.videos.get(video_original_id) or {}
-                                                video[DBC.FIELD_VIDEO_ORIGINAL_ID] = video_original_id
-                                                video[DBC.FIELD_VIDEO_NAME] = str(leaf_idx) + section_sep + fields.get('display_name')
+                                                try:
+                                                    video = self.construct_video(course_original_id, chapter_idx, chapter, sequential_idx, sequential, vetical_idx, vertical, leaf_idx, leaf, fields)
+                                                except BaseException as ex:
+                                                    warn("In ParseCourseStructFile, cannot get the video information of video:"+str(fields))
+                                                    warn(ex)
+                                                    continue
                                                 youtube_id = fields.get('youtube_id_1_0')
-                                                video[DBC.FIELD_VIDEO_TEMPORAL_HOTNESS] = {}
-                                                video[DBC.FIELD_VIDEO_DESCRIPTION] = fields.get('display_name')
-                                                video[DBC.FIELD_VIDEO_SECTION] = \
-                                                    str(chapter_idx) + section_sep + chapter['fields']['display_name'] + section_sep +\
-                                                    str(sequential_idx) + section_sep + sequential['fields']['display_name'] + section_sep +\
-                                                    str(vetical_idx) + section_sep + vertical['fields']['display_name']
-                                                video[DBC.FIELD_VIDEO_COURSE_ID] = course_original_id
-
+                                                video_original_id = video[DBC.FIELD_VIDEO_ORIGINAL_ID]
                                                 new_url = (youtube_id and ParseCourseStructFile.YOUTUBE_URL_PREFIX + youtube_id) or (fields.get('html5_sources') and fields.get('html5_sources')[0])
                                                 old_url = video.get(DBC.FIELD_VIDEO_URL)
                                                 if new_url != old_url:
@@ -531,10 +546,10 @@ class ParseEnrollmentFile(PipeModule):
                 warn("In ParseEnrollmentFile, cannot get the enrollment information of item:"+\
                      enroll_item)
                 warn(ex)
-            except BaseException as ex:
-                warn("In ParseEnrollmentFile, cannot get the enrollment information of item:"+\
-                     enroll_item)
-                warn(ex)
+            # except BaseException as ex:
+            #     warn("In ParseEnrollmentFile, cannot get the enrollment information of item:"+\
+            #          enroll_item)
+            #     warn(ex)
 
         processed_data = raw_data
         # course and users collection are completed
