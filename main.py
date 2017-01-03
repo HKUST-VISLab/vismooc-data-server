@@ -45,7 +45,7 @@ def app(offline=False):
         download = DownloadFileFromServer(dir_name)
         file_names = download.get_files_to_be_processed(True)
     pipeline = PipeLine()
-    pipeline.input_files(file_names).pipe(ParseCourseStructFile(True)).pipe(
+    pipeline.input_files(file_names).pipe(ParseCourseStructFile()).pipe(
         ParseEnrollmentFile()).pipe(ParseLogFile()).pipe(ParseUserFile()).pipe(
             ExtractRawData()).pipe(DumpToDB())
     pipeline.excute()
