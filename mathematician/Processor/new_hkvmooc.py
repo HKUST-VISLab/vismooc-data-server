@@ -4,7 +4,6 @@
 import re
 import json
 import io
-import traceback
 import struct
 import queue
 import urllib
@@ -299,7 +298,6 @@ class ParseCourseStructFile(PipeModule):
             course_instructors.setdefault(course_id, []).append(user_id)
 
         course_year = "course_year"
-        section_sep = ">>"
         course_year_pattern = r'^course-[\w|:|\+]+(?P<' + course_year + r'>[0-9]{4})\w*'
         re_course_year = re.compile(course_year_pattern)
 
@@ -487,10 +485,21 @@ class ParseUserFile(PipeModule):
                 warn("In ParseUserFile, cannot get the user information of record:"+record+", and\
                      userProfile:"+str(user_profile))
                 warn(ex)
-
+        # fill the course instractor of courses
+        courses = raw_data[RD_DATA][DBC.COLLECTION_COURSE]
+        for course_id in courses:
+            instructors = []
+            course = courses[course_id]
+            for user_id in course[DBC.FIELD_COURSE_INSTRUCTOR]:
+                user = self.users.get(user_id)
+                if user:
+                    name = user[DBC.FIELD_USER_NAME] or user[DBC.FIELD_USER_USER_NAME]
+                    instructors.append(name)
+            course[DBC.FIELD_COURSE_INSTRUCTOR] = instructors
         processed_data = raw_data
         # user collection needs courseIds and droppedCourseIds
-        processed_data['data'][DBC.COLLECTION_USER] = self.users
+        processed_data[RD_DATA][DBC.COLLECTION_USER] = self.users
+        processed_data[RD_DATA][DBC.COLLECTION_COURSE] = courses
         return processed_data
 
 class ParseEnrollmentFile(PipeModule):
