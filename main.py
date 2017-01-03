@@ -55,4 +55,4 @@ if __name__ == "__main__":
     # init the config if config file is provided
     if len(sys.argv) >= 2:
         config.init_config(sys.argv[1])
-    app(True)
+    app()

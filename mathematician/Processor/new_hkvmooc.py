@@ -706,8 +706,6 @@ class ParseLogFile(PipeModule):
                             if date_time not in temporal_hotness:
                                 temporal_hotness[date_time] = 0
                             temporal_hotness[date_time] += 1
-                            print(videos[video_id][
-                                DBC.FIELD_VIDEO_TEMPORAL_HOTNESS])
                 except BaseException as ex:
                     warn("In ParseLogFile, some problem happend:"+line)
                     warn(ex)
