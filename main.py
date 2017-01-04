@@ -6,6 +6,7 @@ import os
 from os import makedirs
 from os.path import exists, join
 from datetime import datetime, timezone, timedelta
+from threading import Timer
 from mathematician.fetch_data import DownloadFileFromServer
 from mathematician.pipe import PipeLine
 from mathematician.Processor import ParseCourseStructFile, ParseEnrollmentFile,\
@@ -13,6 +14,7 @@ from mathematician.Processor import ParseCourseStructFile, ParseEnrollmentFile,\
 from mathematician import config
 from mathematician.config import DBConfig as DBC, FilenameConfig as FC
 from mathematician.DB import mongo_dbhelper
+
 
 def get_offline_files():
     """Fetch meta db files data from db"""
@@ -23,11 +25,13 @@ def get_offline_files():
         if item.get(DBC.FIELD_METADBFILES_TYPE) == DBC.TYPE_MONGO:
             file_path = item.get(DBC.FIELD_METADBFILES_FILEPATH)
             file_path = file_path[:file_path.rindex(os.sep)]
-            mongo_files = [join(file_path, FC.ACTIVE_VERSIONS), join(file_path, FC.STRUCTURES)]
+            mongo_files = [join(file_path, FC.ACTIVE_VERSIONS),
+                           join(file_path, FC.STRUCTURES)]
         else:
             items.append(item)
     files = [item.get(DBC.FIELD_METADBFILES_FILEPATH) for item in items]
     return files + mongo_files
+
 
 def app(offline=False):
     '''The main entry of our script
@@ -51,8 +55,15 @@ def app(offline=False):
     pipeline.excute()
     print('spend time:' + str(datetime.now() - start_time))
 
+today = datetime.today()
+tomorrow = today.replace(day=today.day + 1, hour=1,
+                            minute=0, second=0, microsecond=0)
+delta = tomorrow - today
+secs = delta.second + 1
+
 if __name__ == "__main__":
     # init the config if config file is provided
     if len(sys.argv) >= 2:
         config.init_config(sys.argv[1])
-    app()
+    timer = Timer(secs, app)
+    timer.start()
