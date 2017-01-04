@@ -3,7 +3,6 @@
 # pylint: disable=C0111, C0103
 import unittest
 from unittest.mock import patch, MagicMock
-import urllib.request
 import mathematician.http_helper as http
 
 class TestHTTPHelperClass(unittest.TestCase):
