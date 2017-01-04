@@ -33,6 +33,13 @@ def get_offline_files():
     return files + mongo_files
 
 
+today = datetime.today()
+tomorrow = today.replace(day=today.day + 1, hour=1,
+                            minute=0, second=0, microsecond=0)
+delta = tomorrow - today
+secs = delta.seconds + 1
+secs = 60 * 60
+
 def app(offline=False):
     '''The main entry of our script
     '''
@@ -54,16 +61,11 @@ def app(offline=False):
             ExtractRawData()).pipe(DumpToDB())
     pipeline.excute()
     print('spend time:' + str(datetime.now() - start_time))
-
-today = datetime.today()
-tomorrow = today.replace(day=today.day + 1, hour=1,
-                            minute=0, second=0, microsecond=0)
-delta = tomorrow - today
-secs = delta.second + 1
+    timer = Timer(secs, app)
+    timer.start()
 
 if __name__ == "__main__":
     # init the config if config file is provided
     if len(sys.argv) >= 2:
         config.init_config(sys.argv[1])
-    timer = Timer(secs, app)
-    timer.start()
+    app()
