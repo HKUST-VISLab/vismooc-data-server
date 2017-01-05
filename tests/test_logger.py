@@ -1,4 +1,4 @@
-'''Unit test for test module
+'''Unit test for Logger module
 '''
 # pylint: disable=C0111, C0103
 import unittest

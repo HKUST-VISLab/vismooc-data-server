@@ -80,9 +80,8 @@ def post(url, headers=None, params=None, retry_time=5, delay=1):
 
     """
     headers = headers or {}
-    if params is not None:
-        if isinstance(params, dict) is False:
-            raise Exception("The params should be dict type")
+    if isinstance(params, dict) is False and params is not None:
+        raise Exception("The params should be dict type")
 
     req = urllib.request.Request(url=url, headers=headers, data=params, method='POST')
     for attempt_number in range(retry_time):

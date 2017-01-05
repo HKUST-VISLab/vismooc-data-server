@@ -3,15 +3,31 @@
 # pylint: disable=C0111, C0103
 import unittest
 from unittest.mock import patch, MagicMock
-import urllib.request
 import mathematician.http_helper as http
 
 class TestHTTPHelperClass(unittest.TestCase):
     '''Unit test of http_helper module
     '''
 
-    def test_methods_with_right_params(self):
-        pass
+    @patch('urllib.request.urlopen')
+    def test_methods_with_right_params(self, mock_urlopen):
+        mock_response = MagicMock()
+        mock_response.getcode.return_value = 200
+        mock_response.read.return_value = "It is a return"
+        mock_response.info.return_value = {"a_header":"a_header"}
+        mock_urlopen.return_value = mock_response
+
+        url = "http://foo"
+        params = {'a':1, 'b':2}
+        http.head(url=url, params=params)
+        args, kwargs = mock_urlopen.call_args
+        full_url = args[0].get_full_url()
+        right_url = url + '?'
+        for key in params:
+            right_url = right_url + key + '=' + str(params[key]) + '&'
+        right_url = right_url[0: -1]
+        self.assertEqual(full_url, right_url, "If pass params into the HEAD mehtod, the url should\
+                         be a query string")
 
     def test_methods_with_wrong_params(self):
         url = "http://foo"
@@ -36,11 +52,11 @@ class TestHTTPHelperClass(unittest.TestCase):
 
     @patch('urllib.request.urlopen')
     def test_head_with_right_params(self, mock_urlopen):
-        context_manager = MagicMock()
-        context_manager.getcode.return_value = 200
-        context_manager.read.return_value = "It is a return"
-        context_manager.info.return_value = {"a_header":"a_header"}
-        mock_urlopen.return_value = context_manager
+        mock_response = MagicMock()
+        mock_response.getcode.return_value = 200
+        mock_response.read.return_value = "It is a return"
+        mock_response.info.return_value = {"a_header":"a_header"}
+        mock_urlopen.return_value = mock_response
 
         response = http.head("http://foo.com")
         self.assertEqual(response.get_return_code(), 200, "The return code should be 200")

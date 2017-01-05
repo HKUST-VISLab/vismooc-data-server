@@ -1,6 +1,8 @@
 '''All the config fields of data server
 '''
 import json
+from os.path import join, exists
+from . import logger
 
 class ThirdPartyKeys:
     '''Third party keys
@@ -17,8 +19,8 @@ class FilenameConfig:
     MongoDB_FILE = "dbsnapshots_mongodb"
     SQLDB_FILE = "dbsnapshots_mysqldb"
     META_DB_RECORD = "meta_db_record"
-    ACTIVE_VERSIONS = "mongodb/edxapp/modulestore.active_versions.bson"
-    STRUCTURES = "mongodb/edxapp/modulestore.structures.bson"
+    ACTIVE_VERSIONS = join("mongodb", "edxapp", "modulestore.active_versions.bson")
+    STRUCTURES = join("mongodb", "edxapp", "modulestore.structures.bson")
 
 class DataSource:
     '''Urls of datasources
@@ -132,7 +134,7 @@ class DBConfig:
     FIELD_METADBFILES_CREATEDAT = "createdAt"
     FIELD_METADBFILES_LAST_MODIFIED = "lastModified"
     FIELD_METADBFILES_TYPE = "type"
-    FIELD_METADBFILES_FILEPATH = "filepath"
+    FIELD_METADBFILES_FILEPATH = "path"
     FIELD_METADBFILES_PROCESSED = "processed"
 
     TYPE_MYSQL = "mysql"
@@ -496,12 +498,15 @@ class DBConfig:
 def init_config(config_file_path):
     ''' Init all the configuration from a config file
     '''
+    if not exists(config_file_path):
+        logger.warn("The config file does not exist")
+        return
     with open(config_file_path, 'r') as file:
         try:
             config_json = json.load(file)
         except json.JSONDecodeError as ex:
-            print('Decode init json file failed')
-            print(ex.msg)
+            logger.warn('Decode init json file failed')
+            logger.warn(ex.msg)
             return
 
     mongo_config = config_json.get('mongo')
@@ -549,4 +554,5 @@ def init_config(config_file_path):
                 'Youtube_key') or ThirdPartyKeys.Youtube_key
             ThirdPartyKeys.HKMooc_key = third_party_keys.get(
                 'HKMOOC_key') or ThirdPartyKeys.HKMooc_key
-            ThirdPartyKeys.HKMooc_access_token = third_party_keys.get('HKMOOC_access_token') or ThirdPartyKeys.HKMooc_access_token
+            ThirdPartyKeys.HKMooc_access_token = third_party_keys.get('HKMOOC_access_token') or\
+                                                 ThirdPartyKeys.HKMooc_access_token

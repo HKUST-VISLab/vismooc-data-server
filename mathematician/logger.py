@@ -28,12 +28,18 @@ PROGRESS_LENGTH = 40
 def progressbar(filename, progress, total):
     '''A text progress bar
     '''
+    # begin from zero
+    if progress < 0:
+        total -= progress
+        progress = 0
     progress_per_total = int(progress) / int(total)
     progress_length = int(progress_per_total * PROGRESS_LENGTH)
     time_now = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
-    str_template = "\r%s-vismooc-%s-[%s%s] %d%% | %s"
+    str_template = "\r%s-vismooc-%s-[%s%s] %d%%"
+    if progress == 0:
+        info("Begin to download:"+filename)
     print(str_template % (time_now, 'DOWNLOADING', '#' * progress_length,
                           ' ' * (PROGRESS_LENGTH - progress_length),
-                          int(progress_per_total * 100), filename), end='', flush=True)
+                          int(progress_per_total * 100)), end='', flush=True)
     if progress == total:
         print('\n', end='', flush=True)
