@@ -5,10 +5,10 @@ import re
 import json
 import io
 import struct
-import queue
 import urllib
 from os.path import isfile
 from datetime import timedelta, datetime
+import queue
 import bson
 
 from ..logger import warn, info
@@ -142,7 +142,7 @@ class ExtractRawData(PipeModule):
                             # blocks_to_remove.add(child[1])
                         item["fields"]["children"] = new_children
             raw_data[RD_COURSE_IN_MONGO] = courseid_to_structure
-            raw_data[RD_DB] = MongoDB(DBC.DB_HOST, DBC.DB_NAME)
+        raw_data[RD_DB] = MongoDB(DBC.DB_HOST, DBC.DB_NAME)
         return raw_data
 
 class ParseCourseStructFile(PipeModule):
