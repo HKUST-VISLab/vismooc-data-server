@@ -69,6 +69,8 @@ def app(first_time=False, offline=False):
     timer.start()
 
 def main():
+    '''Entry point
+    '''
     # init the config if config file is provided
     if len(sys.argv) >= 2:
         config.init_config(sys.argv[1])
