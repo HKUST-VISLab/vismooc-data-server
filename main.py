@@ -38,6 +38,7 @@ tomorrow = today.replace(day=today.day + 1, hour=1,
                             minute=0, second=0, microsecond=0)
 delta = tomorrow - today
 secs = delta.seconds + 1
+print(secs)
 
 def app(first_time=False, offline=False):
     '''The main entry of our script
@@ -53,12 +54,13 @@ def app(first_time=False, offline=False):
         file_names = get_offline_files()
     else:
         download = DownloadFileFromServer(dir_name)
-        file_names = download.get_files_to_be_processed(True)
-    pipeline = PipeLine()
-    pipeline.input_files(file_names).pipe(ParseCourseStructFile()).pipe(
-        ParseEnrollmentFile()).pipe(ParseLogFile()).pipe(ParseUserFile()).pipe(
-            ExtractRawData()).pipe(DumpToDB())
-    pipeline.excute()
+        file_names = download.get_files_to_be_processed()
+    if len(file_names):
+        pipeline = PipeLine()
+        pipeline.input_files(file_names).pipe(ParseCourseStructFile()).pipe(
+            ParseEnrollmentFile()).pipe(ParseLogFile()).pipe(ParseUserFile()).pipe(
+                ExtractRawData()).pipe(DumpToDB())
+        pipeline.excute()
     print('spend time:' + str(datetime.now() - start_time))
     if first_time:
         timer = Timer(secs, app)
