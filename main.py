@@ -68,8 +68,11 @@ def app(first_time=False, offline=False):
         timer = Timer(60 * 60 * 24, app)
     timer.start()
 
-if __name__ == "__main__":
+def main():
     # init the config if config file is provided
     if len(sys.argv) >= 2:
         config.init_config(sys.argv[1])
     app(first_time=True)
+
+if __name__ == "__main__":
+    main()

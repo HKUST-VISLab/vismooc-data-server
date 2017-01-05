@@ -15,5 +15,8 @@ setup(
         "aiohttp>=0.22.5",
         "pymongo>=3.3.0"
     ],
+    entry_points = {
+        'console_scripts': ['vismooc-data-server=mathematician.main:main'],
+    },
     test_suite="tests.get_tests"
 )
