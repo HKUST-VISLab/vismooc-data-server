@@ -1,6 +1,6 @@
 '''Setup script
 '''
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name="mathematician",
@@ -10,7 +10,7 @@ setup(
     description="This is the dataserver of vismooc system",
     keywords="vismooc, dataserver, vislab, hkust",
     url="https://github.com/HKUST-VISLab/vismooc-data-server",
-    packages=["mathematician"],
+    packages=find_packages(),
     install_requires=[
         "aiohttp>=0.22.5",
         "pymongo>=3.3.0"
