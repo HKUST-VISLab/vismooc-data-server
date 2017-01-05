@@ -10,10 +10,13 @@ setup(
     description="This is the dataserver of vismooc system",
     keywords="vismooc, dataserver, vislab, hkust",
     url="https://github.com/HKUST-VISLab/vismooc-data-server",
-    packages=find_packages(),
+    packages=find_packages(exclude=("tests",)),
     install_requires=[
         "aiohttp>=0.22.5",
         "pymongo>=3.3.0"
     ],
+    entry_points={
+        'console_scripts': ['vismooc-data-server=mathematician.main:main'],
+    },
     test_suite="tests.get_tests"
 )

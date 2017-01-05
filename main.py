@@ -7,6 +7,8 @@ from os import makedirs
 from os.path import exists, join
 from datetime import datetime, timezone, timedelta
 from threading import Timer
+import asyncio
+
 from mathematician.fetch_data import DownloadFileFromServer
 from mathematician.pipe import PipeLine
 from mathematician.Processor import ParseCourseStructFile, ParseEnrollmentFile,\
@@ -43,6 +45,9 @@ def seconds_to_tmr_1_am():
 def app(first_time=False, offline=False):
     '''The main entry of our script
     '''
+    # create a new loop in this thread
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     # Hong Kong Time
     now = datetime.now(timezone(timedelta(hours=8)))
     dir_name = str(now.year) + '-' + str(now.month) + '-' + str(now.day - 1)
@@ -68,8 +73,13 @@ def app(first_time=False, offline=False):
         timer = Timer(60 * 60 * 24, app)
     timer.start()
 
-if __name__ == "__main__":
+def main():
+    '''Entry point
+    '''
     # init the config if config file is provided
     if len(sys.argv) >= 2:
         config.init_config(sys.argv[1])
     app(first_time=True)
+
+if __name__ == "__main__":
+    main()
