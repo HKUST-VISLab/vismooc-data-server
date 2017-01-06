@@ -712,7 +712,6 @@ class ParseLogFile(PipeModule):
                 except BaseException as ex:
                     warn("In ParseLogFile, some problem happend:"+line)
                     warn(ex)
-
         processed_data = raw_data
         processed_data['data'][DBC.COLLECTION_VIDEO_LOG] = events
         processed_data['data'][DBC.COLLECTION_VIDEO_DENSELOGS] = list(denselogs.values())
@@ -758,4 +757,11 @@ class DumpToDB(PipeModule):
                 collection.delete_many({})
             if db_data[collection_name] and len(db_data[collection_name]) > 0:
                 collection.insert_many(db_data[collection_name])
+
+        # mark log files
+        metainfos = database.get_collection('metadbfiles')
+        for filename in raw_data_filenames:
+            if FC.Clickstream_suffix in filename:
+                metainfos.update_one({"path":filename}, {"processed":True})
+
         return raw_data
