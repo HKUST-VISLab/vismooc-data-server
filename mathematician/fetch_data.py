@@ -239,9 +239,8 @@ class DownloadFileFromServer():
         items = self.get_click_stream()
         items += self.__log_files_have_not_been_processed
         for item in items:
-            print(item)
             files.append({"etag":item.get(DBC.FIELD_METADBFILES_ETAG),
-                          "path":item.item.get(DBC.FIELD_METADBFILES_FILEPATH)})
+                          "path":item.get(DBC.FIELD_METADBFILES_FILEPATH)})
         # get the dbsnapshots file which need to be processed
         overlay = overlay or self.judge_overlay()
         snapshots = self.get_mongo_and_mysql_snapshot(overlay=overlay)
