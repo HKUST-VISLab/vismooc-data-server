@@ -764,6 +764,6 @@ class DumpToDB(PipeModule):
         metainfos = database.get_collection('metadbfiles')
         for filename in raw_data_filenames:
             if FC.Clickstream_suffix in filename:
-                metainfos.update_one({"path":filename}, {"processed":True})
+                metainfos.update_one({"path":filename}, {'$set':{"processed":"true"}})
 
         return raw_data

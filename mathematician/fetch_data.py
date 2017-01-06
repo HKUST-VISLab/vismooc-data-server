@@ -280,16 +280,3 @@ class DownloadFileFromServer():
                 except tarfile.TarError as ex:
                     warn("Extract file from mongodbsnapshot failed!")
                     warn(ex)
-                # self.bson2json(os.path.join(os.path.dirname(file_path), tar_root))
-
-    # def bson2json(self, dir_name):
-    #     '''Convert all bson files under specific dir to json files
-    #     '''
-    #     file_to_be_process = set([FC.ACTIVE_VERSIONS[FC.ACTIVE_VERSIONS.rindex('/') + 1:FC.ACTIVE_VERSIONS.rindex('.')] + ".bson",
-    #                               FC.STRUCTURES[FC.STRUCTURES.rindex('/') + 1:FC.STRUCTURES.rindex('.')] + ".bson"])
-    #     files = [os.path.join(dir_name, file) for file in os.listdir(dir_name)]
-    #     for file in files:
-    #         if os.path.isfile(file) and os.path.basename(file) in file_to_be_process:
-    #             cmd = "bsondump " + file + " > " + file[0:file.rindex('.') + 1] + 'json'
-    #             os.system(cmd)
-    #             # os.remove(file)
