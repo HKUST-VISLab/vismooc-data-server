@@ -40,8 +40,9 @@ class DownloadFileFromServer():
             self.__metainfo_downloaded[item[DBC.FIELD_METADBFILES_ETAG]] = item
             file_type = item[DBC.FIELD_METADBFILES_TYPE]
             created_at = item[DBC.FIELD_METADBFILES_CREATEDAT]
-            if file_type == DBC.TYPE_CLICKSTREAM and created_at > self.__latest_clickstream_ts:
-                self.__latest_clickstream_ts = created_at
+            if file_type == DBC.TYPE_CLICKSTREAM:
+                if created_at > self.__latest_clickstream_ts:
+                    self.__latest_clickstream_ts = created_at
                 if item[DBC.FIELD_METADBFILES_PROCESSED] is False:
                     self.__log_files_have_not_been_processed.append(item)
             elif file_type == DBC.TYPE_MONGO and created_at > self.__latest_mongo_ts:
@@ -225,7 +226,7 @@ class DownloadFileFromServer():
             if collection not in collections:
                 return True
         return False
-    
+
     def get_files_to_be_processed(self, overlay=False):
         '''Fetch the files to be processed
            If there are new dbsnapshots, this function will download the new dbsnapshots and return
@@ -233,9 +234,14 @@ class DownloadFileFromServer():
            re-process the snapshots by passing the param `overlay`(True for re-processing and False
            for does not).
         '''
+        files = []
         # get the log files which need to be processed
         items = self.get_click_stream()
         items += self.__log_files_have_not_been_processed
+        for item in items:
+            print(item)
+            files.append({"etag":item.get(DBC.FIELD_METADBFILES_ETAG),
+                          "path":item.item.get(DBC.FIELD_METADBFILES_FILEPATH)})
         # get the dbsnapshots file which need to be processed
         overlay = overlay or self.judge_overlay()
         snapshots = self.get_mongo_and_mysql_snapshot(overlay=overlay)
@@ -244,10 +250,10 @@ class DownloadFileFromServer():
             if snapshot.get(DBC.FIELD_METADBFILES_TYPE) == DBC.TYPE_MONGO:
                 file_path = snapshot.get(DBC.FIELD_METADBFILES_FILEPATH)
                 file_path = file_path[:file_path.rindex(os.sep)]
-                mongo_files = [join(file_path, FC.ACTIVE_VERSIONS), join(file_path, FC.STRUCTURES)]
+                mongo_files = [{"path":join(file_path, FC.ACTIVE_VERSIONS)},
+                               {"path":join(file_path, FC.STRUCTURES)}]
             else:
-                items.append(snapshot)
-        files = [item.get(DBC.FIELD_METADBFILES_FILEPATH) for item in items]
+                files.append({"path":snapshot.get(DBC.FIELD_METADBFILES_FILEPATH)})
         if mongo_files:
             files += mongo_files
         return files
