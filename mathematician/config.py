@@ -524,7 +524,7 @@ def init_config(config_file_path):
             DataSource.HOST = data_sources_config.get(
                 'data_source_host') or DataSource.HOST
             DataSource.ACCESS_TOKENS_URL = data_sources_config.get(
-                '/resources/access_tokens') or DataSource.ACCESS_TOKENS_URL
+                'access_tokens_url') or DataSource.ACCESS_TOKENS_URL
             DataSource.CLICKSTREAMS_URL = data_sources_config.get(
                 'clickstreams_url') or DataSource.CLICKSTREAMS_URL
             DataSource.MONGODB_URL = data_sources_config.get(

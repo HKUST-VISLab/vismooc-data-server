@@ -77,7 +77,7 @@ class ExtractRawData(PipeModule):
         block_queue = queue.Queue()
         module_structure_filename = None
 
-        filenames = [filename for filename in raw_data_filenames if isfile(filename)]
+        filenames = [filename.get("path") for filename in raw_data_filenames if isfile(filename.get("path"))]
         for filename in filenames:
             if FC.SQLDB_FILE in filename:
                 with open(filename, 'r', encoding='utf-8') as file:
@@ -405,7 +405,10 @@ class ParseCourseStructFile(PipeModule):
                 video_ids = tmp_other_video_dict[url]
                 for video_id in video_ids:
                     self.videos[video_id][DBC.FIELD_VIDEO_DURATION] = video_duration
-
+        if len(self.videos) == 0:
+            warn("VIDEO:No video in data!")
+        if len(self.courses) == 0:
+            warn("COURSE:No course in data!")
         processed_data = raw_data
         processed_data[RD_DATA][DBC.COLLECTION_VIDEO] = self.videos
         processed_data[RD_DATA][DBC.COLLECTION_COURSE] = self.courses
@@ -497,6 +500,8 @@ class ParseUserFile(PipeModule):
                     name = user[DBC.FIELD_USER_NAME] or user[DBC.FIELD_USER_USER_NAME]
                     instructors.append(name)
             course[DBC.FIELD_COURSE_INSTRUCTOR] = instructors
+        if len(self.users) == 0:
+            warn("USER:No users!")
         processed_data = raw_data
         # user collection needs courseIds and droppedCourseIds
         processed_data[RD_DATA][DBC.COLLECTION_USER] = self.users
@@ -580,6 +585,7 @@ class ParseLogFile(PipeModule):
         '''Load target file
         '''
         for filename in data_filenames:
+            filename = filename.get('path')
             if FC.Clickstream_suffix in filename:
                 with open(filename, 'r', encoding='utf-8') as file:
                     raw_data = file.readlines()
@@ -709,7 +715,6 @@ class ParseLogFile(PipeModule):
                 except BaseException as ex:
                     warn("In ParseLogFile, some problem happend:"+line)
                     warn(ex)
-
         processed_data = raw_data
         processed_data['data'][DBC.COLLECTION_VIDEO_LOG] = events
         processed_data['data'][DBC.COLLECTION_VIDEO_DENSELOGS] = list(denselogs.values())
@@ -755,4 +760,12 @@ class DumpToDB(PipeModule):
                 collection.delete_many({})
             if db_data[collection_name] and len(db_data[collection_name]) > 0:
                 collection.insert_many(db_data[collection_name])
+
+        # mark log files
+        metainfos = database.get_collection('metadbfiles')
+        for filename in raw_data_filenames:
+            etag = filename.get('etag')
+            filename = filename.get('path')
+            if FC.Clickstream_suffix in filename:
+                metainfos.update_one({"etag":etag}, {'$set':{"processed":True}})
         return raw_data
