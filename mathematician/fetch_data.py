@@ -211,6 +211,18 @@ class DownloadFileFromServer():
         info('Finish caching the metainfo of dbsnapshots into mongoDB')
         return new_meta_items
 
+    def judge_overlay(self):
+        '''To determine whether the dbsnapshots should be overlaied
+        '''
+        collections = {DBC.COLLECTION_COURSE, DBC.COLLECTION_ENROLLMENT, DBC.COLLECTION_USER,
+                       DBC.COLLECTION_VIDEO, DBC.COLLECTION_VIDEO_DENSELOGS,
+                       DBC.COLLECTION_VIDEO_LOG}
+        exists_collections = self._db.get_collection_names()
+        for collection in exists_collections:
+            if collection not in collections:
+                return True
+        return False
+
     def get_files_to_be_processed(self, overlay=False):
         '''Fetch the files to be processed
            If there are new dbsnapshots, this function will download the new dbsnapshots and return
@@ -218,6 +230,7 @@ class DownloadFileFromServer():
            re-process the snapshots by passing the param `overlay`(True for re-processing and False
            for does not).
         '''
+        overlay = overlay or self.judge_overlay()
         items = self.get_click_stream()
         snapshots = self.get_mongo_and_mysql_snapshot(overlay=overlay)
         mongo_files = None
