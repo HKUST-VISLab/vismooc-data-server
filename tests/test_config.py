@@ -64,25 +64,15 @@ class TestConfig(unittest.TestCase):
             }\
         }'
         mock_open.return_value = open_cm
+
+        self.assertIsNone(init_config("foo"))
         test_value = "test"
         target_fields = [
-            DBC.DB_HOST,
-            DBC.DB_NAME,
-            DBC.DB_PORT,
-            DS.HOST,
-            DS.ACCESS_TOKENS_URL,
-            DS.CLICKSTREAMS_URL,
-            DS.MONGODB_URL,
-            DS.SQLDB_URL,
-            FC.Data_dir,
-            FC.MongoDB_FILE,
-            FC.SQLDB_FILE,
-            FC.META_DB_RECORD,
-            FC.ACTIVE_VERSIONS,
-            FC.STRUCTURES,
-            TPK.Youtube_key,
-            TPK.HKMooc_key,
-            TPK.HKMooc_access_token
+            DBC.DB_HOST, DBC.DB_NAME, DBC.DB_PORT, DS.HOST, DS.ACCESS_TOKENS_URL,
+            DS.CLICKSTREAMS_URL, DS.MONGODB_URL, DS.SQLDB_URL, FC.Data_dir, FC.MongoDB_FILE,
+            FC.SQLDB_FILE, FC.META_DB_RECORD, FC.ACTIVE_VERSIONS, FC.STRUCTURES, TPK.Youtube_key,
+            TPK.HKMooc_key, TPK.HKMooc_access_token
         ]
-        self.assertIsNone(init_config("foo"))
-        self.assertEqual(target_fields, len(target_fields) * [test_value])
+        expect_results = (len(target_fields)-1) * [test_value]
+        expect_results.append(None)
+        self.assertEqual(target_fields, expect_results)
