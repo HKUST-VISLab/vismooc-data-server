@@ -77,7 +77,7 @@ class ExtractRawData(PipeModule):
         block_queue = queue.Queue()
         module_structure_filename = None
 
-        filenames = [filename for filename in raw_data_filenames if isfile(filename)]
+        filenames = [filename.get("path") for filename in raw_data_filenames if isfile(filename.get("path"))]
         for filename in filenames:
             if FC.SQLDB_FILE in filename:
                 with open(filename, 'r', encoding='utf-8') as file:
@@ -500,7 +500,7 @@ class ParseUserFile(PipeModule):
                     name = user[DBC.FIELD_USER_NAME] or user[DBC.FIELD_USER_USER_NAME]
                     instructors.append(name)
             course[DBC.FIELD_COURSE_INSTRUCTOR] = instructors
-        if len(self.users):
+        if len(self.users) == 0:
             warn("USER:No users!")
         processed_data = raw_data
         # user collection needs courseIds and droppedCourseIds
@@ -585,6 +585,7 @@ class ParseLogFile(PipeModule):
         '''Load target file
         '''
         for filename in data_filenames:
+            filename = filename.get('path')
             if FC.Clickstream_suffix in filename:
                 with open(filename, 'r', encoding='utf-8') as file:
                     raw_data = file.readlines()
@@ -763,7 +764,8 @@ class DumpToDB(PipeModule):
         # mark log files
         metainfos = database.get_collection('metadbfiles')
         for filename in raw_data_filenames:
+            etag = filename.get('etag')
+            filename = filename.get('path')
             if FC.Clickstream_suffix in filename:
-                metainfos.update_one({"path":filename}, {'$set':{"processed":"true"}})
-
+                metainfos.update_one({"etag":etag}, {'$set':{"processed":True}})
         return raw_data
