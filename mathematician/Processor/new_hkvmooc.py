@@ -405,7 +405,10 @@ class ParseCourseStructFile(PipeModule):
                 video_ids = tmp_other_video_dict[url]
                 for video_id in video_ids:
                     self.videos[video_id][DBC.FIELD_VIDEO_DURATION] = video_duration
-
+        if len(self.videos) == 0:
+            warn("No video in data!")
+        if len(self.courses) == 0:
+            warn("No course in data!")
         processed_data = raw_data
         processed_data[RD_DATA][DBC.COLLECTION_VIDEO] = self.videos
         processed_data[RD_DATA][DBC.COLLECTION_COURSE] = self.courses
