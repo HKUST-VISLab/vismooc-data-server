@@ -27,6 +27,7 @@ class DownloadFileFromServer():
         self.__latest_mongo_ts = 0
         self.__latest_mysql_ts = 0
         self.__metainfo_downloaded = {}
+        self.__log_files_have_not_been_processed = []
         self.__save_dir = save_dir
         self._db = mongo_dbhelper.MongoDB(
             DBC.DB_HOST, DBC.DB_NAME, DBC.DB_PORT)
@@ -41,6 +42,8 @@ class DownloadFileFromServer():
             created_at = item[DBC.FIELD_METADBFILES_CREATEDAT]
             if file_type == DBC.TYPE_CLICKSTREAM and created_at > self.__latest_clickstream_ts:
                 self.__latest_clickstream_ts = created_at
+                if item[DBC.FIELD_METADBFILES_PROCESSED] is False:
+                    self.__log_files_have_not_been_processed.append(item)
             elif file_type == DBC.TYPE_MONGO and created_at > self.__latest_mongo_ts:
                 self.__latest_mongo_ts = created_at
             elif file_type == DBC.TYPE_MYSQL and created_at > self.__latest_mysql_ts:
@@ -222,7 +225,7 @@ class DownloadFileFromServer():
             if collection not in collections:
                 return True
         return False
-
+    
     def get_files_to_be_processed(self, overlay=False):
         '''Fetch the files to be processed
            If there are new dbsnapshots, this function will download the new dbsnapshots and return
@@ -230,8 +233,11 @@ class DownloadFileFromServer():
            re-process the snapshots by passing the param `overlay`(True for re-processing and False
            for does not).
         '''
-        overlay = overlay or self.judge_overlay()
+        # get the log files which need to be processed
         items = self.get_click_stream()
+        items += self.__log_files_have_not_been_processed
+        # get the dbsnapshots file which need to be processed
+        overlay = overlay or self.judge_overlay()
         snapshots = self.get_mongo_and_mysql_snapshot(overlay=overlay)
         mongo_files = None
         for snapshot in snapshots:
