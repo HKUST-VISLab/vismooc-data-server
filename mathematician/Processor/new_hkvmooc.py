@@ -406,9 +406,9 @@ class ParseCourseStructFile(PipeModule):
                 for video_id in video_ids:
                     self.videos[video_id][DBC.FIELD_VIDEO_DURATION] = video_duration
         if len(self.videos) == 0:
-            warn("No video in data!")
+            warn("VIDEO:No video in data!")
         if len(self.courses) == 0:
-            warn("No course in data!")
+            warn("COURSE:No course in data!")
         processed_data = raw_data
         processed_data[RD_DATA][DBC.COLLECTION_VIDEO] = self.videos
         processed_data[RD_DATA][DBC.COLLECTION_COURSE] = self.courses
@@ -500,6 +500,8 @@ class ParseUserFile(PipeModule):
                     name = user[DBC.FIELD_USER_NAME] or user[DBC.FIELD_USER_USER_NAME]
                     instructors.append(name)
             course[DBC.FIELD_COURSE_INSTRUCTOR] = instructors
+        if len(self.users):
+            warn("USER:No users!")
         processed_data = raw_data
         # user collection needs courseIds and droppedCourseIds
         processed_data[RD_DATA][DBC.COLLECTION_USER] = self.users
