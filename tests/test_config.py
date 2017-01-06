@@ -76,3 +76,39 @@ class TestConfig(unittest.TestCase):
         expect_results = (len(target_fields)-1) * [test_value]
         expect_results.append(None)
         self.assertEqual(target_fields, expect_results)
+
+    @patch.multiple('mathematician.config', exists=DEFAULT, open=DEFAULT)
+    def test_init_config_with_default_value(self, **mocks):
+        mock_exists, mock_open = mocks["exists"], mocks["open"]
+        mock_exists.return_value = True
+        open_cm = MagicMock()
+        open_cm.__enter__.return_value = open_cm
+        open_cm.read.return_value = '{ \
+            "data_server": {\
+                "third_party_keys": {\
+                    "HKMOOC_key": "test",\
+                    "Youtube_key": "test"\
+                },\
+                "data_sources": {\
+                    "data_source_host": "test",\
+                    "access_tokens_url": "test",\
+                    "clickstreams_url": "test",\
+                    "mongoDB_url": "test",\
+                    "SQLDB_url": "test"\
+                },\
+                "data_filenames": {\
+                    "data_dir":"test",\
+                    "mongodb_file": "test",\
+                    "sqldb_file": "test",\
+                    "meta_db_record": "test",\
+                    "active_versions": "test",\
+                    "structures": "test"\
+                }\
+            }\
+        }'
+        mock_open.return_value = open_cm
+
+        self.assertIsNone(init_config("foo"))
+        target_fields = [DBC.DB_HOST, DBC.DB_NAME, DBC.DB_PORT]
+        expect_results = ["localhost", "test-vismooc-newData-temp", 27017]
+        self.assertEqual(target_fields, expect_results)
