@@ -77,7 +77,7 @@ class ExtractRawData(PipeModule):
         block_queue = queue.Queue()
         module_structure_filename = None
 
-        filenames = [filename.get("path") for filename in raw_data_filenames if isfile(filename.get("path"))]
+        filenames = [file.get("path") for file in raw_data_filenames if isfile(file.get("path"))]
         for filename in filenames:
             if FC.SQLDB_FILE in filename:
                 with open(filename, 'r', encoding='utf-8') as file:
@@ -180,7 +180,7 @@ class ParseCourseStructFile(PipeModule):
         '''
         self.course_overview = raw_data.get('course_overviews_courseoverview') or []
         self.course_access_role = raw_data.get('student_courseaccessrole') or []
-        self.course_structures = raw_data.get(RD_COURSE_IN_MONGO) or {}
+        self.course_structures = raw_data.get(RD_COURSE_IN_MONGO)
         database = raw_data[RD_DB]
         video_collection = database.get_collection(DBC.COLLECTION_VIDEO).find({})
         course_collection = database.get_collection(DBC.COLLECTION_COURSE).find({})
@@ -302,6 +302,7 @@ class ParseCourseStructFile(PipeModule):
         course_year_pattern = r'^course-[\w|:|\+]+(?P<' + course_year + r'>[0-9]{4})\w*'
         re_course_year = re.compile(course_year_pattern)
 
+        
         for course_item in self.course_overview:
             try:
                 records = split(course_item)
@@ -342,8 +343,8 @@ class ParseCourseStructFile(PipeModule):
                 # pylint: disable=C0301
                 if course_structure:
                     for block in course_structure.get('blocks'):
-                        if block.get('block_type') == 'course' and block.get('fields'):
-                            block_field = block.get('fields')
+                        block_field = block.get('fields')
+                        if block.get('block_type') == 'course' and block_field:
                             course[DBC.FIELD_COURSE_STARTTIME] = try_get_timestamp(block_field.get('start'))
                             course[DBC.FIELD_COURSE_ENDTIME] = try_get_timestamp(block_field.get('end'))
                             course[DBC.FIELD_COURSE_ENROLLMENT_START] = try_get_timestamp(block_field.get('enrollment_start'))\
@@ -355,8 +356,8 @@ class ParseCourseStructFile(PipeModule):
                                 for sequential_idx, sequential in enumerate(chapter['fields']['children']):
                                     for vetical_idx, vertical in enumerate(sequential['fields']['children']):
                                         for leaf_idx, leaf in enumerate(vertical['fields']['children']):
-                                            if leaf.get('block_type') == 'video' and leaf.get("fields"):
-                                                fields = leaf.get('fields')
+                                            fields = leaf.get('fields')
+                                            if leaf.get('block_type') == 'video' and fields:
                                                 try:
                                                     video = self.construct_video(course_original_id, chapter_idx, chapter, sequential_idx, sequential, vetical_idx, vertical, leaf_idx, leaf, fields)
                                                 except BaseException as ex:
