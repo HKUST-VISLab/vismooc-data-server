@@ -99,5 +99,6 @@ ENV/
 test-data
 #main.py
 vismooc-test-data
+vismooc-raw-data
 **/config.json
 dbsnapshots_*
