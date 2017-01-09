@@ -70,11 +70,9 @@ class ExtractRawData(PipeModule):
         pattern_create_db = r'^USE `(?P<db_name>\w*)`;$'
         re_pattern_insert_table = re.compile(pattern_insert)
         re_pattern_create_db = re.compile(pattern_create_db)
-        current_db = None
-        structureids = set()
+        # structureids = set()
         structureid_to_courseid = {}
         courseid_to_structure = {}
-        block_queue = queue.Queue()
         module_structure_filename = None
 
         filenames = [file.get("path") for file in raw_data_filenames if isfile(file.get("path"))]
@@ -84,6 +82,7 @@ class ExtractRawData(PipeModule):
                     for line in file:
                         match_db = re_pattern_create_db.search(line)
                         # find out the current database
+                        current_db = None
                         if match_db is not None:
                             current_db = match_db.group("db_name")
                         if (current_db is None) or (current_db != "edxapp"):
@@ -108,7 +107,7 @@ class ExtractRawData(PipeModule):
                         if published_branch is None:
                             continue
                         oid = str(published_branch)
-                        structureids.add(oid)
+                        # structureids.add(oid)
                         structureid_to_courseid[oid] = record['org'] + '+' + \
                             record['course'].replace('.', '_') + '+' + record['run']
             elif FC.STRUCTURES in filename:
@@ -118,10 +117,11 @@ class ExtractRawData(PipeModule):
             with open(module_structure_filename, 'rb') as file:
                 for record in bson.decode_file_iter(file):
                     oid = str(record.get('_id'))
-                    if oid in structureids:
+                    if oid in structureid_to_courseid:
                         courseid_to_structure[structureid_to_courseid[oid]] = record
             for structure in courseid_to_structure.values():
                 blocks_dict = {}
+                block_queue = queue.Queue()
                 # construct a dictory which contains all blocks and get the root course block
                 blocks = structure.get("blocks")
                 for block in blocks:
@@ -129,19 +129,35 @@ class ExtractRawData(PipeModule):
                     if block.get("block_type") == "course":
                         block_queue.put(block)
                 # fill in the children field
+                section_sep = ">>"
                 while not block_queue.empty():
-                    item = block_queue.get()
-                    fields = item.get("fields")
+                    block = block_queue.get()
+                    fields = block.get("fields")
+                    if fields is None:
+                        continue
+                    block_type = block.get("block_type")
+                    prefix = block.get("prefix") or ""
+                    parent = block.get("parent") or block
                     children = fields.get("children")
-                    if fields and children:
+                    if children:
                         new_children = []
-                        for child in children:
-                            new_children.append(blocks_dict[child[1]])
-                            block_queue.put(blocks_dict[child[1]])
-                            blocks.remove(blocks_dict.get(child[1]))
-                            # blocks_to_remove.add(child[1])
-                        item["fields"]["children"] = new_children
+                        for c_idx, child in enumerate(children):
+                            child_one = blocks_dict.get(child[1])
+                            display_name = child_one["fields"]["display_name"]
+                            child_one["parent"] = parent
+                            child_one["prefix"] = prefix + str(c_idx) + section_sep +\
+                                                  str(display_name) + section_sep
+                            new_children.append(child_one)
+                            block_queue.put(child_one)
+                            blocks.remove(child_one)
+                        if block_type == "course":
+                            parent["fields"]["children"] = new_children
+                        else:
+                            parent["fields"]["children"].remove(block)
+                        parent["fields"]["children"].extend(new_children)
             raw_data[RD_COURSE_IN_MONGO] = courseid_to_structure
+            with open("new_tree_test.txt", 'w') as file:
+                file.writelines(str(courseid_to_structure))
         raw_data[RD_DB] = MongoDB(DBC.DB_HOST, DBC.DB_NAME)
         return raw_data
 
@@ -302,7 +318,6 @@ class ParseCourseStructFile(PipeModule):
         course_year_pattern = r'^course-[\w|:|\+]+(?P<' + course_year + r'>[0-9]{4})\w*'
         re_course_year = re.compile(course_year_pattern)
 
-        
         for course_item in self.course_overview:
             try:
                 records = split(course_item)
