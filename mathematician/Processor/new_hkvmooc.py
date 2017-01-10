@@ -122,7 +122,7 @@ class ExtractRawData(PipeModule):
                         courseid_to_structure[structureid_to_courseid[oid]] = record
 
             section_sep = ">>"
-            target_block_type = {"course","chpater", "sequential", "vertical", "video"}
+            target_block_type = {"course","chapter", "sequential", "vertical", "video"}
             courses = {}
             for course_id in courseid_to_structure:
                 structure = courseid_to_structure[course_id]
