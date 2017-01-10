@@ -163,8 +163,16 @@ class ExtractRawData(PipeModule):
                             parent["fields"]["children"].remove(block)
                         parent["fields"]["children"].extend(new_children)
             raw_data[RD_COURSE_IN_MONGO] = courseid_to_structure
-            with open("new_tree_test.txt", 'w') as file:
-                file.writelines(str(courseid_to_structure))
+            with open("new_tree_test.json", 'w') as file:
+                class SetEncoder(json.JSONEncoder):
+                    # pylint: disable=E0202
+                    def default(self, obj):
+                        if type(obj) is set:
+                            return list(obj)
+                        elif isinstance(obj, bson.ObjectId):
+                            return str(obj)
+                        return json.JSONEncoder.default(self, obj)
+                file.write(json.dumps(courseid_to_structure, cls=SetEncoder))
         raw_data[RD_DB] = MongoDB(DBC.DB_HOST, DBC.DB_NAME)
         return raw_data
 
