@@ -167,11 +167,13 @@ class ExtractRawData(PipeModule):
                             parent["children"].remove(block)
                             parent["children"].extend(new_children)
             raw_data[RD_COURSE_IN_MONGO] = courses
+            # TODO remove this part
             with open("new_tree_test.json", 'w') as file:
-                for course in courses:
+                for course in courses.values():
                     course.pop('parent', None)
-                    for child in course['children']:
-                        child.pop('parent', None)
+                    if course.get('children'):
+                        for child in course['children']:
+                            child.pop('parent', None)
                 file.write(dumps(courses))
         raw_data[RD_DB] = MongoDB(DBC.DB_HOST, DBC.DB_NAME)
         return raw_data
@@ -279,22 +281,19 @@ class ParseCourseStructFile(PipeModule):
             warn(ex)
         return video_length
 
-    def construct_video(self, course_id, c_idx, chapter, s_idx, sequential, v_idx, vertical,
-                        l_idx, leaf, fields):
+    def construct_video(self, course_id, v_idx, video_block):
         '''Construct a video object based on the mongodb snapshot
         '''
         section_sep = ">>"
-        video_original_id = str(leaf.get('block_id'))
+        fields = video_block.get('fields')
+        video_original_id = str(video_block.get('block_id'))
         video = self.videos.get(video_original_id) or {}
         video[DBC.FIELD_VIDEO_ORIGINAL_ID] = video_original_id
         video_title = str(fields.get('display_name'))
-        video[DBC.FIELD_VIDEO_NAME] = str(l_idx) + section_sep + video_title
+        video[DBC.FIELD_VIDEO_NAME] = str(v_idx) + section_sep + video_title
         video[DBC.FIELD_VIDEO_TEMPORAL_HOTNESS] = video.get(DBC.FIELD_VIDEO_TEMPORAL_HOTNESS) or {}
         video[DBC.FIELD_VIDEO_DESCRIPTION] = video_title
-        video[DBC.FIELD_VIDEO_SECTION] = \
-            str(c_idx) + section_sep + str(chapter['fields']['display_name']) + section_sep +\
-            str(s_idx) + section_sep + str(sequential['fields']['display_name']) + section_sep +\
-            str(v_idx) + section_sep + str(vertical['fields']['display_name'])
+        video[DBC.FIELD_VIDEO_SECTION] = video_block.get('prefix')
         video[DBC.FIELD_VIDEO_COURSE_ID] = course_id
         return video
 
@@ -368,47 +367,43 @@ class ParseCourseStructFile(PipeModule):
                 course[DBC.FIELD_COURSE_LOWEST_PASSING_GRADE] = records[20]
                 course[DBC.FIELD_COURSE_MOBILE_AVAILABLE] = records[22]
                 course[DBC.FIELD_COURSE_DISPLAY_NUMBER_WITH_DEFAULT] = records[6]
-                course_structure = self.course_structures.get(course_original_id)
+                course_block = self.course_structures.get(course_original_id)
 
                 # pylint: disable=C0301
-                if course_structure:
-                    for block in course_structure.get('blocks'):
-                        block_field = block.get('fields')
-                        if block.get('block_type') == 'course' and block_field:
-                            course[DBC.FIELD_COURSE_STARTTIME] = try_get_timestamp(block_field.get('start'))
-                            course[DBC.FIELD_COURSE_ENDTIME] = try_get_timestamp(block_field.get('end'))
-                            course[DBC.FIELD_COURSE_ENROLLMENT_START] = try_get_timestamp(block_field.get('enrollment_start'))\
-                                                                        or course[DBC.FIELD_COURSE_STARTTIME]
-                            course[DBC.FIELD_COURSE_ENROLLMENT_END] = try_get_timestamp(block_field.get('enrollment_end'))
-                            course[DBC.FIELD_COURSE_NAME] = block_field.get('display_name')
-                            course[DBC.FIELD_COURSE_MOBILE_AVAILABLE] = block_field.get('mobile_available')
-                            for chapter_idx, chapter in enumerate(block_field['children']):
-                                for sequential_idx, sequential in enumerate(chapter['fields']['children']):
-                                    for vetical_idx, vertical in enumerate(sequential['fields']['children']):
-                                        for leaf_idx, leaf in enumerate(vertical['fields']['children']):
-                                            fields = leaf.get('fields')
-                                            if leaf.get('block_type') == 'video' and fields:
-                                                try:
-                                                    video = self.construct_video(course_original_id, chapter_idx, chapter, sequential_idx, sequential, vetical_idx, vertical, leaf_idx, leaf, fields)
-                                                except BaseException as ex:
-                                                    warn("In ParseCourseStructFile, cannot get the video information of video:"+str(fields))
-                                                    warn(ex)
-                                                    continue
-                                                youtube_id = fields.get('youtube_id_1_0')
-                                                video_original_id = video[DBC.FIELD_VIDEO_ORIGINAL_ID]
-                                                new_url = (youtube_id and ParseCourseStructFile.YOUTUBE_URL_PREFIX + youtube_id) or (fields.get('html5_sources') and fields.get('html5_sources')[0])
-                                                old_url = video.get(DBC.FIELD_VIDEO_URL)
-                                                if new_url != old_url:
-                                                    video[DBC.FIELD_VIDEO_URL] = new_url
-                                                    # if the url is from youtube
-                                                    if new_url and 'youtube' in new_url:
-                                                        youtube_id = new_url[new_url.index('v=') + 2:]
-                                                        tmp_youtube_video_dict[youtube_id] = video_original_id
-                                                    # else if the url is from other website
-                                                    elif new_url:
-                                                        tmp_other_video_dict.setdefault(new_url, []).append(video_original_id)
-                                                self.videos[video_original_id] = video
-                                                course.setdefault(DBC.FIELD_COURSE_VIDEO_IDS, set()).add(video_original_id)
+                if course_block and course_block.get('fields'):
+                    block_field = course_block.get('fields')
+                    course[DBC.FIELD_COURSE_STARTTIME] = try_get_timestamp(block_field.get('start'))
+                    course[DBC.FIELD_COURSE_ENDTIME] = try_get_timestamp(block_field.get('end'))
+                    course[DBC.FIELD_COURSE_ENROLLMENT_START] = try_get_timestamp(block_field.get('enrollment_start'))\
+                                                                or course[DBC.FIELD_COURSE_STARTTIME]
+                    course[DBC.FIELD_COURSE_ENROLLMENT_END] = try_get_timestamp(block_field.get('enrollment_end'))
+                    course[DBC.FIELD_COURSE_NAME] = block_field.get('display_name')
+                    course[DBC.FIELD_COURSE_MOBILE_AVAILABLE] = block_field.get('mobile_available')
+                    for c_idx, child in enumerate(course_block["children"]):
+                        child_fields = child.get('fields')
+                        if child.get('block_type') != 'video' or not child_fields:
+                            continue
+                        try:
+                            video = self.construct_video(course_original_id, c_idx, child)
+                        except BaseException as ex:
+                            warn("In ParseCourseStructFile, cannot get the video information of video:"+str(child))
+                            warn(ex)
+                            continue
+                        youtube_id = child_fields.get('youtube_id_1_0')
+                        video_original_id = video[DBC.FIELD_VIDEO_ORIGINAL_ID]
+                        new_url = (youtube_id and ParseCourseStructFile.YOUTUBE_URL_PREFIX + youtube_id) or (child_fields.get('html5_sources') and child_fields.get('html5_sources')[0])
+                        old_url = video.get(DBC.FIELD_VIDEO_URL)
+                        if new_url != old_url:
+                            video[DBC.FIELD_VIDEO_URL] = new_url
+                            # if the url is from youtube
+                            if new_url and 'youtube' in new_url:
+                                youtube_id = new_url[new_url.index('v=') + 2:]
+                                tmp_youtube_video_dict[youtube_id] = video_original_id
+                            # else if the url is from other website
+                            elif new_url:
+                                tmp_other_video_dict.setdefault(new_url, []).append(video_original_id)
+                        self.videos[video_original_id] = video
+                        course.setdefault(DBC.FIELD_COURSE_VIDEO_IDS, set()).add(video_original_id)
                 self.courses[course_original_id] = course
             except BaseException as ex:
                 warn("In ParseCourseStructFile, cannot get the course information of course:"\
