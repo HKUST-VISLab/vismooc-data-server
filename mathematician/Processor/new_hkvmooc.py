@@ -123,7 +123,9 @@ class ExtractRawData(PipeModule):
 
             section_sep = ">>"
             target_block_type = {"chpater", "sequential", "vertical", "video"}
-            for structure in courseid_to_structure.values():
+            courses = {}
+            for course_id in courseid_to_structure:
+                structure = courseid_to_structure[course_id]
                 blocks_dict = {}
                 block_queue = queue.Queue()
                 # construct a dictory which contains all blocks and get the root course block
@@ -132,6 +134,7 @@ class ExtractRawData(PipeModule):
                     blocks_dict[block.get("block_id")] = block
                     if block.get("block_type") == "course":
                         block_queue.put(block)
+                        courses[course_id] = block
                 # fill in the children field
 
                 while not block_queue.empty():
@@ -163,17 +166,9 @@ class ExtractRawData(PipeModule):
                         else:
                             parent["fields"]["children"].remove(block)
                         parent["fields"]["children"].extend(new_children)
-            raw_data[RD_COURSE_IN_MONGO] = courseid_to_structure
+            raw_data[RD_COURSE_IN_MONGO] = courses
             with open("new_tree_test.json", 'w') as file:
-                class SetEncoder(json.JSONEncoder):
-                    # pylint: disable=E0202
-                    def default(self, obj):
-                        if type(obj) is set:
-                            return list(obj)
-                        elif isinstance(obj, bson.ObjectId):
-                            return str(obj)
-                        return json.JSONEncoder.default(self, obj)
-                file.write(dumps(courseid_to_structure))
+                file.write(dumps(courses))
         raw_data[RD_DB] = MongoDB(DBC.DB_HOST, DBC.DB_NAME)
         return raw_data
 
