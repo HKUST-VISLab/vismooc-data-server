@@ -73,7 +73,6 @@ class ExtractRawData(PipeModule):
         re_pattern_create_db = re.compile(pattern_create_db)
         # structureids = set()
         structureid_to_courseid = {}
-        courseid_to_structure = {}
         module_structure_filename = None
 
         filenames = [file.get("path") for file in raw_data_filenames if isfile(file.get("path"))]
@@ -115,15 +114,17 @@ class ExtractRawData(PipeModule):
                 module_structure_filename = filename
         # modulestore.active_version must be processed before modulestore.structures
         if module_structure_filename and len(structureid_to_courseid) > 0:
+            courseid_to_structure = {}
             with open(module_structure_filename, 'rb') as file:
                 for record in bson.decode_file_iter(file):
                     oid = str(record.get('_id'))
                     if oid in structureid_to_courseid:
                         courseid_to_structure[structureid_to_courseid[oid]] = record
-
             section_sep = ">>"
             target_block_type = {"course", "chapter", "sequential", "vertical", "video"}
             courses = {}
+            if len(courseid_to_structure) == 0:
+                warn("There is no course strucutre in mongodb file!")
             for course_id in courseid_to_structure:
                 structure = courseid_to_structure[course_id]
                 blocks_dict = {}
@@ -146,35 +147,34 @@ class ExtractRawData(PipeModule):
                     prefix = block.get("prefix") or ""
                     parent = block.get("parent") or block
                     children = fields.get("children")
-                    if children:
-                        new_children = []
-                        for c_idx, child in enumerate(children):
-                            if child[0] not in target_block_type:
-                                continue
-                            child_one = blocks_dict.get(child[1])
-                            child_one_fields = child_one.get('fields')
-                            display_name = child_one_fields and child_one_fields.get('display_name')
-                            display_name = display_name or ""
-                            child_one["parent"] = parent
-                            child_one["prefix"] = prefix + str(c_idx) + section_sep +\
-                                                  str(display_name) + section_sep
-                            new_children.append(child_one)
-                            block_queue.put(child_one)
-                            blocks.remove(child_one)
-                        if block_type == "course":
-                            parent["children"] = new_children
-                        else:
-                            parent["children"].remove(block)
-                            parent["children"].extend(new_children)
+                    if not children:
+                        continue
+                    # construct new_children
+                    new_children = []
+                    for c_idx, child in enumerate(children):
+                        if child[0] not in target_block_type:
+                            continue
+                        child_one = blocks_dict.get(child[1])
+                        child_one_fields = child_one.get('fields')
+                        display_name = child_one_fields and child_one_fields.get('display_name')
+                        display_name = display_name or ""
+                        child_one["parent"] = parent
+                        child_one["prefix"] = prefix + str(c_idx) + section_sep +\
+                                                str(display_name) + section_sep
+                        new_children.append(child_one)
+                        block_queue.put(child_one)
+                        blocks.remove(child_one)
+                    # assign new_children to parent
+                    if block_type == "course":
+                        parent["children"] = new_children
+                    else:
+                        parent["children"].remove(block)
+                        parent["children"].extend(new_children)
             raw_data[RD_COURSE_IN_MONGO] = courses
-            # TODO remove this part
-            with open("new_tree_test.json", 'w') as file:
-                for course in courses.values():
-                    course.pop('parent', None)
-                    if course.get('children'):
-                        for child in course['children']:
-                            child.pop('parent', None)
-                file.write(dumps(courses))
+        else:
+            warn("COURSE_IN_MONGO can not be generated properly, the reasons may be:")
+            warn("module_structure_filename is "+str(module_structure_filename))
+            warn("length of structureid_to_courseid is "+len(structureid_to_courseid))
         raw_data[RD_DB] = MongoDB(DBC.DB_HOST, DBC.DB_NAME)
         return raw_data
 
@@ -379,7 +379,8 @@ class ParseCourseStructFile(PipeModule):
                     course[DBC.FIELD_COURSE_ENROLLMENT_END] = try_get_timestamp(block_field.get('enrollment_end'))
                     course[DBC.FIELD_COURSE_NAME] = block_field.get('display_name')
                     course[DBC.FIELD_COURSE_MOBILE_AVAILABLE] = block_field.get('mobile_available')
-                    for c_idx, child in enumerate(course_block["children"]):
+
+                    for c_idx, child in enumerate(course_block.get("children")):
                         child_fields = child.get('fields')
                         if child.get('block_type') != 'video' or not child_fields:
                             continue
@@ -404,6 +405,9 @@ class ParseCourseStructFile(PipeModule):
                                 tmp_other_video_dict.setdefault(new_url, []).append(video_original_id)
                         self.videos[video_original_id] = video
                         course.setdefault(DBC.FIELD_COURSE_VIDEO_IDS, set()).add(video_original_id)
+                else:
+                    warn("Course "+course_original_id+" has no course block,\
+                         which means it will has no videos!")
                 self.courses[course_original_id] = course
             except BaseException as ex:
                 warn("In ParseCourseStructFile, cannot get the course information of course:"\
