@@ -10,6 +10,7 @@ from os.path import isfile
 from datetime import timedelta, datetime
 import queue
 import bson
+from bson.json_util import dumps
 
 from ..logger import warn, info
 from ..http_helper import get as http_get, get_list as http_get_list
@@ -172,7 +173,7 @@ class ExtractRawData(PipeModule):
                         elif isinstance(obj, bson.ObjectId):
                             return str(obj)
                         return json.JSONEncoder.default(self, obj)
-                file.write(json.dumps(courseid_to_structure, cls=SetEncoder))
+                file.write(dumps(courseid_to_structure))
         raw_data[RD_DB] = MongoDB(DBC.DB_HOST, DBC.DB_NAME)
         return raw_data
 
