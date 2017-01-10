@@ -550,6 +550,7 @@ class ParseEnrollmentFile(PipeModule):
             return raw_data
         courses = raw_data[RD_DATA][DBC.COLLECTION_COURSE]
         users = raw_data[RD_DATA][DBC.COLLECTION_USER]
+        print(raw_data[RD_DATA].keys())
 
         enrollments = []
         for enroll_item in self.course_enrollment:
