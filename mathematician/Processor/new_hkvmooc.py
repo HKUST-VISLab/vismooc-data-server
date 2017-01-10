@@ -463,6 +463,8 @@ class ParseUserFile(PipeModule):
             fields = split(record)
             self.user_profile[fields[16]] = fields
         if self.user_info is None:
+            warn("No auth_user table in SQL!")
+            raw_data[RD_DATA][DBC.COLLECTION_USER] = self.users
             return raw_data
 
         for access_role in self.course_access_role:
