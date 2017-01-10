@@ -119,6 +119,9 @@ class ExtractRawData(PipeModule):
                     oid = str(record.get('_id'))
                     if oid in structureid_to_courseid:
                         courseid_to_structure[structureid_to_courseid[oid]] = record
+
+            section_sep = ">>"
+            target_block_type = {"chpater", "sequential", "vertical", "video"}
             for structure in courseid_to_structure.values():
                 blocks_dict = {}
                 block_queue = queue.Queue()
@@ -129,13 +132,15 @@ class ExtractRawData(PipeModule):
                     if block.get("block_type") == "course":
                         block_queue.put(block)
                 # fill in the children field
-                section_sep = ">>"
+
                 while not block_queue.empty():
                     block = block_queue.get()
                     fields = block.get("fields")
                     if fields is None:
                         continue
                     block_type = block.get("block_type")
+                    if block_type not in target_block_type:
+                        continue
                     prefix = block.get("prefix") or ""
                     parent = block.get("parent") or block
                     children = fields.get("children")
