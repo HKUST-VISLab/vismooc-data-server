@@ -143,7 +143,9 @@ class ExtractRawData(PipeModule):
                         new_children = []
                         for c_idx, child in enumerate(children):
                             child_one = blocks_dict.get(child[1])
-                            display_name = child_one["fields"]["display_name"]
+                            child_one_fields = child_one.get('fields')
+                            display_name = child_one_fields and child_one_fields.get('display_name')
+                            display_name = display_name or ""
                             child_one["parent"] = parent
                             child_one["prefix"] = prefix + str(c_idx) + section_sep +\
                                                   str(display_name) + section_sep
