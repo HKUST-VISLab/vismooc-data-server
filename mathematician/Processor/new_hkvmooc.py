@@ -134,9 +134,9 @@ class ExtractRawData(PipeModule):
                     blocks_dict[block.get("block_id")] = block
                     if block.get("block_type") == "course":
                         block_queue.put(block)
+                        block.pop("edit_info", None)
                         courses[course_id] = block
                 # fill in the children field
-
                 while not block_queue.empty():
                     block = block_queue.get()
                     fields = block.get("fields")
@@ -152,6 +152,7 @@ class ExtractRawData(PipeModule):
                         new_children = []
                         for c_idx, child in enumerate(children):
                             if child[0] not in target_block_type:
+                                print(child[0])
                                 continue
                             child_one = blocks_dict.get(child[1])
                             child_one_fields = child_one.get('fields')
