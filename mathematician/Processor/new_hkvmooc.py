@@ -122,7 +122,7 @@ class ExtractRawData(PipeModule):
                         courseid_to_structure[structureid_to_courseid[oid]] = record
 
             section_sep = ">>"
-            target_block_type = {"course","chapter", "sequential", "vertical", "video"}
+            target_block_type = {"course", "chapter", "sequential", "vertical", "video"}
             courses = {}
             for course_id in courseid_to_structure:
                 structure = courseid_to_structure[course_id]
@@ -134,17 +134,15 @@ class ExtractRawData(PipeModule):
                     blocks_dict[block.get("block_id")] = block
                     if block.get("block_type") == "course":
                         block_queue.put(block)
-                        block.pop("edit_info", None)
                         courses[course_id] = block
                 # fill in the children field
                 while not block_queue.empty():
                     block = block_queue.get()
+                    block.pop("edit_info", None)
                     fields = block.get("fields")
                     if fields is None:
                         continue
                     block_type = block.get("block_type")
-                    # if block_type not in target_block_type:
-                    #     continue
                     prefix = block.get("prefix") or ""
                     parent = block.get("parent") or block
                     children = fields.get("children")
@@ -157,22 +155,23 @@ class ExtractRawData(PipeModule):
                             child_one_fields = child_one.get('fields')
                             display_name = child_one_fields and child_one_fields.get('display_name')
                             display_name = display_name or ""
-                            if child_one_fields.get("children"):
-                                child_one["parent"] = parent
+                            child_one["parent"] = parent
                             child_one["prefix"] = prefix + str(c_idx) + section_sep +\
                                                   str(display_name) + section_sep
                             new_children.append(child_one)
                             block_queue.put(child_one)
                             blocks.remove(child_one)
                         if block_type == "course":
-                            parent["fields"]["children"] = new_children
+                            parent["children"] = new_children
                         else:
-                            parent["fields"]["children"].remove(block)
-                            parent["fields"]["children"].extend(new_children)
+                            parent["children"].remove(block)
+                            parent["children"].extend(new_children)
             raw_data[RD_COURSE_IN_MONGO] = courses
             with open("new_tree_test.json", 'w') as file:
                 for course in courses:
                     course.pop('parent', None)
+                    for child in course['children']:
+                        child.pop('parent', None)
                 file.write(dumps(courses))
         raw_data[RD_DB] = MongoDB(DBC.DB_HOST, DBC.DB_NAME)
         return raw_data
