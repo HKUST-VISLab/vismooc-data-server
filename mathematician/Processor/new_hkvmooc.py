@@ -143,14 +143,16 @@ class ExtractRawData(PipeModule):
                     if fields is None:
                         continue
                     block_type = block.get("block_type")
-                    if block_type not in target_block_type:
-                        continue
+                    # if block_type not in target_block_type:
+                    #     continue
                     prefix = block.get("prefix") or ""
                     parent = block.get("parent") or block
                     children = fields.get("children")
                     if children:
                         new_children = []
                         for c_idx, child in enumerate(children):
+                            if child[0] not in target_block_type:
+                                continue
                             child_one = blocks_dict.get(child[1])
                             child_one_fields = child_one.get('fields')
                             display_name = child_one_fields and child_one_fields.get('display_name')
@@ -165,7 +167,7 @@ class ExtractRawData(PipeModule):
                             parent["fields"]["children"] = new_children
                         else:
                             parent["fields"]["children"].remove(block)
-                        parent["fields"]["children"].extend(new_children)
+                            parent["fields"]["children"].extend(new_children)
             raw_data[RD_COURSE_IN_MONGO] = courses
             with open("new_tree_test.json", 'w') as file:
                 file.write(dumps(courses))
