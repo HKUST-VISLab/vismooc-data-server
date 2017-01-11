@@ -10,6 +10,7 @@ from os.path import isfile
 from datetime import timedelta, datetime
 import queue
 import bson
+from bson.json_util import dumps
 
 from ..logger import warn, info
 from ..http_helper import get as http_get, get_list as http_get_list
@@ -70,14 +71,12 @@ class ExtractRawData(PipeModule):
         pattern_create_db = r'^USE `(?P<db_name>\w*)`;$'
         re_pattern_insert_table = re.compile(pattern_insert)
         re_pattern_create_db = re.compile(pattern_create_db)
+        # structureids = set()
         current_db = None
-        structureids = set()
         structureid_to_courseid = {}
-        courseid_to_structure = {}
-        block_queue = queue.Queue()
         module_structure_filename = None
 
-        filenames = [filename.get("path") for filename in raw_data_filenames if isfile(filename.get("path"))]
+        filenames = [file.get("path") for file in raw_data_filenames if isfile(file.get("path"))]
         for filename in filenames:
             if FC.SQLDB_FILE in filename:
                 with open(filename, 'r', encoding='utf-8') as file:
@@ -108,40 +107,74 @@ class ExtractRawData(PipeModule):
                         if published_branch is None:
                             continue
                         oid = str(published_branch)
-                        structureids.add(oid)
+                        # structureids.add(oid)
                         structureid_to_courseid[oid] = record['org'] + '+' + \
                             record['course'].replace('.', '_') + '+' + record['run']
             elif FC.STRUCTURES in filename:
                 module_structure_filename = filename
         # modulestore.active_version must be processed before modulestore.structures
         if module_structure_filename and len(structureid_to_courseid) > 0:
+            courseid_to_structure = {}
             with open(module_structure_filename, 'rb') as file:
                 for record in bson.decode_file_iter(file):
                     oid = str(record.get('_id'))
-                    if oid in structureids:
+                    if oid in structureid_to_courseid:
                         courseid_to_structure[structureid_to_courseid[oid]] = record
-            for structure in courseid_to_structure.values():
+            section_sep = ">>"
+            target_block_type = {"course", "chapter", "sequential", "vertical", "video"}
+            courses = {}
+            if len(courseid_to_structure) == 0:
+                warn("There is no course strucutre in mongodb file!")
+            for course_id in courseid_to_structure:
+                structure = courseid_to_structure[course_id]
                 blocks_dict = {}
+                block_queue = queue.Queue()
                 # construct a dictory which contains all blocks and get the root course block
                 blocks = structure.get("blocks")
                 for block in blocks:
                     blocks_dict[block.get("block_id")] = block
                     if block.get("block_type") == "course":
                         block_queue.put(block)
+                        courses[course_id] = block
                 # fill in the children field
                 while not block_queue.empty():
-                    item = block_queue.get()
-                    fields = item.get("fields")
+                    block = block_queue.get()
+                    block.pop("edit_info", None)
+                    fields = block.get("fields")
+                    if fields is None:
+                        continue
+                    block_type = block.get("block_type")
+                    prefix = block.get("prefix") or ""
+                    parent = block.get("parent") or block
                     children = fields.get("children")
-                    if fields and children:
-                        new_children = []
-                        for child in children:
-                            new_children.append(blocks_dict[child[1]])
-                            block_queue.put(blocks_dict[child[1]])
-                            blocks.remove(blocks_dict.get(child[1]))
-                            # blocks_to_remove.add(child[1])
-                        item["fields"]["children"] = new_children
-            raw_data[RD_COURSE_IN_MONGO] = courseid_to_structure
+                    if not children:
+                        continue
+                    # construct new_children
+                    new_children = []
+                    for c_idx, child in enumerate(children):
+                        if child[0] not in target_block_type:
+                            continue
+                        child_one = blocks_dict.get(child[1])
+                        child_one_fields = child_one.get('fields')
+                        display_name = child_one_fields and child_one_fields.get('display_name')
+                        display_name = display_name or ""
+                        child_one["parent"] = parent
+                        child_one["prefix"] = prefix + str(c_idx) + section_sep +\
+                                                str(display_name) + section_sep
+                        new_children.append(child_one)
+                        block_queue.put(child_one)
+                        blocks.remove(child_one)
+                    # assign new_children to parent
+                    if block_type == "course":
+                        parent["children"] = new_children
+                    else:
+                        parent["children"].remove(block)
+                        parent["children"].extend(new_children)
+            raw_data[RD_COURSE_IN_MONGO] = courses
+        else:
+            warn("COURSE_IN_MONGO can not be generated properly, the reasons may be:")
+            warn("module_structure_filename is "+str(module_structure_filename))
+            warn("length of structureid_to_courseid is "+str(len(structureid_to_courseid)))
         raw_data[RD_DB] = MongoDB(DBC.DB_HOST, DBC.DB_NAME)
         return raw_data
 
@@ -180,7 +213,7 @@ class ParseCourseStructFile(PipeModule):
         '''
         self.course_overview = raw_data.get('course_overviews_courseoverview') or []
         self.course_access_role = raw_data.get('student_courseaccessrole') or []
-        self.course_structures = raw_data.get(RD_COURSE_IN_MONGO) or {}
+        self.course_structures = raw_data.get(RD_COURSE_IN_MONGO)
         database = raw_data[RD_DB]
         video_collection = database.get_collection(DBC.COLLECTION_VIDEO).find({})
         course_collection = database.get_collection(DBC.COLLECTION_COURSE).find({})
@@ -248,22 +281,19 @@ class ParseCourseStructFile(PipeModule):
             warn(ex)
         return video_length
 
-    def construct_video(self, course_id, c_idx, chapter, s_idx, sequential, v_idx, vertical,
-                        l_idx, leaf, fields):
+    def construct_video(self, course_id, v_idx, video_block):
         '''Construct a video object based on the mongodb snapshot
         '''
         section_sep = ">>"
-        video_original_id = str(leaf.get('block_id'))
+        fields = video_block.get('fields')
+        video_original_id = str(video_block.get('block_id'))
         video = self.videos.get(video_original_id) or {}
         video[DBC.FIELD_VIDEO_ORIGINAL_ID] = video_original_id
         video_title = str(fields.get('display_name'))
-        video[DBC.FIELD_VIDEO_NAME] = str(l_idx) + section_sep + video_title
+        video[DBC.FIELD_VIDEO_NAME] = str(v_idx) + section_sep + video_title
         video[DBC.FIELD_VIDEO_TEMPORAL_HOTNESS] = video.get(DBC.FIELD_VIDEO_TEMPORAL_HOTNESS) or {}
         video[DBC.FIELD_VIDEO_DESCRIPTION] = video_title
-        video[DBC.FIELD_VIDEO_SECTION] = \
-            str(c_idx) + section_sep + str(chapter['fields']['display_name']) + section_sep +\
-            str(s_idx) + section_sep + str(sequential['fields']['display_name']) + section_sep +\
-            str(v_idx) + section_sep + str(vertical['fields']['display_name'])
+        video[DBC.FIELD_VIDEO_SECTION] = video_block.get('prefix')
         video[DBC.FIELD_VIDEO_COURSE_ID] = course_id
         return video
 
@@ -301,6 +331,8 @@ class ParseCourseStructFile(PipeModule):
         course_year = "course_year"
         course_year_pattern = r'^course-[\w|:|\+]+(?P<' + course_year + r'>[0-9]{4})\w*'
         re_course_year = re.compile(course_year_pattern)
+        if len(self.course_overview) == 0:
+            warn("No course_overviews_courseoverview in MySQL snapshots")
 
         for course_item in self.course_overview:
             try:
@@ -337,47 +369,49 @@ class ParseCourseStructFile(PipeModule):
                 course[DBC.FIELD_COURSE_LOWEST_PASSING_GRADE] = records[20]
                 course[DBC.FIELD_COURSE_MOBILE_AVAILABLE] = records[22]
                 course[DBC.FIELD_COURSE_DISPLAY_NUMBER_WITH_DEFAULT] = records[6]
-                course_structure = self.course_structures.get(course_original_id)
+                course_block = self.course_structures.get(course_original_id)
 
                 # pylint: disable=C0301
-                if course_structure:
-                    for block in course_structure.get('blocks'):
-                        if block.get('block_type') == 'course' and block.get('fields'):
-                            block_field = block.get('fields')
-                            course[DBC.FIELD_COURSE_STARTTIME] = try_get_timestamp(block_field.get('start'))
-                            course[DBC.FIELD_COURSE_ENDTIME] = try_get_timestamp(block_field.get('end'))
-                            course[DBC.FIELD_COURSE_ENROLLMENT_START] = try_get_timestamp(block_field.get('enrollment_start'))\
-                                                                        or course[DBC.FIELD_COURSE_STARTTIME]
-                            course[DBC.FIELD_COURSE_ENROLLMENT_END] = try_get_timestamp(block_field.get('enrollment_end'))
-                            course[DBC.FIELD_COURSE_NAME] = block_field.get('display_name')
-                            course[DBC.FIELD_COURSE_MOBILE_AVAILABLE] = block_field.get('mobile_available')
-                            for chapter_idx, chapter in enumerate(block_field['children']):
-                                for sequential_idx, sequential in enumerate(chapter['fields']['children']):
-                                    for vetical_idx, vertical in enumerate(sequential['fields']['children']):
-                                        for leaf_idx, leaf in enumerate(vertical['fields']['children']):
-                                            if leaf.get('block_type') == 'video' and leaf.get("fields"):
-                                                fields = leaf.get('fields')
-                                                try:
-                                                    video = self.construct_video(course_original_id, chapter_idx, chapter, sequential_idx, sequential, vetical_idx, vertical, leaf_idx, leaf, fields)
-                                                except BaseException as ex:
-                                                    warn("In ParseCourseStructFile, cannot get the video information of video:"+str(fields))
-                                                    warn(ex)
-                                                    continue
-                                                youtube_id = fields.get('youtube_id_1_0')
-                                                video_original_id = video[DBC.FIELD_VIDEO_ORIGINAL_ID]
-                                                new_url = (youtube_id and ParseCourseStructFile.YOUTUBE_URL_PREFIX + youtube_id) or (fields.get('html5_sources') and fields.get('html5_sources')[0])
-                                                old_url = video.get(DBC.FIELD_VIDEO_URL)
-                                                if new_url != old_url:
-                                                    video[DBC.FIELD_VIDEO_URL] = new_url
-                                                    # if the url is from youtube
-                                                    if new_url and 'youtube' in new_url:
-                                                        youtube_id = new_url[new_url.index('v=') + 2:]
-                                                        tmp_youtube_video_dict[youtube_id] = video_original_id
-                                                    # else if the url is from other website
-                                                    elif new_url:
-                                                        tmp_other_video_dict.setdefault(new_url, []).append(video_original_id)
-                                                self.videos[video_original_id] = video
-                                                course.setdefault(DBC.FIELD_COURSE_VIDEO_IDS, set()).add(video_original_id)
+                if course_block and course_block.get('fields'):
+                    block_field = course_block.get('fields')
+                    course[DBC.FIELD_COURSE_STARTTIME] = try_get_timestamp(block_field.get('start'))
+                    course[DBC.FIELD_COURSE_ENDTIME] = try_get_timestamp(block_field.get('end'))
+                    course[DBC.FIELD_COURSE_ENROLLMENT_START] = try_get_timestamp(block_field.get('enrollment_start'))\
+                                                                or course[DBC.FIELD_COURSE_STARTTIME]
+                    course[DBC.FIELD_COURSE_ENROLLMENT_END] = try_get_timestamp(block_field.get('enrollment_end'))
+                    course[DBC.FIELD_COURSE_NAME] = block_field.get('display_name')
+                    course[DBC.FIELD_COURSE_MOBILE_AVAILABLE] = block_field.get('mobile_available')
+
+                    course_children = course_block.get("children")
+                    if course_children:
+                        for c_idx, child in enumerate(course_children):
+                            child_fields = child.get('fields')
+                            if child.get('block_type') != 'video' or not child_fields:
+                                continue
+                            try:
+                                video = self.construct_video(course_original_id, c_idx, child)
+                            except BaseException as ex:
+                                warn("In ParseCourseStructFile, cannot get the video information of video:"+str(child))
+                                warn(ex)
+                                continue
+                            youtube_id = child_fields.get('youtube_id_1_0')
+                            video_original_id = video[DBC.FIELD_VIDEO_ORIGINAL_ID]
+                            new_url = (youtube_id and ParseCourseStructFile.YOUTUBE_URL_PREFIX + youtube_id) or (child_fields.get('html5_sources') and child_fields.get('html5_sources')[0])
+                            old_url = video.get(DBC.FIELD_VIDEO_URL)
+                            if new_url != old_url:
+                                video[DBC.FIELD_VIDEO_URL] = new_url
+                                # if the url is from youtube
+                                if new_url and 'youtube' in new_url:
+                                    youtube_id = new_url[new_url.index('v=') + 2:]
+                                    tmp_youtube_video_dict[youtube_id] = video_original_id
+                                # else if the url is from other website
+                                elif new_url:
+                                    tmp_other_video_dict.setdefault(new_url, []).append(video_original_id)
+                            self.videos[video_original_id] = video
+                            course.setdefault(DBC.FIELD_COURSE_VIDEO_IDS, set()).add(video_original_id)
+                else:
+                    warn("Course "+course_original_id+" has no course block,\
+                         which means it will has no videos!")
                 self.courses[course_original_id] = course
             except BaseException as ex:
                 warn("In ParseCourseStructFile, cannot get the course information of course:"\
@@ -445,6 +479,8 @@ class ParseUserFile(PipeModule):
             fields = split(record)
             self.user_profile[fields[16]] = fields
         if self.user_info is None:
+            warn("No auth_user table in SQL!")
+            raw_data[RD_DATA][DBC.COLLECTION_USER] = self.users
             return raw_data
 
         for access_role in self.course_access_role:
@@ -532,6 +568,7 @@ class ParseEnrollmentFile(PipeModule):
             return raw_data
         courses = raw_data[RD_DATA][DBC.COLLECTION_COURSE]
         users = raw_data[RD_DATA][DBC.COLLECTION_USER]
+        print(raw_data[RD_DATA].keys())
 
         enrollments = []
         for enroll_item in self.course_enrollment:
