@@ -382,31 +382,33 @@ class ParseCourseStructFile(PipeModule):
                     course[DBC.FIELD_COURSE_NAME] = block_field.get('display_name')
                     course[DBC.FIELD_COURSE_MOBILE_AVAILABLE] = block_field.get('mobile_available')
 
-                    for c_idx, child in enumerate(course_block.get("children")):
-                        child_fields = child.get('fields')
-                        if child.get('block_type') != 'video' or not child_fields:
-                            continue
-                        try:
-                            video = self.construct_video(course_original_id, c_idx, child)
-                        except BaseException as ex:
-                            warn("In ParseCourseStructFile, cannot get the video information of video:"+str(child))
-                            warn(ex)
-                            continue
-                        youtube_id = child_fields.get('youtube_id_1_0')
-                        video_original_id = video[DBC.FIELD_VIDEO_ORIGINAL_ID]
-                        new_url = (youtube_id and ParseCourseStructFile.YOUTUBE_URL_PREFIX + youtube_id) or (child_fields.get('html5_sources') and child_fields.get('html5_sources')[0])
-                        old_url = video.get(DBC.FIELD_VIDEO_URL)
-                        if new_url != old_url:
-                            video[DBC.FIELD_VIDEO_URL] = new_url
-                            # if the url is from youtube
-                            if new_url and 'youtube' in new_url:
-                                youtube_id = new_url[new_url.index('v=') + 2:]
-                                tmp_youtube_video_dict[youtube_id] = video_original_id
-                            # else if the url is from other website
-                            elif new_url:
-                                tmp_other_video_dict.setdefault(new_url, []).append(video_original_id)
-                        self.videos[video_original_id] = video
-                        course.setdefault(DBC.FIELD_COURSE_VIDEO_IDS, set()).add(video_original_id)
+                    course_children = course_block.get("children")
+                    if course_children:
+                        for c_idx, child in enumerate(course_children):
+                            child_fields = child.get('fields')
+                            if child.get('block_type') != 'video' or not child_fields:
+                                continue
+                            try:
+                                video = self.construct_video(course_original_id, c_idx, child)
+                            except BaseException as ex:
+                                warn("In ParseCourseStructFile, cannot get the video information of video:"+str(child))
+                                warn(ex)
+                                continue
+                            youtube_id = child_fields.get('youtube_id_1_0')
+                            video_original_id = video[DBC.FIELD_VIDEO_ORIGINAL_ID]
+                            new_url = (youtube_id and ParseCourseStructFile.YOUTUBE_URL_PREFIX + youtube_id) or (child_fields.get('html5_sources') and child_fields.get('html5_sources')[0])
+                            old_url = video.get(DBC.FIELD_VIDEO_URL)
+                            if new_url != old_url:
+                                video[DBC.FIELD_VIDEO_URL] = new_url
+                                # if the url is from youtube
+                                if new_url and 'youtube' in new_url:
+                                    youtube_id = new_url[new_url.index('v=') + 2:]
+                                    tmp_youtube_video_dict[youtube_id] = video_original_id
+                                # else if the url is from other website
+                                elif new_url:
+                                    tmp_other_video_dict.setdefault(new_url, []).append(video_original_id)
+                            self.videos[video_original_id] = video
+                            course.setdefault(DBC.FIELD_COURSE_VIDEO_IDS, set()).add(video_original_id)
                 else:
                     warn("Course "+course_original_id+" has no course block,\
                          which means it will has no videos!")
