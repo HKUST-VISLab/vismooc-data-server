@@ -174,7 +174,7 @@ class ExtractRawData(PipeModule):
         else:
             warn("COURSE_IN_MONGO can not be generated properly, the reasons may be:")
             warn("module_structure_filename is "+str(module_structure_filename))
-            warn("length of structureid_to_courseid is "+len(structureid_to_courseid))
+            warn("length of structureid_to_courseid is "+str(len(structureid_to_courseid)))
         raw_data[RD_DB] = MongoDB(DBC.DB_HOST, DBC.DB_NAME)
         return raw_data
 
@@ -331,6 +331,8 @@ class ParseCourseStructFile(PipeModule):
         course_year = "course_year"
         course_year_pattern = r'^course-[\w|:|\+]+(?P<' + course_year + r'>[0-9]{4})\w*'
         re_course_year = re.compile(course_year_pattern)
+        if len(self.course_overview) == 0:
+            warn("No course_overviews_courseoverview in MySQL snapshots")
 
         for course_item in self.course_overview:
             try:
