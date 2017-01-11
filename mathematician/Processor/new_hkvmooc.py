@@ -72,6 +72,7 @@ class ExtractRawData(PipeModule):
         re_pattern_insert_table = re.compile(pattern_insert)
         re_pattern_create_db = re.compile(pattern_create_db)
         # structureids = set()
+        current_db = None
         structureid_to_courseid = {}
         module_structure_filename = None
 
@@ -82,7 +83,6 @@ class ExtractRawData(PipeModule):
                     for line in file:
                         match_db = re_pattern_create_db.search(line)
                         # find out the current database
-                        current_db = None
                         if match_db is not None:
                             current_db = match_db.group("db_name")
                         if (current_db is None) or (current_db != "edxapp"):
