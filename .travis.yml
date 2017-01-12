@@ -27,10 +27,10 @@ script:
   - cp main.py dist/main.py
   - cp requirements.txt dist/requirements.txt
   - export DOCKER_TAG=$TRAVIS_BRANCH-$TRAVIS_COMMIT
-  - docker build -t hkustvislab/vismooc-data-server:$DOCKER_TAG .
+  - docker build -t hkustvislab/vismooc-data-server .
   - docker login -u="$DOCKER_EMAIL" -p="$DOCKER_PASSWORD"
-  - docker push hkustvislab/vismooc-data-server:$DOCKER_TAG
-  - rm -rf dist
+  - docker push hkustvislab/vismooc-data-server
+
 after_success:
   - bash <(curl -s https://codecov.io/bash)
   - pip install codeclimate-test-reporter
