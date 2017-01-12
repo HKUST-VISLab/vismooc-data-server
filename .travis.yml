@@ -34,4 +34,4 @@ after_success:
   - export DOCKER_TAG=$TRAVIS_BRANCH-$TRAVIS_COMMIT
   - docker build -t hkustvislab/vismooc-data-server:$TRAVIS_BRANCH -t hkustvislab/vismooc-data-server:$DOCKER_TAG .
   - docker login -u="$DOCKER_EMAIL" -p="$DOCKER_PASSWORD"
-  - docker push hkustvislab/vismooc-data-server:$DOCKER_TAG
+  - docker push hkustvislab/vismooc-data-server:$TRAVIS_BRANCH hkustvislab/vismooc-data-server:$DOCKER_TAG
