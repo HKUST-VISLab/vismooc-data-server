@@ -18,6 +18,16 @@ install:
 script:
   - "pylint --disable=R,C mathematician"
   - coverage run --source mathematician setup.py test
+  - mkdir dist
+  - cp mathematician dist/mathematician
+  - cp main.py dist/main.py
+  - cp requirements.txt dist/requirements.txt
+  - docker build .
+  - if [ "$TRAVIS_BRANCH" == "dev" ]; then
+    docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
+    docker push hkustvislab/vismooc-data-server;
+    fi
+  - rm -rf dist
 after_success:
   - bash <(curl -s https://codecov.io/bash)
   - pip install codeclimate-test-reporter
