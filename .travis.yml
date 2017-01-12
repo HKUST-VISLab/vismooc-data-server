@@ -1,3 +1,4 @@
+sudo: required
 language: python
 python: 3.5
 
@@ -25,11 +26,10 @@ script:
   - cp -r mathematician dist/mathematician
   - cp main.py dist/main.py
   - cp requirements.txt dist/requirements.txt
-  - docker build .
-  - if [ "$TRAVIS_BRANCH" == "dev" ]; then
-    docker login -e="$DOCKER_EMAIL" -p="$DOCKER_PASSWORD";
-    docker push hkustvislab/vismooc-data-server;
-    fi
+  - export DOCKER_TAG=$TRAVIS_BRANCH-TRAVIS_COMMIT
+  - docker build -t hkustvislab/vismooc-data-server:$DOCKER_TAG .
+  - docker login -u="$DOCKER_EMAIL" -p="$DOCKER_PASSWORD"
+  - docker push hkustvislab/vismooc-data-server:$DOCKER_TAG
   - rm -rf dist
 after_success:
   - bash <(curl -s https://codecov.io/bash)

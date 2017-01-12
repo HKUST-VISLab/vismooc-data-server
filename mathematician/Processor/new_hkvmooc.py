@@ -10,7 +10,6 @@ from os.path import isfile
 from datetime import timedelta, datetime
 import queue
 import bson
-from bson.json_util import dumps
 
 from ..logger import warn, info
 from ..http_helper import get as http_get, get_list as http_get_list
