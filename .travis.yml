@@ -26,7 +26,7 @@ script:
   - cp -r mathematician dist/mathematician
   - cp main.py dist/main.py
   - cp requirements.txt dist/requirements.txt
-  - export DOCKER_TAG=$TRAVIS_BRANCH-TRAVIS_COMMIT
+  - export DOCKER_TAG=$TRAVIS_BRANCH-$TRAVIS_COMMIT
   - docker build -t hkustvislab/vismooc-data-server:$DOCKER_TAG .
   - docker login -u="$DOCKER_EMAIL" -p="$DOCKER_PASSWORD"
   - docker push hkustvislab/vismooc-data-server:$DOCKER_TAG
