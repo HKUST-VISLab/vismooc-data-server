@@ -21,7 +21,7 @@ install:
   - pip install coverage
 script:
   - "pylint --disable=R,C mathematician"
-  - coverage run --source mathematician python -m unittest discover ./tests
+  - coverage run --source mathematician -m unittest discover -s ./tests
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
