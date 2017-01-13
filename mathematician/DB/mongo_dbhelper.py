@@ -14,6 +14,8 @@ class MongoDB(BaseDB):
     def create_collection(self, name, codec_options=None,
                           read_preference=None, write_concern=None,
                           read_concern=None, **kwargs):
+        '''Create a collection
+        '''
         self.__db.create_collection(name, codec_options, read_preference,
                                     write_concern, read_concern, **kwargs)
         return MongoCollection(self.__db, self.__db[name])

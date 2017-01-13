@@ -12,7 +12,6 @@ class BaseDB(metaclass=ABCMeta):
         Returns:
             list: A list of collection name
         """
-        pass
 
     @abstractmethod
     def get_collection(self, name):
@@ -23,8 +22,7 @@ class BaseDB(metaclass=ABCMeta):
         Returns:
             BaseCollection: The target collection
         """
-        pass
-    
+
     @abstractmethod
     def add_user(self, user_name, passwd):
         """Set username and password to DB for authentication
@@ -33,15 +31,12 @@ class BaseDB(metaclass=ABCMeta):
             user_name (string): The name of the user
             passwd (string): The password of the user
         """
-        pass
-    
+
     @abstractmethod
     def clear(self):
         """clear all the data in the this db
 
         """
-        pass
-
 
 class BaseCollection(metaclass=ABCMeta):
 
