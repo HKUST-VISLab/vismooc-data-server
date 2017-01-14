@@ -15,6 +15,9 @@ class TestMongoDB(unittest.TestCase):
         port = 27017
         self.mongodb = MongoDB(host, db_name, port)
 
+    def tearDown(self):
+        self.mongodb.clear()
+
     # @patch("mathematician.DB.mongo_dbhelper.MongoClient")
     def test_constructor(self):
         '''test the constructor of MongoDB
@@ -29,3 +32,13 @@ class TestMongoDB(unittest.TestCase):
         self.assertIsInstance(collection, MongoCollection, "Create a MongoCollection instance")
         self.assertIn(name, self.mongodb.get_collection_names(),
                       "New collection is created secessfully")
+
+    def test_get_collection_names(self):
+        '''test get_collection_names of a database
+        '''
+        name1 = "test_collection_1"
+        name2 = "test_collection_2"
+        self.mongodb.create_collection(name1)
+        self.mongodb.create_collection(name2)
+        self.assertEqual([name1, name2], self.mongodb.get_collection_names(),
+                         "get_collection_names will return all exist collections")
