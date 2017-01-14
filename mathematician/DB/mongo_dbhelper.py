@@ -27,7 +27,7 @@ class MongoDB(BaseDB):
         return MongoCollection(self.__db, self.__db[name])
 
     def add_user(self, username, passwd):
-        return self.__db.add_user(self, username, passwd)
+        return self.__db.add_user(username, passwd)
 
     def users_info(self):
         '''Get all users of this db
