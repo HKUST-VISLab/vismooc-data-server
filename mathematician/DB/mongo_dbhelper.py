@@ -26,8 +26,13 @@ class MongoDB(BaseDB):
     def get_collection(self, name):
         return MongoCollection(self.__db, self.__db[name])
 
-    def add_user(self, user_name, passwd):
-        return self.__db.add_user(self, user_name, passwd)
+    def add_user(self, username, passwd):
+        return self.__db.add_user(self, username, passwd)
+
+    def users_info(self):
+        '''Get all users of this db
+        '''
+        return self.__db.command('usersInfo').get('users')
 
     def clear(self):
         self.__client.drop_database(self.__db)

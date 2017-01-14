@@ -42,3 +42,34 @@ class TestMongoDB(unittest.TestCase):
         self.mongodb.create_collection(name2)
         self.assertEqual([name1, name2], self.mongodb.get_collection_names(),
                          "get_collection_names will return all exist collections")
+
+    def test_get_collection(self):
+        '''test get_collection of a database
+        '''
+        name = "test_collection"
+        collection = self.mongodb.get_collection(name)
+        self.assertIsInstance(collection, MongoCollection,
+                              "get_collection will return a MongoCollection instance")
+
+
+    def test_add_user(self):
+        '''test add_user of a database
+        '''
+        username = "test_user"
+        passwd = "passwd"
+        self.mongodb.add_user(username, passwd)
+        users = self.mongodb.users_info()
+        usernames = [user.get('user') for user in users]
+        self.assertIn(username, usernames, "add_user should create a new user")
+
+    def test_users_info(self):
+        '''test users_info of a database
+        '''
+        username = "test_user"
+        username1 = "test_user1"
+        passwd = "passwd"
+        self.mongodb.add_user(username, passwd)
+        self.mongodb.add_user(username1, passwd)
+        users = self.mongodb.users_info()
+        usernames = [user.get('user') for user in users]
+        self.assertEqual([username, username1], usernames, "users_info should list all users")
