@@ -8,15 +8,13 @@ class TestMongoDB(unittest.TestCase):
     '''Test the MongoDb helper
     '''
 
-    @patch("mathematician.DB.mongo_dbhelper.MongoClient")
-    def test_constructor(self, mock_mongo_client):
+    # @patch("mathematician.DB.mongo_dbhelper.MongoClient")
+    def test_constructor(self):
         '''test the constructor of MongoDB
         '''
-        host = "localhost"
+        host = "127.0.0.1"
         db_name = "db"
-        port = 27016
-        mock_mongo_client = MagicMock()
-        mock_mongo_client.return_value = {db_name:"asdf"}
+        port = 27017
 
         mongodb = MongoDB(host, db_name, port)
         self.assertIsInstance(mongodb, MongoDB, "New a mongoDB instance")
