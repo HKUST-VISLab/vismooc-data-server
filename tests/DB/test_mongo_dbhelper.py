@@ -2,7 +2,7 @@
 '''
 import unittest
 # from unittest.mock import patch, MagicMock
-from mathematician.DB.mongo_dbhelper import MongoDB, MongoCollection
+from mathematician.DB.mongo_dbhelper import MongoDB, MongoCollection, MongoClient
 
 
 class TestMongoDB(unittest.TestCase):
@@ -18,11 +18,16 @@ class TestMongoDB(unittest.TestCase):
     def tearDown(self):
         self.mongodb.clear()
 
-    # @patch("mathematician.DB.mongo_dbhelper.MongoClient")
     def test_constructor(self):
         '''test the constructor of MongoDB
         '''
         self.assertIsInstance(self.mongodb, MongoDB, "New a mongoDB instance")
+
+    def test_db_client(self):
+        '''Test the property db_client of a database
+        '''
+        self.assertIsInstance(self.mongodb.db_client, MongoClient,
+                              'db client is an instance of MongoClient')
 
     def test_create_collection(self):
         '''test create a collection of a MongoDB
@@ -73,3 +78,28 @@ class TestMongoDB(unittest.TestCase):
         users = self.mongodb.users_info()
         usernames = [user.get('user') for user in users]
         self.assertEqual([username, username1], usernames, "users_info should list all users")
+
+    def test_clear(self):
+        '''Test the clear of a database
+        '''
+        db_name = "db"
+        db_names = self.mongodb.db_client.database_names()
+        self.assertIn(db_name, db_names, "Before clear(), db `db` exists")
+        self.mongodb.clear()
+        db_names = self.mongodb.db_client.database_names()
+        self.assertNotIn(db_name, db_names, "After clear(), db `db` does not exists")
+
+class TestMongoCollection(unittest.TestCase):
+    '''Test the MongoCollection class
+    '''
+    def setUp(self):
+        host = "127.0.0.1"
+        db_name = "db"
+        port = 27017
+        self.mongodb = MongoDB(host, db_name, port)
+
+    def tearDown(self):
+        self.mongodb.clear()
+
+    def test_constructor(self):
+        pass

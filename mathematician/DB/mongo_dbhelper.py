@@ -11,6 +11,12 @@ class MongoDB(BaseDB):
         self.__client = MongoClient(host, port)
         self.__db = self.__client[db_name]
 
+    @property
+    def db_client(self):
+        '''return the db client
+        '''
+        return self.__client
+
     def create_collection(self, name, codec_options=None,
                           read_preference=None, write_concern=None,
                           read_concern=None, **kwargs):
@@ -128,5 +134,3 @@ class MongoCollection(BaseCollection):
     def get_index(self, name):
         """Get a index according to its name
         """
-        pass
-    
