@@ -7,32 +7,38 @@ class MongoDB(BaseDB):
     '''A class to manipulate database
     '''
     def __init__(self, host, db_name, port=27017):
+        if not isinstance(host, str):
+            raise TypeError("MongoDB: host should be instance of str")
+        if not isinstance(db_name, str):
+            raise TypeError("MongoDB: db_name should be instance of str")
         super().__init__(host, db_name, port)
         self.__client = MongoClient(host, port)
         self.__db = self.__client[db_name]
-
-    @property
-    def db_client(self):
-        '''return the db client
-        '''
-        return self.__client
 
     def create_collection(self, name, codec_options=None,
                           read_preference=None, write_concern=None,
                           read_concern=None, **kwargs):
         '''Create a collection
         '''
+        if not isinstance(name, str):
+            raise TypeError("create_collection: name should be instance of str")
         self.__db.create_collection(name, codec_options, read_preference,
                                     write_concern, read_concern, **kwargs)
-        return MongoCollection(self.__db, self.__db[name])
+        return MongoCollection(self.__db, name)
 
     def get_collection_names(self):
         return self.__db.collection_names()
 
     def get_collection(self, name):
-        return MongoCollection(self.__db, self.__db[name])
+        if not isinstance(name, str):
+            raise TypeError("get_collection: name should be instance of str")
+        return MongoCollection(self.__db, name)
 
     def add_user(self, username, passwd):
+        if not isinstance(username, str):
+            raise TypeError("add_user: username should be instance of str")
+        if not passwd:
+            raise TypeError("add_user: you must set a passwd")
         return self.__db.add_user(username, passwd)
 
     def users_info(self):
@@ -46,10 +52,10 @@ class MongoDB(BaseDB):
 class MongoCollection(BaseCollection):
     '''A class to manipulate collection
     '''
-    def __init__(self, db, collection):
-        super().__init__(db, collection)
+    def __init__(self, db, name):
+        super().__init__(db, name)
         self.__db = db
-        self.__collection = collection
+        self.__collection = self.__db[name]
         self._index_names = None
 
     def insert_one(self, document):

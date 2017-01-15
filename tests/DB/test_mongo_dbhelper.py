@@ -21,17 +21,21 @@ class TestMongoDB(unittest.TestCase):
     def test_constructor(self):
         '''test the constructor of MongoDB
         '''
+        test_host = 1234
+        test_name = 1234
+        with self.assertRaises(TypeError, msg="db_name should be instance of str"):
+            MongoDB("host", test_name)
+        with self.assertRaises(TypeError, msg="host should be instance of str"):
+            MongoDB(test_host, "db")
         self.assertIsInstance(self.mongodb, MongoDB, "New a mongoDB instance")
-
-    def test_db_client(self):
-        '''Test the property db_client of a database
-        '''
-        self.assertIsInstance(self.mongodb.db_client, MongoClient,
-                              'db client is an instance of MongoClient')
 
     def test_create_collection(self):
         '''test create a collection of a MongoDB
         '''
+        wrong_name = 1234
+        with self.assertRaises(TypeError, msg="create_collection: collection name should be\
+                               instance of str"):
+            self.mongodb.create_collection(wrong_name)
         name = "test_collection"
         collection = self.mongodb.create_collection(name)
         self.assertIsInstance(collection, MongoCollection, "Create a MongoCollection instance")
@@ -51,6 +55,10 @@ class TestMongoDB(unittest.TestCase):
     def test_get_collection(self):
         '''test get_collection of a database
         '''
+        wrong_name = 1234
+        with self.assertRaises(TypeError, msg="get_collection: collection name should be instance\
+                               of str"):
+            self.mongodb.get_collection(wrong_name)
         name = "test_collection"
         collection = self.mongodb.get_collection(name)
         self.assertIsInstance(collection, MongoCollection,
@@ -60,6 +68,12 @@ class TestMongoDB(unittest.TestCase):
     def test_add_user(self):
         '''test add_user of a database
         '''
+        wrong_username = 1234
+        wrong_passwd = None
+        with self.assertRaises(TypeError, msg="add_user: username should be instance of str"):
+            self.mongodb.add_user(wrong_username, "asdf")
+        with self.assertRaises(TypeError, msg="add_user: passwd should not be empty"):
+            self.mongodb.add_user("asdf", wrong_passwd)
         username = "test_user"
         passwd = "passwd"
         self.mongodb.add_user(username, passwd)
@@ -83,10 +97,11 @@ class TestMongoDB(unittest.TestCase):
         '''Test the clear of a database
         '''
         db_name = "db"
-        db_names = self.mongodb.db_client.database_names()
+        client = MongoClient("127.0.0.1", 27017)
+        db_names = client.database_names()
         self.assertIn(db_name, db_names, "Before clear(), db `db` exists")
         self.mongodb.clear()
-        db_names = self.mongodb.db_client.database_names()
+        db_names = client.database_names()
         self.assertNotIn(db_name, db_names, "After clear(), db `db` does not exists")
 
 class TestMongoCollection(unittest.TestCase):
@@ -96,10 +111,19 @@ class TestMongoCollection(unittest.TestCase):
         host = "127.0.0.1"
         db_name = "db"
         port = 27017
+        self.collection_name = "test_collection"
         self.mongodb = MongoDB(host, db_name, port)
+        self.collection = self.mongodb.create_collection(self.collection_name)
 
     def tearDown(self):
         self.mongodb.clear()
 
     def test_constructor(self):
+        '''Test the constructor
+        '''
+        collection_name = "test_collection"
+        collection = MongoCollection(self.mongodb, collection_name)
+        self.assertIsInstance(collection, MongoCollection, "New a MongoCollection instance")
+
+    def test_insert_one(self):
         pass

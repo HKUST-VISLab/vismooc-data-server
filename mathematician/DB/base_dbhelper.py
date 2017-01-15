@@ -46,7 +46,7 @@ class BaseCollection(metaclass=ABCMeta):
     '''Construct a db collection with some manipulate method
     '''
 
-    def __init__(self, db, collection):
+    def __init__(self, db, name):
         '''The constructor of abstract class of db collection
         '''
 
