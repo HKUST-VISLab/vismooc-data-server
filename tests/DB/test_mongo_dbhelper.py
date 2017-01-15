@@ -134,6 +134,6 @@ class TestMongoCollection(unittest.TestCase):
         db_names = client.database_names()
         self.assertIn(self.db_name, db_names, "After insert_one, db `db` exists")
         documents = self.collection.find(document)
-        self.assertEqual(len(documents), 1, "Only insert one document")
+        self.assertEqual(documents.count(), 1, "Only insert one document")
         self.assertEqual(documents[0].get('id'), document_id, "The document id is the same as the\
                                                               inserted one")
