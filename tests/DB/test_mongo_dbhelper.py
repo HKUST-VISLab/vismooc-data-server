@@ -97,6 +97,7 @@ class TestMongoDB(unittest.TestCase):
         '''Test the clear of a database
         '''
         db_name = "db"
+        self.mongodb.get_collection('test').insert_one({'a':True})
         client = MongoClient("127.0.0.1", 27017)
         db_names = client.database_names()
         self.assertIn(db_name, db_names, "Before clear(), db `db` exists")
@@ -121,9 +122,7 @@ class TestMongoCollection(unittest.TestCase):
     def test_constructor(self):
         '''Test the constructor
         '''
-        collection_name = "test_collection"
-        collection = MongoCollection(self.mongodb, collection_name)
-        self.assertIsInstance(collection, MongoCollection, "New a MongoCollection instance")
+        self.assertIsInstance(self.collection, MongoCollection, "New a MongoCollection instance")
 
     def test_insert_one(self):
         pass
