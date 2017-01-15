@@ -110,10 +110,10 @@ class TestMongoCollection(unittest.TestCase):
     '''
     def setUp(self):
         host = "127.0.0.1"
-        db_name = "db"
         port = 27017
+        self.db_name = "db"
         self.collection_name = "test_collection"
-        self.mongodb = MongoDB(host, db_name, port)
+        self.mongodb = MongoDB(host, self.db_name, port)
         self.collection = self.mongodb.create_collection(self.collection_name)
 
     def tearDown(self):
@@ -125,4 +125,15 @@ class TestMongoCollection(unittest.TestCase):
         self.assertIsInstance(self.collection, MongoCollection, "New a MongoCollection instance")
 
     def test_insert_one(self):
-        pass
+        '''Test the insert_one()
+        '''
+        document_id = "asdfsdf"
+        document = {'id':document_id}
+        self.collection.insert_one(document)
+        client = MongoClient("127.0.0.1", 27017)
+        db_names = client.database_names()
+        self.assertIn(self.db_name, db_names, "After insert_one, db `db` exists")
+        documents = self.collection.find(document)
+        self.assertEqual(len(documents), 1, "Only insert one document")
+        self.assertEqual(documents[0].get('id'), document_id, "The document id is the same as the\
+                                                              inserted one")

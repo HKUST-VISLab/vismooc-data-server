@@ -100,7 +100,8 @@ class MongoCollection(BaseCollection):
     def find(self, query, projection=None, limit=0, skip=0, sort=None):
         """Find documents according to the query
         """
-        return self.__collection.find(query, projection, skip, limit, sort=sort)
+        return self.__collection.find(query, projection=projection, skip=skip, limit=limit,
+                                      sort=sort)
 
     def find_one(self, query):
         """Find one document aoccording to the query
