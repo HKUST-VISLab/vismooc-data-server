@@ -12,7 +12,7 @@ import asyncio
 from mathematician.fetch_data import DownloadFileFromServer
 from mathematician.pipe import PipeLine
 from mathematician.Processor import ParseCourseStructFile, ParseEnrollmentFile,\
-    ParseLogFile, ParseUserFile, ExtractRawData, DumpToDB
+    ParseLogFile, ParseUserFile, ExtractRawData, DumpToDB, InjectSuperUser
 from mathematician import config
 from mathematician.config import DBConfig as DBC, FilenameConfig as FC
 from mathematician.DB import mongo_dbhelper
@@ -64,7 +64,7 @@ def app(first_time=False, offline=False):
         pipeline = PipeLine()
         pipeline.input_files(file_names).pipe(ParseCourseStructFile()).pipe(
             ParseEnrollmentFile()).pipe(ParseLogFile()).pipe(ParseUserFile()).pipe(
-                ExtractRawData()).pipe(DumpToDB())
+                ExtractRawData()).pipe(InjectSuperUser("zhutian")).pipe(DumpToDB())
         pipeline.excute()
     print('spend time:' + str(datetime.now() - start_time))
     if first_time:
