@@ -759,6 +759,7 @@ class ParseLogFile(PipeModule):
 class InjectSuperUser(PipeModule):
     '''Inject super user to access all courses
     '''
+    order = 5
     def __init__(self, username=None):
         super().__init__()
         self.super_user = set(username) if isinstance(username, list) else {username}
