@@ -752,8 +752,8 @@ class ParseLogFile(PipeModule):
                     warn("In ParseLogFile, some problem happend:"+line)
                     warn(ex)
         processed_data = raw_data
-        processed_data['data'][DBC.COLLECTION_VIDEO_LOG] = events
-        processed_data['data'][DBC.COLLECTION_VIDEO_DENSELOGS] = list(denselogs.values())
+        processed_data[RD_DATA][DBC.COLLECTION_VIDEO_LOG] = events
+        processed_data[RD_DATA][DBC.COLLECTION_VIDEO_DENSELOGS] = list(denselogs.values())
         return processed_data
 
 class InjectSuperUser(PipeModule):
@@ -779,7 +779,9 @@ class InjectSuperUser(PipeModule):
             for course_id in courses:
                 user[DBC.FIELD_USER_COURSE_ROLE][course_id] = ["instructor", "staff"]
 
-
+        processed_data = raw_data
+        processed_data[RD_DATA][DBC.COLLECTION_USER] = users
+        return processed_data
 
 class DumpToDB(PipeModule):
     '''Dump the processed data into database
