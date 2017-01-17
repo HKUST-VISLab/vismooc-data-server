@@ -764,7 +764,7 @@ class InjectSuperUser(PipeModule):
         self.super_user = set(username) if isinstance(username, list) else {username}
 
     def process(self, raw_data, raw_data_filenames=None):
-        info("Inject Super User:"+ self.super_user)
+        info("Inject Super User:"+ str(self.super_user))
         users = raw_data[RD_DATA][DBC.COLLECTION_USER]
         target_users = []
         for user_id in users:
