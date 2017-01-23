@@ -2,6 +2,6 @@
 '''
 
 from .new_hkvmooc import ParseLogFile, ParseUserFile, ParseCourseStructFile,\
-     ParseEnrollmentFile, DumpToDB, ExtractRawData
+     ParseEnrollmentFile, DumpToDB, ExtractRawData, InjectSuperUser
 __All__ = ["ParseLogFile", "ParseUserFile", "ParseCourseStructFile",
-           "ParseEnrollmentFile", "OutputFile", "DumpToDB", "ExtractRawData"]
+           "ParseEnrollmentFile", "OutputFile", "DumpToDB", "ExtractRawData", "InjectSuperUser"]
