@@ -292,16 +292,15 @@ class ParseCourseStructFile(PipeModule):
             warn(ex)
         return video_length
 
-    def construct_video(self, course_id, v_idx, video_block):
+    def construct_video(self, course_id, video_block):
         '''Construct a video object based on the mongodb snapshot
         '''
-        section_sep = ">>"
         fields = video_block.get('fields')
         video_original_id = str(video_block.get('block_id'))
         video = self.videos.get(video_original_id) or {}
         video[DBC.FIELD_VIDEO_ORIGINAL_ID] = video_original_id
         video_title = str(fields.get('display_name'))
-        video[DBC.FIELD_VIDEO_NAME] = str(v_idx) + section_sep + video_title
+        video[DBC.FIELD_VIDEO_NAME] = video_title
         video[DBC.FIELD_VIDEO_TEMPORAL_HOTNESS] = video.get(
             DBC.FIELD_VIDEO_TEMPORAL_HOTNESS) or {}
         video[DBC.FIELD_VIDEO_DESCRIPTION] = video_title
@@ -395,12 +394,12 @@ class ParseCourseStructFile(PipeModule):
 
                     course_children = course_block.get("children")
                     if course_children:
-                        for c_idx, child in enumerate(course_children):
+                        for child in course_children:
                             child_fields = child.get('fields')
                             if child.get('block_type') != 'video' or not child_fields:
                                 continue
                             try:
-                                video = self.construct_video(course_original_id, c_idx, child)
+                                video = self.construct_video(course_original_id, child)
                             except BaseException as ex:
                                 warn("In ParseCourseStructFile, cannot get the video information of video:" + str(child))
                                 warn(ex)
