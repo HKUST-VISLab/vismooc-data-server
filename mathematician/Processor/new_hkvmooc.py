@@ -21,6 +21,7 @@ RD_DATA = "data"
 RD_DB = "database"
 RD_COURSE_IN_MONGO = "course_in_mongo"
 
+
 def split(text, separator=','):
     """split a text with `separtor`"""
 
@@ -41,19 +42,22 @@ def split(text, separator=','):
             results.append("".join(tmp_stack))
             return results
 
+
 def try_parse_date(date_str, pattern="%Y-%m-%d %H:%M:%S.%f"):
     '''Try to parse a date string and get the timestamp
         If can not parse the string based on certain pattern, return None
     '''
     try:
-        return datetime.strptime(date_str, pattern).timestamp()
+        return datetime.strptime(date_str, pattern)
     except ValueError:
         return None
+
 
 def try_get_timestamp(date):
     '''Try to get timestamp from a object
     '''
-    return date and date.timestamp()
+    return date and round(date.timestamp() * 1000)  # in milliseconds
+
 
 class ExtractRawData(PipeModule):
     """ Preprocess the file to extract different lines for different tables
@@ -75,7 +79,9 @@ class ExtractRawData(PipeModule):
         structureid_to_courseid = {}
         module_structure_filename = None
 
-        filenames = [file.get("path") for file in raw_data_filenames if isfile(file.get("path"))]
+        filenames = [file.get("path")
+                     for file in raw_data_filenames if isfile(file.get("path"))]
+        info(filenames)
         for filename in filenames:
             if FC.SQLDB_FILE in filename:
                 with open(filename, 'r', encoding='utf-8') as file:
@@ -90,7 +96,8 @@ class ExtractRawData(PipeModule):
                         match_table = re_pattern_insert_table.search(line)
                         if match_table is None:
                             continue
-                        # remove first '(' and last ';)\n' pay attention to '\n'
+                        # remove first '(' and last ';)\n' pay attention to
+                        # '\n'
                         line = line[line.index('(') + 1: -3]
                         records = line.split('),(')
                         table_name = match_table.group("table_name")
@@ -111,7 +118,9 @@ class ExtractRawData(PipeModule):
                             record['course'].replace('.', '_') + '+' + record['run']
             elif FC.STRUCTURES in filename:
                 module_structure_filename = filename
-        # modulestore.active_version must be processed before modulestore.structures
+        # modulestore.active_version must be processed before
+        # modulestore.structures
+        info('Try to process module structure files')
         if module_structure_filename and len(structureid_to_courseid) > 0:
             courseid_to_structure = {}
             with open(module_structure_filename, 'rb') as file:
@@ -119,16 +128,19 @@ class ExtractRawData(PipeModule):
                     oid = str(record.get('_id'))
                     if oid in structureid_to_courseid:
                         courseid_to_structure[structureid_to_courseid[oid]] = record
+            info('Finish loading module structure data')
             section_sep = ">>"
             target_block_type = {"course", "chapter", "sequential", "vertical", "video"}
             courses = {}
             if len(courseid_to_structure) == 0:
                 warn("There is no course strucutre in mongodb file!")
             for course_id in courseid_to_structure:
+                info("Process course_structure of "+course_id)
                 structure = courseid_to_structure[course_id]
                 blocks_dict = {}
                 block_queue = queue.Queue()
-                # construct a dictory which contains all blocks and get the root course block
+                # construct a dictory which contains all blocks and get the
+                # root course block
                 blocks = structure.get("blocks")
                 for block in blocks:
                     blocks_dict[block.get("block_id")] = block
@@ -159,7 +171,7 @@ class ExtractRawData(PipeModule):
                         display_name = display_name or ""
                         child_one["parent"] = parent
                         child_one["prefix"] = prefix + str(c_idx) + section_sep +\
-                                                str(display_name) + section_sep
+                            str(display_name) + section_sep
                         new_children.append(child_one)
                         block_queue.put(child_one)
                         blocks.remove(child_one)
@@ -172,10 +184,12 @@ class ExtractRawData(PipeModule):
             raw_data[RD_COURSE_IN_MONGO] = courses
         else:
             warn("COURSE_IN_MONGO can not be generated properly, the reasons may be:")
-            warn("module_structure_filename is "+str(module_structure_filename))
-            warn("length of structureid_to_courseid is "+str(len(structureid_to_courseid)))
+            warn("module_structure_filename is " + str(module_structure_filename))
+            warn("length of structureid_to_courseid is " +
+                 str(len(structureid_to_courseid)))
         raw_data[RD_DB] = MongoDB(DBC.DB_HOST, DBC.DB_NAME)
         return raw_data
+
 
 class ParseCourseStructFile(PipeModule):
     '''Parse the mongodb to get course info and video info
@@ -234,9 +248,8 @@ class ParseCourseStructFile(PipeModule):
                     groups[key] = "0n"
                 groups[key] = float(groups[key][:-1].replace(',', '.'))
         if groups["years"] == 0 and groups["months"] == 0:
-            ret = timedelta(days=groups["days"], hours=groups["hours"],
-                            minutes=groups["minutes"], seconds=groups["seconds"],
-                            weeks=groups["weeks"])
+            ret = timedelta(days=groups["days"], hours=groups["hours"], minutes=groups["minutes"],
+                            seconds=groups["seconds"], weeks=groups["weeks"])
             if groups["sign"] == '-':
                 ret = timedelta(0) - ret
         else:
@@ -250,8 +263,8 @@ class ParseCourseStructFile(PipeModule):
         try:
             result = http_get(url, header)
         except urllib.error.URLError as ex:
-            warn("Parse video:"+url+"duration failed. It is probably because ssl and certificate\
-                 problem")
+            warn("Parse video:" + url + "duration failed. It is probably because ssl and\
+                 certificate problem")
             warn(ex)
             return -1
         if result and (result.get_return_code() < 200 or result.get_return_code() >= 300):
@@ -276,21 +289,21 @@ class ParseCourseStructFile(PipeModule):
             infos = struct.unpack('>12x2I', data)
             video_length = int(infos[1]) // int(infos[0])
         except BaseException as ex:
-            warn("Parse video:"+ url + "duration failed")
+            warn("Parse video:" + url + "duration failed")
             warn(ex)
         return video_length
 
-    def construct_video(self, course_id, v_idx, video_block):
+    def construct_video(self, course_id, video_block):
         '''Construct a video object based on the mongodb snapshot
         '''
-        section_sep = ">>"
         fields = video_block.get('fields')
         video_original_id = str(video_block.get('block_id'))
         video = self.videos.get(video_original_id) or {}
         video[DBC.FIELD_VIDEO_ORIGINAL_ID] = video_original_id
         video_title = str(fields.get('display_name'))
-        video[DBC.FIELD_VIDEO_NAME] = str(v_idx) + section_sep + video_title
-        video[DBC.FIELD_VIDEO_TEMPORAL_HOTNESS] = video.get(DBC.FIELD_VIDEO_TEMPORAL_HOTNESS) or {}
+        video[DBC.FIELD_VIDEO_NAME] = video_title
+        video[DBC.FIELD_VIDEO_TEMPORAL_HOTNESS] = video.get(
+            DBC.FIELD_VIDEO_TEMPORAL_HOTNESS) or {}
         video[DBC.FIELD_VIDEO_DESCRIPTION] = video_title
         video[DBC.FIELD_VIDEO_SECTION] = video_block.get('prefix')
         video[DBC.FIELD_VIDEO_COURSE_ID] = course_id
@@ -320,40 +333,36 @@ class ParseCourseStructFile(PipeModule):
                 course_id = course_id[course_id.index(':') + 1:]
             except ValueError as ex:
                 warn("In ParseCourseStructFile, cannot get courseId when try to get access role of\
-                     course:"+course_id)
+                     course:" + course_id)
                 warn(ex)
                 continue
             course_id = course_id.replace('.', '_')
             user_id = records[4]
             course_instructors.setdefault(course_id, []).append(user_id)
 
-        course_year = "course_year"
-        course_year_pattern = r'^course-[\w|:|\+]+(?P<' + course_year + r'>[0-9]{4})\w*'
-        re_course_year = re.compile(course_year_pattern)
         if len(self.course_overview) == 0:
             warn("No course_overviews_courseoverview in MySQL snapshots")
-
         for course_item in self.course_overview:
             try:
                 records = split(course_item)
                 course_original_id = records[3]
                 try:
-                    course_original_id = course_original_id[course_original_id.index(':') + 1:]
+                    course_original_id = course_original_id[
+                        course_original_id.index(':') + 1:]
                 except ValueError as ex:
                     warn("In ParseCourseStructFile, cannot get courseId when try to get originalId\
-                         of course:"+course_original_id)
+                         of course:" + course_original_id)
                     warn(ex)
                     continue
                 course_original_id = course_original_id.replace('.', '_')
                 course = self.courses.get(course_original_id) or {}
-                advertised_start_time = try_parse_date(records[10])
+                advertised_start_time = try_get_timestamp(try_parse_date(records[10]))
                 # construct the course object
-                course[DBC.FIELD_COURSE_VIDEO_IDS] = set() # init the video id list
+                # init the video id list
+                course[DBC.FIELD_COURSE_VIDEO_IDS] = set()
                 course[DBC.FIELD_COURSE_ORIGINAL_ID] = course_original_id
                 course[DBC.FIELD_COURSE_NAME] = records[5]
-                course_year_match = re_course_year.search(course_original_id)
-                course[DBC.FIELD_COURSE_YEAR] = course_year_match and \
-                    course_year_match.group(course_year)
+                course[DBC.FIELD_COURSE_YEAR] = course_original_id.split('+').pop()
                 course[DBC.FIELD_COURSE_INSTRUCTOR] = course_instructors.get(
                     course_original_id) or []
                 course[DBC.FIELD_COURSE_STATUS] = None
@@ -373,29 +382,34 @@ class ParseCourseStructFile(PipeModule):
                 # pylint: disable=C0301
                 if course_block and course_block.get('fields'):
                     block_field = course_block.get('fields')
-                    course[DBC.FIELD_COURSE_STARTTIME] = try_get_timestamp(block_field.get('start'))
-                    course[DBC.FIELD_COURSE_ENDTIME] = try_get_timestamp(block_field.get('end'))
+                    course[DBC.FIELD_COURSE_STARTTIME] = try_get_timestamp(
+                        block_field.get('start'))
+                    course[DBC.FIELD_COURSE_ENDTIME] = try_get_timestamp(
+                        block_field.get('end'))
                     course[DBC.FIELD_COURSE_ENROLLMENT_START] = try_get_timestamp(block_field.get('enrollment_start'))\
-                                                                or course[DBC.FIELD_COURSE_STARTTIME]
-                    course[DBC.FIELD_COURSE_ENROLLMENT_END] = try_get_timestamp(block_field.get('enrollment_end'))
+                        or course[DBC.FIELD_COURSE_STARTTIME]
+                    course[DBC.FIELD_COURSE_ENROLLMENT_END] = try_get_timestamp(
+                        block_field.get('enrollment_end'))
                     course[DBC.FIELD_COURSE_NAME] = block_field.get('display_name')
                     course[DBC.FIELD_COURSE_MOBILE_AVAILABLE] = block_field.get('mobile_available')
 
                     course_children = course_block.get("children")
                     if course_children:
-                        for c_idx, child in enumerate(course_children):
+                        for child in course_children:
                             child_fields = child.get('fields')
                             if child.get('block_type') != 'video' or not child_fields:
                                 continue
                             try:
-                                video = self.construct_video(course_original_id, c_idx, child)
+                                video = self.construct_video(course_original_id, child)
                             except BaseException as ex:
-                                warn("In ParseCourseStructFile, cannot get the video information of video:"+str(child))
+                                warn("In ParseCourseStructFile, cannot get the video information of video:" + str(child))
                                 warn(ex)
                                 continue
                             youtube_id = child_fields.get('youtube_id_1_0')
-                            video_original_id = video[DBC.FIELD_VIDEO_ORIGINAL_ID]
-                            new_url = (youtube_id and ParseCourseStructFile.YOUTUBE_URL_PREFIX + youtube_id) or (child_fields.get('html5_sources') and child_fields.get('html5_sources')[0])
+                            video_original_id = video[
+                                DBC.FIELD_VIDEO_ORIGINAL_ID]
+                            new_url = (youtube_id and ParseCourseStructFile.YOUTUBE_URL_PREFIX + youtube_id) or (
+                                child_fields.get('html5_sources') and child_fields.get('html5_sources')[0])
                             old_url = video.get(DBC.FIELD_VIDEO_URL)
                             if new_url != old_url:
                                 video[DBC.FIELD_VIDEO_URL] = new_url
@@ -405,16 +419,18 @@ class ParseCourseStructFile(PipeModule):
                                     tmp_youtube_video_dict[youtube_id] = video_original_id
                                 # else if the url is from other website
                                 elif new_url:
-                                    tmp_other_video_dict.setdefault(new_url, []).append(video_original_id)
+                                    tmp_other_video_dict.setdefault(
+                                        new_url, []).append(video_original_id)
                             self.videos[video_original_id] = video
-                            course.setdefault(DBC.FIELD_COURSE_VIDEO_IDS, set()).add(video_original_id)
+                            course.setdefault(DBC.FIELD_COURSE_VIDEO_IDS, set()).add(
+                                video_original_id)
                 else:
-                    warn("Course "+course_original_id+" has no course block,\
+                    warn("Course " + course_original_id + " has no course block,\
                          which means it will has no videos!")
                 self.courses[course_original_id] = course
             except BaseException as ex:
-                warn("In ParseCourseStructFile, cannot get the course information of course:"\
-                     +str(course_item))
+                warn("In ParseCourseStructFile, cannot get the course information of course:"
+                     + str(course_item))
                 warn(ex)
         if self.offline is False:
             # fetch the video duration from youtube_api_v3
@@ -429,7 +445,8 @@ class ParseCourseStructFile(PipeModule):
                     continue
                 video_id = items[0].get("id")
                 broken_youtube_id.discard(video_id)
-                duration = self.parse_video_duration(items[0]["contentDetails"]["duration"])
+                duration = self.parse_video_duration(
+                    items[0]["contentDetails"]["duration"])
                 self.videos[tmp_youtube_video_dict[video_id]][
                     DBC.FIELD_VIDEO_DURATION] = int(duration.total_seconds())
             # fetch the video duration from other websites
@@ -437,7 +454,8 @@ class ParseCourseStructFile(PipeModule):
                 video_duration = self.fetch_video_duration(url)
                 video_ids = tmp_other_video_dict[url]
                 for video_id in video_ids:
-                    self.videos[video_id][DBC.FIELD_VIDEO_DURATION] = video_duration
+                    self.videos[video_id][
+                        DBC.FIELD_VIDEO_DURATION] = video_duration
         if len(self.videos) == 0:
             warn("VIDEO:No video in data!")
         if len(self.courses) == 0:
@@ -446,6 +464,7 @@ class ParseCourseStructFile(PipeModule):
         processed_data[RD_DATA][DBC.COLLECTION_VIDEO] = self.videos
         processed_data[RD_DATA][DBC.COLLECTION_COURSE] = self.courses
         return processed_data
+
 
 class ParseUserFile(PipeModule):
     '''Parse user information from db snapshot
@@ -466,10 +485,11 @@ class ParseUserFile(PipeModule):
         '''
         self.raw_user_profile = raw_data.get('auth_userprofile') or []
         self.user_info = raw_data.get('auth_user')
-        self.course_access_role = raw_data.get('student_courseaccessrole') or []
+        self.course_access_role = raw_data.get(
+            'student_courseaccessrole') or []
         database = raw_data[RD_DB]
         user_collection = database.get_collection(DBC.COLLECTION_USER).find({})
-        self.users = {user[DBC.FIELD_USER_ORIGINAL_ID]: user for user in user_collection}
+        self.users = {user[DBC.FIELD_USER_ORIGINAL_ID]:user for user in user_collection}
 
     def process(self, raw_data, raw_data_filenames=None):
         info("Processing ParseUserFile")
@@ -491,10 +511,11 @@ class ParseUserFile(PipeModule):
                 course_id = course_id[course_id.index(':') + 1:]
             except ValueError as ex:
                 warn("In ParseUserFile, cannot get courseId when try to get access role of\
-                     course:"+access_role)
+                     course:" + access_role)
                 warn(ex)
             course_id = course_id.replace('.', '_')
-            self.user_roles.setdefault(records[4], {}).setdefault(course_id, []).append(records[3])
+            self.user_roles.setdefault(records[4], {}).setdefault(
+                course_id, []).append(records[3])
 
         for record in self.user_info:
             try:
@@ -521,8 +542,8 @@ class ParseUserFile(PipeModule):
                 user[DBC.FIELD_USER_COURSE_ROLE] = self.user_roles.get(user_id) or {}
                 self.users[user_id] = user
             except BaseException as ex:
-                warn("In ParseUserFile, cannot get the user information of record:"+record+", and\
-                     userProfile:"+str(user_profile))
+                warn("In ParseUserFile, cannot get the user information of record:" + record +
+                     ", and userProfile:" + str(user_profile))
                 warn(ex)
         # fill the course instractor of courses
         courses = raw_data[RD_DATA][DBC.COLLECTION_COURSE]
@@ -578,7 +599,7 @@ class ParseEnrollmentFile(PipeModule):
                 course_id = records[1]
                 course_id = course_id[course_id.index(':') + 1:]
                 course_id = course_id.replace('.', '_')
-                enrollment_time = try_parse_date(records[2])
+                enrollment_time = try_get_timestamp(try_parse_date(records[2]))
                 enrollment[DBC.FIELD_ENROLLMENT_USER_ID] = user_id
                 enrollment[DBC.FIELD_ENROLLMENT_COURSE_ID] = course_id
                 enrollment[DBC.FIELD_ENROLLMENT_TIMESTAMP] = enrollment_time
@@ -594,11 +615,11 @@ class ParseEnrollmentFile(PipeModule):
                     users[user_id][DBC.FIELD_USER_COURSE_IDS].discard(course_id)
                     courses[course_id][DBC.FIELD_COURSE_STUDENT_IDS].discard(user_id)
             except ValueError as ex:
-                warn("In ParseEnrollmentFile, cannot get the enrollment information of item:"+\
+                warn("In ParseEnrollmentFile, cannot get the enrollment information of item:" +
                      enroll_item)
                 warn(ex)
             except BaseException as ex:
-                warn("In ParseEnrollmentFile, cannot get the enrollment information of item:"+\
+                warn("In ParseEnrollmentFile, cannot get the enrollment information of item:" +
                      enroll_item)
                 warn(ex)
 
@@ -608,6 +629,7 @@ class ParseEnrollmentFile(PipeModule):
         # processed_data['data'][DBC.COLLECTION_USER] = list(users.values())
         # processed_data['data'][DBC.COLLECTION_COURSE] = list(courses.value())
         return processed_data
+
 
 class ParseLogFile(PipeModule):
     '''Parse log files
@@ -697,7 +719,7 @@ class ParseLogFile(PipeModule):
                                 str_event_time = str_event_time[:str_event_time.index("+")] + \
                                     '.000000' + str_event_time[str_event_time.index("+"):]
                             except ValueError as ex:
-                                warn("In ParseLogFile, cannot process the event_time:"+\
+                                warn("In ParseLogFile, cannot process the event_time:" +
                                      str_event_time)
                                 warn(ex)
 
@@ -705,18 +727,19 @@ class ParseLogFile(PipeModule):
                         try:
                             course_id = course_id[course_id.index(':') + 1:]
                         except ValueError as ex:
-                            warn("In ParseLogFile, cannot get courseId of:"+course_id)
+                            warn("In ParseLogFile, cannot get courseId of:" + course_id)
                             warn(ex)
                             continue
                         course_id = course_id.replace('.', '_')
-                        target_attrs = {'path':'path', 'code':'code', 'currentTime':'currentTime',\
-                            'new_time':'newTime', 'old_time':'oldTime', 'new_speed':'newSpeed',\
-                            'old_speed':'oldSpeed'}
-                        event_time = datetime.strptime(str_event_time, pattern_time)
+                        target_attrs = {'path': 'path', 'code': 'code',
+                                        'currentTime': 'currentTime', 'new_time': 'newTime',
+                                        'old_time': 'oldTime', 'new_speed': 'newSpeed',
+                                        'old_speed': 'oldSpeed'}
+                        event_time = try_parse_date(str_event_time, pattern_time)
                         event[DBC.FIELD_VIDEO_LOG_USER_ID] = event_context.get('user_id')
                         event[DBC.FIELD_VIDEO_LOG_VIDEO_ID] = video_id
                         event[DBC.FIELD_VIDEO_LOG_COURSE_ID] = course_id
-                        event[DBC.FIELD_VIDEO_LOG_TIMESTAMP] = event_time.timestamp()
+                        event[DBC.FIELD_VIDEO_LOG_TIMESTAMP] = try_get_timestamp(event_time)
                         event[DBC.FIELD_VIDEO_LOG_TYPE] = temp_data.get('event_type')
                         event[DBC.FIELD_VIDEO_LOG_METAINFO] = {target_attrs[k]: event_event.get(
                             k) for k in target_attrs if event_event.get(k) is not None}
@@ -724,9 +747,11 @@ class ParseLogFile(PipeModule):
                         events.append(event)
 
                         # ready to denselogs
-                        denselog_time = datetime(event_time.year, event_time.month,
-                                                 event_time.day).timestamp()
-                        denselogs_key = "{0}_{1}_{2}".format(course_id, video_id, denselog_time)
+                        denselog_time = try_get_timestamp(datetime(event_time.year,
+                                                                   event_time.month,
+                                                                   event_time.day))
+                        denselogs_key = "{0}_{1}_{2}".format(
+                            course_id, video_id, denselog_time)
                         if denselogs.get(denselogs_key) is None:
                             denselog = denselogs[denselogs_key] = {}
                             denselog[DBC.FIELD_VIDEO_DENSELOGS_COURSE_ID] = course_id
@@ -742,30 +767,31 @@ class ParseLogFile(PipeModule):
                             DBC.FIELD_VIDEO_DENSELOGS_CLICKS, []).append(click)
 
                         if video_id in videos:
-                            temporal_hotness = videos[video_id][
-                                DBC.FIELD_VIDEO_TEMPORAL_HOTNESS]
+                            temporal_hotness = videos[video_id][DBC.FIELD_VIDEO_TEMPORAL_HOTNESS]
                             date_time = str(event_time.date())
                             if date_time not in temporal_hotness:
                                 temporal_hotness[date_time] = 0
                             temporal_hotness[date_time] += 1
                 except BaseException as ex:
-                    warn("In ParseLogFile, some problem happend:"+line)
+                    warn("In ParseLogFile, some problem happend:" + line)
                     warn(ex)
         processed_data = raw_data
         processed_data[RD_DATA][DBC.COLLECTION_VIDEO_LOG] = events
         processed_data[RD_DATA][DBC.COLLECTION_VIDEO_DENSELOGS] = list(denselogs.values())
         return processed_data
 
+
 class InjectSuperUser(PipeModule):
     '''Inject super user to access all courses
     '''
     order = 5
+
     def __init__(self, username=None):
         super().__init__()
         self.super_user = set(username) if isinstance(username, list) else {username}
 
     def process(self, raw_data, raw_data_filenames=None):
-        info("Inject Super User:"+ str(self.super_user))
+        info("Inject Super User:" + str(self.super_user))
         users = raw_data[RD_DATA][DBC.COLLECTION_USER]
         target_users = []
         for user_id in users:
@@ -782,6 +808,7 @@ class InjectSuperUser(PipeModule):
         processed_data = raw_data
         processed_data[RD_DATA][DBC.COLLECTION_USER] = users
         return processed_data
+
 
 class DumpToDB(PipeModule):
     '''Dump the processed data into database
@@ -807,7 +834,8 @@ class DumpToDB(PipeModule):
                     course_info[DBC.FIELD_COURSE_VIDEO_IDS])
         if users:
             for user in users.values():
-                user[DBC.FIELD_USER_COURSE_IDS] = list(user[DBC.FIELD_USER_COURSE_IDS])
+                user[DBC.FIELD_USER_COURSE_IDS] = list(
+                    user[DBC.FIELD_USER_COURSE_IDS])
                 user[DBC.FIELD_USER_DROPPED_COURSE_IDS] = list(
                     user[DBC.FIELD_USER_DROPPED_COURSE_IDS])
         # from dictory to list, removing id index
@@ -830,5 +858,5 @@ class DumpToDB(PipeModule):
             etag = filename.get('etag')
             filename = filename.get('path')
             if FC.Clickstream_suffix in filename:
-                metainfos.update_one({"etag":etag}, {'$set':{"processed":True}})
+                metainfos.update_one({"etag": etag}, {'$set': {"processed": True}})
         return raw_data
