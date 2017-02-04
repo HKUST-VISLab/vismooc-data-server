@@ -340,9 +340,6 @@ class ParseCourseStructFile(PipeModule):
             user_id = records[4]
             course_instructors.setdefault(course_id, []).append(user_id)
 
-        course_year = "course_year"
-        course_year_pattern = r'^course-[\w|:|\+]+(?P<' + course_year + r'>[0-9]{4})\w*'
-        re_course_year = re.compile(course_year_pattern)
         if len(self.course_overview) == 0:
             warn("No course_overviews_courseoverview in MySQL snapshots")
         for course_item in self.course_overview:
@@ -365,9 +362,7 @@ class ParseCourseStructFile(PipeModule):
                 course[DBC.FIELD_COURSE_VIDEO_IDS] = set()
                 course[DBC.FIELD_COURSE_ORIGINAL_ID] = course_original_id
                 course[DBC.FIELD_COURSE_NAME] = records[5]
-                course_year_match = re_course_year.search(course_original_id)
-                course[DBC.FIELD_COURSE_YEAR] = course_year_match and \
-                    course_year_match.group(course_year)
+                course[DBC.FIELD_COURSE_YEAR] = course_original_id.split('+').pop()
                 course[DBC.FIELD_COURSE_INSTRUCTOR] = course_instructors.get(
                     course_original_id) or []
                 course[DBC.FIELD_COURSE_STATUS] = None
