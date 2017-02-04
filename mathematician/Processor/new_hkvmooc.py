@@ -127,14 +127,15 @@ class ExtractRawData(PipeModule):
                 for record in bson.decode_file_iter(file):
                     oid = str(record.get('_id'))
                     if oid in structureid_to_courseid:
-                        courseid_to_structure[
-                            structureid_to_courseid[oid]] = record
+                        courseid_to_structure[structureid_to_courseid[oid]] = record
+            info('Finish loading module structure data')
             section_sep = ">>"
             target_block_type = {"course", "chapter", "sequential", "vertical", "video"}
             courses = {}
             if len(courseid_to_structure) == 0:
                 warn("There is no course strucutre in mongodb file!")
             for course_id in courseid_to_structure:
+                info("Process course_structure of "+course_id)
                 structure = courseid_to_structure[course_id]
                 blocks_dict = {}
                 block_queue = queue.Queue()
