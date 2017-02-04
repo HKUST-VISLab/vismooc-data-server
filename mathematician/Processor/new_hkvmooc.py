@@ -81,6 +81,7 @@ class ExtractRawData(PipeModule):
 
         filenames = [file.get("path")
                      for file in raw_data_filenames if isfile(file.get("path"))]
+        info(filenames)
         for filename in filenames:
             if FC.SQLDB_FILE in filename:
                 with open(filename, 'r', encoding='utf-8') as file:
@@ -114,12 +115,12 @@ class ExtractRawData(PipeModule):
                         oid = str(published_branch)
                         # structureids.add(oid)
                         structureid_to_courseid[oid] = record['org'] + '+' + \
-                            record['course'].replace(
-                                '.', '_') + '+' + record['run']
+                            record['course'].replace('.', '_') + '+' + record['run']
             elif FC.STRUCTURES in filename:
                 module_structure_filename = filename
         # modulestore.active_version must be processed before
         # modulestore.structures
+        info('Try to process module structure files')
         if module_structure_filename and len(structureid_to_courseid) > 0:
             courseid_to_structure = {}
             with open(module_structure_filename, 'rb') as file:
@@ -129,8 +130,7 @@ class ExtractRawData(PipeModule):
                         courseid_to_structure[
                             structureid_to_courseid[oid]] = record
             section_sep = ">>"
-            target_block_type = {"course", "chapter",
-                                 "sequential", "vertical", "video"}
+            target_block_type = {"course", "chapter", "sequential", "vertical", "video"}
             courses = {}
             if len(courseid_to_structure) == 0:
                 warn("There is no course strucutre in mongodb file!")
