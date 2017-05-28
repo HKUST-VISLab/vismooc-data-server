@@ -8,7 +8,7 @@ from mathematician.logger import info
 from mathematician.pipe import PipeModule
 from mathematician.text_helper import SentimentAnalyzer
 
-from ..Utils import PARALLEL_GRAIN, get_cpu_num
+from ..utils import PARALLEL_GRAIN, get_cpu_num
 
 
 class ForumProcessor(PipeModule):
@@ -66,10 +66,10 @@ class ForumProcessor(PipeModule):
             post[DBc.FIELD_FORUM_BODY] = row.get('body')
             post[DBc.FIELD_FORUM_SENTIMENT] = sentiment_analyzer.analysis(
                 post[DBc.FIELD_FORUM_BODY])
-            post[DBc.FIELD_FORUM_TYPE] = FormatForumFile.forum_type[row.get('_type')]
+            post[DBc.FIELD_FORUM_TYPE] = ForumProcessor.forum_type[row.get('_type')]
             post[DBc.FIELD_FORUM_TITLE] = row.get('title') if row.get('_type') == \
                 'CommentThread' else None
-            post[DBc.FIELD_FORUM_THREAD_TYPE] = FormatForumFile.thread_type[
+            post[DBc.FIELD_FORUM_THREAD_TYPE] = ForumProcessor.thread_type[
                 row.get('thread_type')] if row.get('_type') == 'CommentThread' else None
             post[DBc.FIELD_FORUM_COMMENT_THREAD_ID] = row.get('comment_thread_id').get('oid') if \
                 row.get('_type') == 'Comment' else None
@@ -89,7 +89,7 @@ class ForumProcessor(PipeModule):
         for data in data_to_be_processed:
             data = [data[l: l+PARALLEL_GRAIN] for l in range(0, len(data), PARALLEL_GRAIN)]
             pool = multiprocessing.Pool(processes=cpu_num)
-            results = pool.map_async(partial(FormatForumFile.process_few_forums, \
+            results = pool.map_async(partial(ForumProcessor.process_few_forums, \
                 sentiment_analyzer=self.sentiment_analyzer), data)
             pool.close()
             pool.join()
@@ -99,7 +99,7 @@ class ForumProcessor(PipeModule):
                         self.posts[post[DBc.FIELD_FORUM_ORIGINAL_ID]] = post
 
         for post in self.posts.values():
-            if post[DBc.FIELD_FORUM_TYPE] == FormatForumFile.forum_type['CommentThread']:
+            if post[DBc.FIELD_FORUM_TYPE] == ForumProcessor.forum_type['CommentThread']:
                 continue
             user1_user2 = None
             # if a comment is a reply to another comment, it counts to social between

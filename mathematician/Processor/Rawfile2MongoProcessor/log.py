@@ -7,7 +7,7 @@ from mathematician.config import DBConfig as DBc
 from mathematician.logger import info
 from mathematician.pipe import PipeModule
 
-from ..Utils import PARALLEL_GRAIN, get_cpu_num, is_processed
+from ..utils import PARALLEL_GRAIN, get_cpu_num, is_processed
 
 
 class LogProcessor(PipeModule):

@@ -3,7 +3,7 @@ from datetime import datetime
 from mathematician.pipe import PipeModule
 from mathematician.config import DBConfig as DBc
 from mathematician.logger import info
-from ..Utils import get_cpu_num, PARALLEL_GRAIN
+from ..utils import get_cpu_num, PARALLEL_GRAIN
 
 
 class GradeProcessor(PipeModule):

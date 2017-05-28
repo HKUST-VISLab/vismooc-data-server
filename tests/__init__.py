@@ -1,9 +1,9 @@
 '''The entrance of all test case
 '''
-from . import test_config, test_http_helper, test_logger, test_pipe, test_course_processor
+from . import test_config, test_http_helper, test_logger, test_pipe
 from . import DB, Processor
 
-__All__ = ["test_config", "test_http_helper", "test_logger", "test_pipe", "DB", 'test_course_processor']
+__All__ = ["test_config", "test_http_helper", "test_logger", "test_pipe", "DB", 'Processor']
 
 # import glob
 # import os

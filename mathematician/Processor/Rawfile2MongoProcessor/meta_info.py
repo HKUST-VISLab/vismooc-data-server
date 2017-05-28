@@ -5,7 +5,7 @@ from os.path import getctime, getmtime
 from mathematician.config import DBConfig as DBc
 from mathematician.pipe import PipeModule
 
-from ..Utils import get_cpu_num
+from ..utils import get_cpu_num
 
 class MetaDBProcessor(PipeModule):
     '''Process metadb files

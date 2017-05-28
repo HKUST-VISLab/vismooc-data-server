@@ -1,3 +1,3 @@
-from . import test_course_processor
+from . import Rawfile2MongoProcessor
 
-__all__ = ["test_course_processor"]
+__all__ = ['Rawfile2MongoProcessor']
