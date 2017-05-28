@@ -7,9 +7,7 @@ from mathematician.config import DBConfig as DBc
 from mathematician.logger import info
 from mathematician.pipe import PipeModule
 from mathematician.text_helper import SentimentAnalyzer
-
-from ..utils import PARALLEL_GRAIN, get_cpu_num
-
+from mathematician.Processor.utils import PARALLEL_GRAIN, get_cpu_num
 
 class ForumProcessor(PipeModule):
 

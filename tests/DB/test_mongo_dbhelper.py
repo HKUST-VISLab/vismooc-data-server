@@ -6,7 +6,6 @@ import pymongo
 # from unittest.mock import patch, MagicMock
 from mathematician.DB.mongo_dbhelper import MongoDB, MongoCollection, MongoClient
 
-
 class TestMongoDB(unittest.TestCase):
     '''Test the MongoDb helper
     '''

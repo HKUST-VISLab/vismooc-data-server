@@ -8,10 +8,8 @@ from mathematician.config import DBConfig as DBc
 from mathematician.http_helper import get_list as http_get_list
 from mathematician.logger import info, warn
 from mathematician.pipe import PipeModule
-
-from ..utils import (YOUTUBE_KEY, fetch_video_duration,
-                     parse_duration_from_youtube_api)
-
+from mathematician.Processor.utils import (YOUTUBE_KEY, fetch_video_duration,
+                                           parse_duration_from_youtube_api)
 
 class CourseProcessor(PipeModule):
     '''Processe -course_structure- file
@@ -93,8 +91,8 @@ class CourseProcessor(PipeModule):
                 parent["children"].remove(block)
                 parent["children"].extend(new_children)
 
-        course_structure_info = {k: course_structure_info[k] for k in \
-            course_structure_info if k in block_id_to_keep}
+        course_structure_info = {k: course_structure_info[k] for k in
+                                 course_structure_info if k in block_id_to_keep}
         return course_structure_info
 
     def process(self, raw_data, raw_data_filenames=None):
@@ -126,8 +124,8 @@ class CourseProcessor(PipeModule):
                     # video[DBc.FIELD_VIDEO_SECTION] = metadata.get('sub')
                     video[DBc.FIELD_VIDEO_SECTION] = value.get('prefix')
                     video[DBc.FIELD_VIDEO_RELEASE_DATE] = None
-                    video[DBc.FIELD_VIDEO_URL] = (len(metadata.get('html5_sources')) and \
-                        metadata.get('html5_sources')[0]) or metadata.get('edx_video_id')
+                    video[DBc.FIELD_VIDEO_URL] = (len(metadata.get('html5_sources')) and
+                                                  metadata.get('html5_sources')[0]) or metadata.get('edx_video_id')
                     video[DBc.FIELD_VIDEO_DURATION] = None
                     video[DBc.FIELD_VIDEO_ORIGINAL_ID] = video_id
                     video[DBc.FIELD_VIDEO_METAINFO]['youtube_id'] = metadata.get('youtube_id_1_0')
@@ -151,9 +149,9 @@ class CourseProcessor(PipeModule):
                     course[DBc.FIELD_COURSE_ORIGINAL_ID] = course_id
                     course[DBc.FIELD_COURSE_NAME] = metadata.get('display_name')
                     course_year = start_time and str(start_time.year)
-                    period = course_compon[3][course_compon[3].index('Q')-1:course_compon[3].index('Q')] \
+                    period = course_compon[3][course_compon[3].index('Q') - 1:course_compon[3].index('Q')] \
                         if 'Q' in course_compon[3] else '0'
-                    run = course_compon[3][course_compon[3].index('R')-1:course_compon[3].index('R')] \
+                    run = course_compon[3][course_compon[3].index('R') - 1:course_compon[3].index('R')] \
                         if 'R' in course_compon[3] else '0'
                     course[DBc.FIELD_COURSE_YEAR] = '%s_Q%s_R%s' % (course_year, period, run)
                     course[DBc.FIELD_COURSE_IMAGE_URL] = metadata.get('course_image')
@@ -193,7 +191,7 @@ class CourseProcessor(PipeModule):
                 try:
                     result = json.loads(str(result, 'utf-8'))
                 except json.JSONDecodeError:
-                    warn("decode json failed in youtube's response, "+ result)
+                    warn("decode json failed in youtube's response, " + result)
                     continue
 
                 item = None
