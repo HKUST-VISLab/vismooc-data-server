@@ -1,3 +1,6 @@
+'''This processor can process the data in MoocDB then insert them into mongodb
+   for vismooc.
+'''
 from .CourseProcessor import ProcessCourseTable as CourseProcessor
 from .DBProcessor import DumpToDB as DBProcessor
 from .EnrollmentProcessor import ProcessEnrollmentTable as EnrollmentProcessor

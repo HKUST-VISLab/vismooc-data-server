@@ -1,13 +1,17 @@
-import re
 import json
-import queue
+import re
 from datetime import datetime
 from urllib.parse import urlencode
-from mathematician.pipe import PipeModule
+
+import queue
 from mathematician.config import DBConfig as DBc
-from mathematician.logger import info, warn
 from mathematician.http_helper import get_list as http_get_list
-from ..Utils import YOUTUBE_KEY, fetch_video_duration, parse_duration_from_youtube_api
+from mathematician.logger import info, warn
+from mathematician.pipe import PipeModule
+
+from ..Utils import (YOUTUBE_KEY, fetch_video_duration,
+                     parse_duration_from_youtube_api)
+
 
 class ProcessCourseStructureFile(PipeModule):
     '''Processe -course_structure- file

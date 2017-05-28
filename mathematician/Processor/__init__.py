@@ -1,4 +1,4 @@
 '''Data processor
 '''
 
-__All__ = ['OldHKVMoocProcessor', 'Sql2MongoProcessor']
+__All__ = ['Rawfile2MongoProcessor', 'Sql2MongoProcessor']

@@ -1,3 +1,6 @@
+'''This processor can process the raw data files then insert them into mongodb
+   for vismooc.
+'''
 from .CourseProcessor import ProcessCourseStructureFile as CourseProcessor
 from .CourseRoleProcessor import FormatCourseRoleFile as CourseRoleProcessor
 from .DBProcessor import DumpToDB as DBProcessor
