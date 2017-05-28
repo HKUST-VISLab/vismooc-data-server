@@ -4,7 +4,7 @@
 import unittest
 from unittest.mock import patch, MagicMock, DEFAULT
 from logging import INFO
-from mathematician.config import init_config, DataSource as DS, FilenameConfig as FC, ThirdPartyKeys as TPK, DBConfig as DBC
+from mathematician.config import init_config, ThirdPartyKeys as TPK, DBConfig as DBC
 
 
 class TestConfig(unittest.TestCase):
@@ -13,6 +13,26 @@ class TestConfig(unittest.TestCase):
         with self.assertLogs("vismooc", level=INFO) as cm:
             init_config("asdfs")
         self.assertEqual(cm.output, ["WARNING:vismooc:The config file does not exist"])
+
+    @patch.multiple('mathematician.config', exists=DEFAULT, open=DEFAULT)
+    def test_init_config_with_default_value(self, **mocks):
+        mock_exists, mock_open = mocks["exists"], mocks["open"]
+        mock_exists.return_value = True
+        open_cm = MagicMock()
+        open_cm.__enter__.return_value = open_cm
+        open_cm.read.return_value = '{ \
+            "data_server": {\
+                "third_party_keys": {\
+                    "Youtube_key": "test"\
+                },\
+            }\
+        }'
+        mock_open.return_value = open_cm
+
+        self.assertIsNone(init_config("foo"))
+        target_fields = [DBC.DB_HOST, DBC.DB_NAME, DBC.DB_PORT]
+        expect_results = ["mongo_host", "DB_name", "mongo_port"]
+        self.assertEqual(target_fields, expect_results)
 
     @patch.multiple('mathematician.config', exists=DEFAULT, open=DEFAULT)
     def test_init_config_with_wrong_json_file(self, **mocks):
@@ -35,7 +55,7 @@ class TestConfig(unittest.TestCase):
         mock_exists.return_value = True
         open_cm = MagicMock()
         open_cm.__enter__.return_value = open_cm
-        open_cm.read.return_value = '{ \
+        open_cm.read.return_value = '{\
             "mongo": {\
                 "host": "test",\
                 "name": "test",\
@@ -43,23 +63,7 @@ class TestConfig(unittest.TestCase):
             },\
             "data_server": {\
                 "third_party_keys": {\
-                    "HKMOOC_key": "test",\
                     "Youtube_key": "test"\
-                },\
-                "data_sources": {\
-                    "data_source_host": "test",\
-                    "access_tokens_url": "test",\
-                    "clickstreams_url": "test",\
-                    "mongoDB_url": "test",\
-                    "SQLDB_url": "test"\
-                },\
-                "data_filenames": {\
-                    "data_dir":"test",\
-                    "mongodb_file": "test",\
-                    "sqldb_file": "test",\
-                    "meta_db_record": "test",\
-                    "active_versions": "test",\
-                    "structures": "test"\
                 }\
             }\
         }'
@@ -68,47 +72,8 @@ class TestConfig(unittest.TestCase):
         self.assertIsNone(init_config("foo"))
         test_value = "test"
         target_fields = [
-            DBC.DB_HOST, DBC.DB_NAME, DBC.DB_PORT, DS.HOST, DS.ACCESS_TOKENS_URL,
-            DS.CLICKSTREAMS_URL, DS.MONGODB_URL, DS.SQLDB_URL, FC.Data_dir, FC.MongoDB_FILE,
-            FC.SQLDB_FILE, FC.META_DB_RECORD, FC.ACTIVE_VERSIONS, FC.STRUCTURES, TPK.Youtube_key,
-            TPK.HKMooc_key, TPK.HKMooc_access_token
+            DBC.DB_HOST, DBC.DB_NAME, DBC.DB_PORT,
+            TPK.Youtube_key
         ]
-        expect_results = (len(target_fields)-1) * [test_value]
-        expect_results.append(None)
-        self.assertEqual(target_fields, expect_results)
-
-    @patch.multiple('mathematician.config', exists=DEFAULT, open=DEFAULT)
-    def test_init_config_with_default_value(self, **mocks):
-        mock_exists, mock_open = mocks["exists"], mocks["open"]
-        mock_exists.return_value = True
-        open_cm = MagicMock()
-        open_cm.__enter__.return_value = open_cm
-        open_cm.read.return_value = '{ \
-            "data_server": {\
-                "third_party_keys": {\
-                    "HKMOOC_key": "test",\
-                    "Youtube_key": "test"\
-                },\
-                "data_sources": {\
-                    "data_source_host": "test",\
-                    "access_tokens_url": "test",\
-                    "clickstreams_url": "test",\
-                    "mongoDB_url": "test",\
-                    "SQLDB_url": "test"\
-                },\
-                "data_filenames": {\
-                    "data_dir":"test",\
-                    "mongodb_file": "test",\
-                    "sqldb_file": "test",\
-                    "meta_db_record": "test",\
-                    "active_versions": "test",\
-                    "structures": "test"\
-                }\
-            }\
-        }'
-        mock_open.return_value = open_cm
-
-        self.assertIsNone(init_config("foo"))
-        target_fields = [DBC.DB_HOST, DBC.DB_NAME, DBC.DB_PORT]
-        expect_results = ["localhost", "test-vismooc-newData-temp", 27017]
+        expect_results = len(target_fields) * [test_value]
         self.assertEqual(target_fields, expect_results)

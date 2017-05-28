@@ -1,18 +1,20 @@
+'''Util functions for processing data
+'''
+import hashlib
+import io
+import json
 import multiprocessing
 import re
-import io
 import struct
-import hashlib
 import urllib
-import json
-import pymysql
 from datetime import timedelta
 from os.path import dirname, join
 
-from mathematician.DB.mongo_dbhelper import MongoDB
+import pymysql
 from mathematician.config import DBConfig as DBc
-from mathematician.logger import warn
+from mathematician.DB.mongo_dbhelper import MongoDB
 from mathematician.http_helper import get as http_get
+from mathematician.logger import warn
 
 UtilsDir = dirname(__file__)
 with open(join(UtilsDir, '../../config.json'), 'r') as file:
@@ -132,6 +134,3 @@ def is_processed(filename):
         DBc.FIELD_METADBFILES_ETAG: digest, DBc.FIELD_METADBFILES_PROCESSED: True
     })
     return True if db_entry else False
-
-
-

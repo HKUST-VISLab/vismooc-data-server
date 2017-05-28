@@ -14,7 +14,6 @@ import asyncio
 import aiohttp
 from .logger import info, warn, progressbar
 
-
 def head(url, headers=None, params=None, retry_time=5, delay=1):
     """Send synchronous head request
     """

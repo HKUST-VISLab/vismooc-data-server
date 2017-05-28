@@ -19,19 +19,6 @@
             ]
         },
         {
-            "name": "Python Console App",
-            "type": "python",
-            "request": "launch",
-            "stopOnEntry": true,
-            "pythonPath": "${config:python.pythonPath}",
-            "program": "${file}",
-            "externalConsole": true,
-            "debugOptions": [
-                "WaitOnAbnormalExit",
-                "WaitOnNormalExit"
-            ]
-        },
-        {
             "name": "Attach",
             "type": "python",
             "request": "attach",

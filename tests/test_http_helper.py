@@ -9,6 +9,7 @@ from logging import INFO
 import mathematician.http_helper as http
 import asyncio
 
+
 def get_right_url(mock_object, url, params):
     args, kwargs = mock_object.call_args
     true_url = args[0].get_full_url()
@@ -18,6 +19,7 @@ def get_right_url(mock_object, url, params):
     # right_url = right_url[0: -1]
     return true_url, right_url
 
+
 def async_test(func):
     def run_test(*args, **kwargs):
         loop = asyncio.new_event_loop()
@@ -25,6 +27,22 @@ def async_test(func):
         loop.run_until_complete(func(*args, **kwargs))
         loop.close()
     return run_test
+
+
+class AsyncContextManagerMock(MagicMock):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        for key in ('aenter_return', 'aexit_return'):
+            setattr(self, key,  kwargs[key] if key in kwargs else MagicMock())
+
+    async def __aenter__(self):
+        return self.aenter_return
+
+    async def __aexit__(self, *args):
+        return self.aexit_return
+
 
 class TestHTTPHelperClass(unittest.TestCase):
     '''Unit test of http_helper module
@@ -98,7 +116,7 @@ class TestHTTPHelperClass(unittest.TestCase):
 
         mock_urlopen.side_effect = HTTPError(url, 404, 'Not Found', {'a': 1}, None)
         with self.assertLogs("vismooc", level=INFO) as cm:
-            http.get(url, retry_time=2, delay=0)
+            http.get(url, retry_times=2, delay=0)
         self.assertEqual(cm.output, ["INFO:vismooc:Try 0th times to GET " + url + ".",
                                      "WARNING:vismooc:HTTP GET error 404 at " + url,
                                      "INFO:vismooc:Try 1th times to GET " + url + ".",
@@ -123,23 +141,27 @@ class TestHTTPHelperClass(unittest.TestCase):
 
         mock_urlopen.side_effect = HTTPError(url, 404, 'Not Found', {'a': 1}, None)
         with self.assertLogs("vismooc", level=INFO) as cm:
-            http.post(url, retry_time=2, delay=0)
+            http.post(url, retry_times=2, delay=0)
         self.assertEqual(cm.output, ["INFO:vismooc:Try 0th times to POST " + url + ".",
                                      "WARNING:vismooc:HTTP POST error 404 at " + url,
                                      "INFO:vismooc:Try 1th times to POST " + url + ".",
                                      "WARNING:vismooc:HTTP POST error 404 at " + url, ])
 
-    @patch('aiohttp')
+    @patch('mathematician.http_helper.aiohttp.get')
     @async_test
-    async def test_async_get(self, mock_aiohttp):
+    async def test_async_get(self, mock_aiohttp_get):
         url = "http://foo"
         with self.assertRaises(Exception, msg="The params of async_GET should be dict type"):
             await http.async_get(url=url, params="asdf")
 
-        mock_response = MagicMock(status=200, headers={"a_header": "a_header"})
-        mock_response.read.return_value = "It is a return"
-        mock_aiohttp.ssession.get.return_value = mock_response
-        params = {'a':1, 'b':2}
+        mock_response = MagicMock()
+        mock_response.status = 200
+        mock_response.headers = {"a_header": "a_header"}
+        async def coro_read():
+            return "It is a return"
+        mock_response.read = coro_read
+        mock_aiohttp_get.return_value = AsyncContextManagerMock(name="mock_response", aenter_return=mock_response)
+        params = {'a': 1, 'b': 2}
         response = await http.async_get(url=url, params=params)
         self.assertEqual(response.get_return_code(), 200, "The return code should be 200")
         self.assertEqual(response.get_headers(), {"a_header": "a_header"}, "The return headers\

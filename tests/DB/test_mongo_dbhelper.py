@@ -1,8 +1,8 @@
 '''Test mongodb_helper module
 '''
 import unittest
-import pymongo
 import copy
+import pymongo
 # from unittest.mock import patch, MagicMock
 from mathematician.DB.mongo_dbhelper import MongoDB, MongoCollection, MongoClient
 

@@ -1,7 +1,8 @@
 """All the config fields of data server
 """
 import json
-from os.path import join, exists
+from os.path import exists, join
+
 from . import logger
 
 
@@ -9,20 +10,6 @@ class ThirdPartyKeys:
     """Third party keys
     """
     Youtube_key = None
-    HKMooc_access_token = None
-    HKMooc_key = None
-
-
-class FilenameConfig:
-    """File names of raw data
-    """
-    Clickstream_suffix = "-clickstream-log"
-    Data_dir = "/vismooc-test-data/"
-    MongoDB_FILE = "dbsnapshots_mongodb"
-    SQLDB_FILE = "dbsnapshots_mysqldb"
-    META_DB_RECORD = "meta_db_record"
-    ACTIVE_VERSIONS = join("mongodb", "edxapp", "modulestore.active_versions.bson")
-    STRUCTURES = join("mongodb", "edxapp", "modulestore.structures.bson")
 
 class DBConfig:
     """Config of database
@@ -566,9 +553,10 @@ def init_config(config_file_path):
         DBConfig.DB_HOST = mongo_config.get("host") or DBConfig.DB_HOST
         DBConfig.DB_NAME = mongo_config.get("name") or DBConfig.DB_NAME
         DBConfig.DB_PORT = mongo_config.get("port") or DBConfig.DB_PORT
-        dataserver_config = config_json.get('data_server')
 
-        # init 3rd party keys
-        third_party_keys = dataserver_config.get("third_party_keys")
-        if third_party_keys:
-            ThirdPartyKeys.Youtube_key = third_party_keys.get('Youtube_key') or ThirdPartyKeys.Youtube_key
+    dataserver_config = config_json.get('data_server')
+
+    # init 3rd party keys
+    third_party_keys = dataserver_config.get("third_party_keys")
+    if third_party_keys:
+        ThirdPartyKeys.Youtube_key = third_party_keys.get('Youtube_key') or ThirdPartyKeys.Youtube_key
