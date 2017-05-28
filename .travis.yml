@@ -19,10 +19,9 @@ notifications:
 # command to install dependencies
 install:
   - pip install -r requirements.txt
-  - pip install coverage
+  - pip install 'coverage>=4.0,<4.4'
 script:
   - coverage run --source mathematician -m unittest discover -s ./tests
-
 after_success:
   - bash <(curl -s https://codecov.io/bash)
   - mkdir dist
