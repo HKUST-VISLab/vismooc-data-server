@@ -26,6 +26,8 @@ script:
 after_success:
   - bash <(curl -s https://codecov.io/bash)
   - mkdir dist
+  - pip install codeclimate-test-reporter
+  - codeclimate-test-reporter --token $CODECLIMATE_REPO_TOKEN
   - cp -r mathematician dist/mathematician
   - cp main.py dist/main.py
   - cp requirements.txt dist/requirements.txt
