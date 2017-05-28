@@ -6,7 +6,7 @@ from mathematician.logger import info
 from ..Utils import get_cpu_num, PARALLEL_GRAIN
 
 
-class FormatGradeFile(PipeModule):
+class GradeProcessor(PipeModule):
 
     order = 5
     grade_types = set(['problem', 'selfassessment'])
@@ -37,7 +37,7 @@ class FormatGradeFile(PipeModule):
         for row in rows:
             row = row[:-1].split('\t')
             grade = {}
-            if row[1] not in FormatGradeFile.grade_types:
+            if row[1] not in GradeProcessor.grade_types:
                 continue
             grade[DBc.FIELD_GRADES_USER_ID] = row[3]
             course_id = row[10]
@@ -65,7 +65,7 @@ class FormatGradeFile(PipeModule):
         for data in data_to_be_processed:
             data = [data[l: l + PARALLEL_GRAIN] for l in range(0, len(data), PARALLEL_GRAIN)]
             pool = multiprocessing.Pool(processes=cpu_num)
-            results = pool.map_async(FormatGradeFile.process_few_grades, data)
+            results = pool.map_async(GradeProcessor.process_few_grades, data)
             pool.close()
             pool.join()
             for result in results.get():

@@ -1,9 +1,11 @@
 from datetime import datetime
-from mathematician.pipe import PipeModule
+
 from mathematician.config import DBConfig as DBc
 from mathematician.logger import info
+from mathematician.pipe import PipeModule
 
-class FormatUserFile(PipeModule):
+
+class UserProcessor(PipeModule):
     '''processe the user files
     '''
 

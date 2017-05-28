@@ -1,12 +1,13 @@
+import hashlib
 import multiprocessing
 from os.path import getctime, getmtime
-import hashlib
-from mathematician.pipe import PipeModule
+
 from mathematician.config import DBConfig as DBc
+from mathematician.pipe import PipeModule
+
 from ..Utils import get_cpu_num
 
-
-class ProcessMetadbFiles(PipeModule):
+class MetaDBProcessor(PipeModule):
     '''Process metadb files
     '''
     order = -1
@@ -38,7 +39,7 @@ class ProcessMetadbFiles(PipeModule):
     def process(self, raw_data, raw_data_filenames=None):
         cpu_num = get_cpu_num()
         pool = multiprocessing.Pool(processes=cpu_num)
-        results = pool.map_async(ProcessMetadbFiles.compute_one_metadb_item, raw_data_filenames)
+        results = pool.map_async(MetaDBProcessor.compute_one_metadb_item, raw_data_filenames)
         pool.close()
         pool.join()
 

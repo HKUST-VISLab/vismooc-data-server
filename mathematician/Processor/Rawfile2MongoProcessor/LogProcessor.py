@@ -1,13 +1,16 @@
+import json
 import multiprocessing
 import re
-import json
 from datetime import datetime
-from mathematician.pipe import PipeModule
+
 from mathematician.config import DBConfig as DBc
 from mathematician.logger import info
-from ..Utils import get_cpu_num, PARALLEL_GRAIN, is_processed
+from mathematician.pipe import PipeModule
 
-class FormatLogFile(PipeModule):
+from ..Utils import PARALLEL_GRAIN, get_cpu_num, is_processed
+
+
+class LogProcessor(PipeModule):
 
     order = 6
 

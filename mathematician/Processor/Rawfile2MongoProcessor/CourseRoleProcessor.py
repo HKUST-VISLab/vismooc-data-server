@@ -1,8 +1,9 @@
-from mathematician.pipe import PipeModule
 from mathematician.config import DBConfig as DBc
 from mathematician.logger import info
+from mathematician.pipe import PipeModule
 
-class FormatCourseRoleFile(PipeModule):
+
+class CourseRoleProcessor(PipeModule):
 
     order = 2
 

@@ -4,7 +4,7 @@ from mathematician.pipe import PipeModule
 from mathematician.config import DBConfig as DBc
 from mathematician.logger import info
 
-class FormatEnrollmentFile(PipeModule):
+class EnrollmentProcessor(PipeModule):
 
     order = 3
     ENROLL = "enroll"
@@ -49,10 +49,10 @@ class FormatEnrollmentFile(PipeModule):
                 enrollment[DBc.FIELD_ENROLLMENT_COURSE_ID] = course_id
                 enrollment[DBc.FIELD_ENROLLMENT_USER_ID] = user_id
                 enrollment[DBc.FIELD_ENROLLMENT_TIMESTAMP] = datetime.strptime(row[3], pattern_time).timestamp()
-                enrollment[DBc.FIELD_ENROLLMENT_ACTION] = FormatEnrollmentFile.action.get(row[4])
+                enrollment[DBc.FIELD_ENROLLMENT_ACTION] = EnrollmentProcessor.action.get(row[4])
                 self.enrollments.append(enrollment)
 
-                if enrollment[DBc.FIELD_ENROLLMENT_ACTION] == FormatEnrollmentFile.ENROLL:
+                if enrollment[DBc.FIELD_ENROLLMENT_ACTION] == EnrollmentProcessor.ENROLL:
                     # fill user collection
                     users[user_id][DBc.FIELD_USER_COURSE_IDS].add(course_id)
                     # fill course collection

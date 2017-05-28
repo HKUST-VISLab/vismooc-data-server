@@ -13,7 +13,7 @@ from ..Utils import (YOUTUBE_KEY, fetch_video_duration,
                      parse_duration_from_youtube_api)
 
 
-class ProcessCourseStructureFile(PipeModule):
+class CourseProcessor(PipeModule):
     '''Processe -course_structure- file
     '''
     order = 0

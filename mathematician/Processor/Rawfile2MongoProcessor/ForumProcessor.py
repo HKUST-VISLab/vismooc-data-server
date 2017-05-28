@@ -1,15 +1,17 @@
-import multiprocessing
 import json
+import multiprocessing
 from datetime import datetime
 from functools import partial
-from mathematician.pipe import PipeModule
+
 from mathematician.config import DBConfig as DBc
-from mathematician.text_helper import SentimentAnalyzer
 from mathematician.logger import info
+from mathematician.pipe import PipeModule
+from mathematician.text_helper import SentimentAnalyzer
 
-from ..Utils import get_cpu_num, PARALLEL_GRAIN
+from ..Utils import PARALLEL_GRAIN, get_cpu_num
 
-class FormatForumFile(PipeModule):
+
+class ForumProcessor(PipeModule):
 
     order = 4
     forum_type = {'CommentThread': 'CommentThread', 'Comment': 'Comment'}
