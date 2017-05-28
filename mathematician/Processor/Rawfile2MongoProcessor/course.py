@@ -9,7 +9,7 @@ from mathematician.http_helper import get_list as http_get_list
 from mathematician.logger import info, warn
 from mathematician.pipe import PipeModule
 
-from ..Utils import (YOUTUBE_KEY, fetch_video_duration,
+from ..utils import (YOUTUBE_KEY, fetch_video_duration,
                      parse_duration_from_youtube_api)
 
 

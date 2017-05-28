@@ -2,11 +2,10 @@
 '''
 # pylint: disable=C0111, C0103
 import unittest
-from unittest.mock import DEFAULT, MagicMock, patch
+# from unittest.mock import DEFAULT, MagicMock, patch
 
 from mathematician.pipe import PipeModule
 from mathematician.Processor.Rawfile2MongoProcessor import CourseProcessor
-
 
 class TestProcessCourseStructureFile(unittest.TestCase):
 

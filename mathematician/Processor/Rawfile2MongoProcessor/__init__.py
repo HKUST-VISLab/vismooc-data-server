@@ -1,15 +1,15 @@
 '''This processor can process the raw data files then insert them into mongodb
    for vismooc.
 '''
-from .CourseProcessor import CourseProcessor
-from .CourseRoleProcessor import CourseRoleProcessor
-from .DBProcessor import DBProcessor
-from .EnrollmentProcessor import EnrollmentProcessor
-from .ForumProcessor import ForumProcessor
-from .GradeProcessor import GradeProcessor
-from .LogProcessor import LogProcessor
-from .UserProcessor import UserProcessor
-from .MetaDBProcessor import MetaDBProcessor
+from .course import CourseProcessor
+from .course_role import CourseRoleProcessor
+from .db import DBProcessor
+from .enrollment import EnrollmentProcessor
+from .forum import ForumProcessor
+from .grade import GradeProcessor
+from .log import LogProcessor
+from .user import UserProcessor
+from .meta_info import MetaDBProcessor
 
 __all__ = ['CourseProcessor', 'CourseRoleProcessor', 'DBProcessor',
            'EnrollmentProcessor', 'ForumProcessor', 'GradeProcessor',
