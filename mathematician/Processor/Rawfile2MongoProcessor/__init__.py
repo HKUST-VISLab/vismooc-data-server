@@ -1,17 +1,16 @@
 '''This processor can process the raw data files then insert them into mongodb
    for vismooc.
 '''
-from .CourseProcessor import ProcessCourseStructureFile as CourseProcessor
-from .CourseRoleProcessor import FormatCourseRoleFile as CourseRoleProcessor
-from .DBProcessor import DumpToDB as DBProcessor
-from .EnrollmentProcessor import FormatEnrollmentFile as EnrollmentProcessor
-from .ForumProcessor import FormatForumFile as ForumProcessor
-from .GradeProcessor import FormatGradeFile as GradeProcessor
-from .LogProcessor import FormatLogFile as LogProcessor
-from .UserProcessor import FormatUserFile as UserProcessor
-from .MetaDBProcessor import ProcessMetadbFiles as MetaDBProcessor
+from .CourseProcessor import CourseProcessor
+from .CourseRoleProcessor import CourseRoleProcessor
+from .DBProcessor import DBProcessor
+from .EnrollmentProcessor import EnrollmentProcessor
+from .ForumProcessor import ForumProcessor
+from .GradeProcessor import GradeProcessor
+from .LogProcessor import LogProcessor
+from .UserProcessor import UserProcessor
+from .MetaDBProcessor import MetaDBProcessor
 
-__all__ = ['CourseProcessor', 'CourseRoleProcessor', 'DBProcessor', \
-    'EnrollmentProcessor', 'ForumProcessor', 'GradeProcessor', \
-    'LogProcessor', 'UserProcessor', 'MetaDBProcessor']
-
+__all__ = ['CourseProcessor', 'CourseRoleProcessor', 'DBProcessor',
+           'EnrollmentProcessor', 'ForumProcessor', 'GradeProcessor',
+           'LogProcessor', 'UserProcessor', 'MetaDBProcessor']

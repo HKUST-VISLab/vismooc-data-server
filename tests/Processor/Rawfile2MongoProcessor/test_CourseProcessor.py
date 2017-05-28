@@ -13,3 +13,6 @@ class TestProcessCourseStructureFile(unittest.TestCase):
     def test_constructor(self):
         processor = CourseProcessor()
         self.assertIsInstance(processor, PipeModule, 'it should be a subclass of PipeModule')
+        self.assertDictEqual(processor.videos, {}, 'the videos should be empty')
+        self.assertDictEqual(processor.courses, {}, 'the courses should be empty')
+        self.assertListEqual(processor.processed_files, [], 'the processed_files should be empty')

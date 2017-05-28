@@ -2,10 +2,12 @@
 '''
 # pylint: disable=C0111, C0103
 import unittest
-from unittest.mock import patch, MagicMock, DEFAULT
 from logging import INFO
-from mathematician.config import init_config, ThirdPartyKeys as TPK, DBConfig as DBC
+from unittest.mock import DEFAULT, MagicMock, patch
 
+from mathematician.config import DBConfig as DBC
+from mathematician.config import ThirdPartyKeys as TPK
+from mathematician.config import init_config
 
 class TestConfig(unittest.TestCase):
 
