@@ -2,6 +2,7 @@ import nltk
 from nltk import tokenize
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
+
 class SentimentAnalyzer():
     ''' This is class is for basic sentiment analysis
     '''
