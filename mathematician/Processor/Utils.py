@@ -2,29 +2,24 @@
 '''
 import hashlib
 import io
-import json
 import multiprocessing
 import re
 import struct
 import urllib
 from datetime import timedelta
-from os.path import dirname, join
 
 import pymysql
+
 from mathematician.config import DBConfig as DBc
 from mathematician.config import ThirdPartyKeys as TPKc
 from mathematician.DB.mongo_dbhelper import MongoDB
 from mathematician.http_helper import get as http_get
 from mathematician.logger import warn
 
-UtilsDir = dirname(__file__)
-with open(join(UtilsDir, '../../config.json'), 'r') as file:
-    config = json.load(file)
-
 DB_NAME = 'testVismoocElearning'
 DB_HOST = 'localhost'
 PARALLEL_GRAIN = 20
-sql_config = config.get('sql')
+
 YOUTUBE_KEY = TPKc.Youtube_key
 RE_ISO_8601 = re.compile(
     r"^(?P<sign>[+-])?"
@@ -41,9 +36,9 @@ RE_ISO_8601 = re.compile(
 def get_data_by_table(tablename):
     ''' Get all the data from a table
     '''
-    if sql_config == None:
+    if DBc.SQL_CONFIG is None:
         return
-    sql_db = pymysql.connect(**sql_config)
+    sql_db = pymysql.connect(**DBc.SQL_CONFIG)
     cursor = sql_db.cursor()
     cursor.execute("SELECT * FROM " + tablename)
     results = cursor.fetchall()

@@ -20,6 +20,7 @@ class DBConfig:
     DB_USER = "db_user"
     DB_PASSWORD = "db_password"
     DB_GENERAL_COLLECTIONS = "db_collections"
+    SQL_CONFIG = None
     COLLECTION_GENERAL_NAME = "collection_name"
     COLLECTION_GENERAL_FIELDS = "fields"
     COLLECTION_GENERAL_INDEX = "index"
@@ -553,6 +554,10 @@ def init_config(config_file_path):
         DBConfig.DB_HOST = mongo_config.get("host") or DBConfig.DB_HOST
         DBConfig.DB_NAME = mongo_config.get("name") or DBConfig.DB_NAME
         DBConfig.DB_PORT = mongo_config.get("port") or DBConfig.DB_PORT
+
+    sql_config = config_json.get('sql')
+    if sql_config:
+        DBConfig.SQL_CONFIG = sql_config
 
     dataserver_config = config_json.get('data_server')
 
