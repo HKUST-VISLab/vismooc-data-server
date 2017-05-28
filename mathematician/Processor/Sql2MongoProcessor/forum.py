@@ -1,11 +1,13 @@
 from datetime import datetime
+
 from mathematician.config import DBConfig as DBc
 from mathematician.logger import info
 from mathematician.pipe import PipeModule
 from mathematician.text_helper import SentimentAnalyzer
-from ..Utils import get_data_by_table
 
-class ProcessForumTable(PipeModule):
+from ..utils import get_data_by_table
+
+class ForumProcessor(PipeModule):
 
     order = 4
     forum_type = {'CommentThread': 'CommentThread', 'Comment': 'Comment'}

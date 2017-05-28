@@ -1,10 +1,13 @@
 from datetime import datetime
-from mathematician.logger import warn, info
-from mathematician.config import DBConfig as DBc
-from mathematician.pipe import PipeModule
-from ..Utils import get_data_by_table
 
-class ProcessCourseTable(PipeModule):
+from mathematician.config import DBConfig as DBc
+from mathematician.logger import info
+from mathematician.pipe import PipeModule
+
+from ..utils import get_data_by_table
+
+
+class CourseProcessor(PipeModule):
     '''Processe course table
     '''
     order = 0

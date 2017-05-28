@@ -1,10 +1,12 @@
 from datetime import datetime
+
 from mathematician.config import DBConfig as DBc
 from mathematician.logger import info
 from mathematician.pipe import PipeModule
-from ..Utils import get_data_by_table
 
-class ProcessGradeTable(PipeModule):
+from ..utils import get_data_by_table
+
+class GradeProcessor(PipeModule):
 
     order = 5
     grade_types = set(['problem', 'selfassessment'])

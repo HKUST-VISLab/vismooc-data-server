@@ -1,14 +1,15 @@
 import json
 from urllib.parse import urlencode
-from mathematician.logger import warn, info
+
 from mathematician.config import DBConfig as DBc
-from mathematician.pipe import PipeModule
 from mathematician.http_helper import get_list as http_get_list
-from ..Utils import get_data_by_table, parse_duration_from_youtube_api, \
-    YOUTUBE_KEY, fetch_video_duration
+from mathematician.logger import info, warn
+from mathematician.pipe import PipeModule
 
+from ..utils import (YOUTUBE_KEY, fetch_video_duration, get_data_by_table,
+                     parse_duration_from_youtube_api)
 
-class ProcessVideoTable(PipeModule):
+class VideoProcessor(PipeModule):
     '''Processe video table
     '''
     order = 1

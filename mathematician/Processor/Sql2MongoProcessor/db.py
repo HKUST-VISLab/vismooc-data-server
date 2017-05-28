@@ -1,10 +1,9 @@
 from mathematician.config import DBConfig as DBc
+from mathematician.DB.mongo_dbhelper import MongoDB
 from mathematician.logger import info
 from mathematician.pipe import PipeModule
-from mathematician.DB.mongo_dbhelper import MongoDB
 
-
-class DumpToDB(PipeModule):
+class DBProcessor(PipeModule):
     order = 999
 
     def __init__(self):

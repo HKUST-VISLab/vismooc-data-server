@@ -1,10 +1,12 @@
 from datetime import datetime
+
 from mathematician.config import DBConfig as DBc
 from mathematician.logger import info
 from mathematician.pipe import PipeModule
-from ..Utils import get_data_by_table
 
-class ProcessLogTable(PipeModule):
+from ..utils import get_data_by_table
+
+class LogProcessor(PipeModule):
     order = 6
 
     def __init__(self):
