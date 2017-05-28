@@ -5,9 +5,9 @@ import unittest
 # from unittest.mock import DEFAULT, MagicMock, patch
 
 from mathematician.pipe import PipeModule
-from mathematician.Processor.Rawfile2MongoProcessor import CourseProcessor
+from mathematician.Processor.Rawfile2MongoProcessor.course import CourseProcessor
 
-class TestProcessCourseStructureFile(unittest.TestCase):
+class TestCourseProcessor(unittest.TestCase):
 
     def test_constructor(self):
         processor = CourseProcessor()
