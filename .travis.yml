@@ -23,7 +23,6 @@ install:
 script:
   - coverage run --source mathematician -m unittest discover -s ./test
 after_success:
-  - bash <(curl -s https://codecov.io/bash)
   - mkdir dist
   - pip install codeclimate-test-reporter
   - codeclimate-test-reporter --token $CODECLIMATE_REPO_TOKEN

@@ -14,7 +14,7 @@ import asyncio
 import aiohttp
 from .logger import info, warn, progressbar
 
-def head(url, headers=None, params=None, retry_time=5, delay=1):
+def head(url, headers=None, params=None, retry_times=5, delay=1):
     """Send synchronous head request
     """
     headers = headers or {}
@@ -30,7 +30,7 @@ def head(url, headers=None, params=None, retry_time=5, delay=1):
     context = ssl.create_default_context()
     url = urllib.request.quote(url.encode('utf8'), ':/%?=&')
     req = urllib.request.Request(url=url, headers=headers, method='GET')
-    for attempt_number in range(retry_time):
+    for attempt_number in range(retry_times):
         try:
             info("Try " + str(attempt_number) + "th times to HEAD " + url + ".")
             response = urllib.request.urlopen(req, context=context, timeout=100)
