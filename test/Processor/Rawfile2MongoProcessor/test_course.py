@@ -1,11 +1,11 @@
-'''Unit test for Processor.OldProcessCourseStructureFile
+'''Unit test for CourseProcessor
 '''
 # pylint: disable=C0111, C0103
 import unittest
 # from unittest.mock import DEFAULT, MagicMock, patch
 
 from mathematician.pipe import PipeModule
-from mathematician.Processor.Rawfile2MongoProcessor.course import CourseProcessor
+from mathematician.Processor.Rawfile2MongoProcessor import CourseProcessor
 
 class TestCourseProcessor(unittest.TestCase):
 

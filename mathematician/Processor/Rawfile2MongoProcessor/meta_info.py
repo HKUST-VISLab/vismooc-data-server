@@ -22,7 +22,7 @@ class MetaDBProcessor(PipeModule):
         try:
             with open(filename, 'r', encoding='utf-8') as file:
                 md5.update(file.read().encode('utf-8'))
-        except Exception:
+        except BaseException:
             return
         md5 = md5.hexdigest()
         item = {
