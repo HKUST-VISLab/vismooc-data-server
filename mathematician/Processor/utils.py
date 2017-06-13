@@ -6,7 +6,7 @@ import multiprocessing
 import re
 import struct
 import urllib
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 import pymysql
 
@@ -33,6 +33,60 @@ RE_ISO_8601 = re.compile(
     r"(?P<seconds>[0-9]+([,.][0-9]+)?S)?)?$"
 )
 
+
+def split(text, separator=','):
+    """split a text with `separtor`"""
+
+    tmp_stack = []
+    results = []
+    quota_number = 0
+    for i, letter in enumerate(text):
+        if letter == "'" and text[i - 1] != "\\":
+            quota_number += 1
+        elif letter == separator and (quota_number == 2 or quota_number == 0):
+            results.append("".join(tmp_stack))
+            tmp_stack = []
+            quota_number = 0
+        else:
+            tmp_stack.append(letter)
+
+        if i == len(text) - 1:
+            results.append("".join(tmp_stack))
+            return results
+
+
+def try_get_timestamp(date):
+    '''Try to get timestamp from a date object
+    '''
+    return date and round(date.timestamp() * 1000)  # in milliseconds
+
+def try_get_date(timestamp):
+    '''Try to get date object from timestamp
+    '''
+    if isinstance(timestamp, int) or isinstance(timestamp, float):
+        timestamp = str(timestamp)
+    return datetime.fromtimestamp(timestamp)
+
+
+def try_parse_date(date_str, pattern="%Y-%m-%d %H:%M:%S.%f"):
+    '''Try to parse a date string and get the timestamp
+        If can not parse the string based on certain pattern, return None
+    '''
+    try:
+        return datetime.strptime(date_str, pattern)
+    except ValueError:
+        return None
+
+DAY_TS = 1000 * 60 * 60 * 24
+def round_timestamp_to_day(timestamp):
+    '''Round the timestamp from ms to day
+    '''
+    if isinstance(timestamp, datetime):
+        timestamp = try_get_timestamp(timestamp)
+    if isinstance(timestamp, int) or isinstance(timestamp, float):
+        return int(timestamp / DAY_TS) * DAY_TS
+    raise ValueError("The timestamp should be int or float type")
+
 def get_data_by_table(tablename):
     ''' Get all the data from a table
     '''
@@ -44,6 +98,7 @@ def get_data_by_table(tablename):
     results = cursor.fetchall()
     sql_db.close()
     return results
+
 
 def fetch_video_duration(url):
     '''fetch the video duration from the url
@@ -116,14 +171,12 @@ def get_cpu_num():
     return cpu_num
 
 
-
-
 def is_processed(filename):
     ''' Check whether a file is processed or not according to
         the metadbfiles collection records
     '''
-    db = MongoDB(DB_HOST, DB_NAME)
-    metadbfile = db.get_collection(DBc.COLLECTION_METADBFILES)
+    database = MongoDB(DB_HOST, DB_NAME)
+    metadbfile = database.get_collection(DBc.COLLECTION_METADBFILES)
     md5 = hashlib.md5()
     with open(filename, 'r', encoding='utf-8') as file:
         md5.update(file.read().encode('utf-8'))
