@@ -1,4 +1,5 @@
-import json
+'''The enrollment processor module
+'''
 from datetime import datetime
 
 from mathematician.config import DBConfig as DBc
@@ -7,9 +8,9 @@ from mathematician.pipe import PipeModule
 
 from ..utils import get_data_by_table
 
-
 class EnrollmentProcessor(PipeModule):
-
+    '''The enrollment processor
+    '''
     order = 3
     ENROLL = "enroll"
     UNENROLL = "unenroll"
@@ -19,7 +20,7 @@ class EnrollmentProcessor(PipeModule):
         self.sql_table = 'enrollments'
         self.enrollments = []
 
-    def load_data(self, data_filenames):
+    def load_data(self):
         '''
         Load target file
         '''
@@ -28,7 +29,7 @@ class EnrollmentProcessor(PipeModule):
 
     def process(self, raw_data, raw_data_filenames=None):
         info("Processing enrollment record")
-        data_to_be_processed = self.load_data(raw_data_filenames)
+        data_to_be_processed = self.load_data()
         if data_to_be_processed is None:
             return raw_data
         courses = raw_data['data'].get(DBc.COLLECTION_COURSE)
@@ -44,11 +45,11 @@ class EnrollmentProcessor(PipeModule):
             enrollment[DBc.FIELD_ENROLLMENT_COURSE_ID] = course_id
             enrollment[DBc.FIELD_ENROLLMENT_USER_ID] = user_id
             enrollment[DBc.FIELD_ENROLLMENT_TIMESTAMP] = row[3].timestamp() if isinstance(row[3], datetime) else None
-            enrollment[DBc.FIELD_ENROLLMENT_ACTION] = ProcessEnrollmentTable.ENROLL if \
-                row[4] == 1 else ProcessEnrollmentTable.UNENROLL
+            enrollment[DBc.FIELD_ENROLLMENT_ACTION] = EnrollmentProcessor.ENROLL if \
+                row[4] == 1 else EnrollmentProcessor.UNENROLL
             self.enrollments.append(enrollment)
 
-            if enrollment[DBc.FIELD_ENROLLMENT_ACTION] == ProcessEnrollmentTable.ENROLL:
+            if enrollment[DBc.FIELD_ENROLLMENT_ACTION] == EnrollmentProcessor.ENROLL:
                 # fill user collection
                 if users.get(user_id):
                     users[user_id][DBc.FIELD_USER_COURSE_IDS].add(course_id)

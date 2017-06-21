@@ -5,7 +5,7 @@ import unittest
 from logging import INFO
 from unittest.mock import DEFAULT, MagicMock, patch
 
-from mathematician.config import DBConfig as DBC
+from mathematician.config import DBConfig as DBc
 from mathematician.config import ThirdPartyKeys as TPK
 from mathematician.config import init_config
 
@@ -32,7 +32,7 @@ class TestConfig(unittest.TestCase):
         mock_open.return_value = open_cm
 
         self.assertIsNone(init_config("foo"))
-        target_fields = [DBC.DB_HOST, DBC.DB_NAME, DBC.DB_PORT]
+        target_fields = [DBc.DB_HOST, DBc.DB_NAME, DBc.DB_PORT]
         expect_results = ["mongo_host", "DB_name", "mongo_port"]
         self.assertEqual(target_fields, expect_results)
 
@@ -74,7 +74,7 @@ class TestConfig(unittest.TestCase):
         self.assertIsNone(init_config("foo"))
         test_value = "test"
         target_fields = [
-            DBC.DB_HOST, DBC.DB_NAME, DBC.DB_PORT,
+            DBc.DB_HOST, DBc.DB_NAME, DBc.DB_PORT,
             TPK.Youtube_key
         ]
         expect_results = len(target_fields) * [test_value]

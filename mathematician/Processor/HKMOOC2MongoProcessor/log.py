@@ -1,28 +1,26 @@
-'''Process the log raw files
+'''Process the log raw files for HkMOOC
 '''
 import json
 import multiprocessing
 import re
 
 from mathematician.config import DBConfig as DBc
+from mathematician.config import FilenameConfig as FC
 from mathematician.logger import info, warn
 from mathematician.pipe import PipeModule
-from mathematician.Processor.Rawfile2MongoProcessor.constant import RD_DATA
+from mathematician.Processor.HKMOOC2MongoProcessor.constant import RD_DATA
 from mathematician.Processor.utils import (PARALLEL_GRAIN, get_cpu_num,
-                                           is_processed,
                                            round_timestamp_to_day,
                                            try_get_timestamp, try_parse_date)
 
 
 class LogProcessor(PipeModule):
-    '''The processor to process the log raw files
+    '''Parse log files
     '''
-
-    order = 6
+    order = 4
     pattern_right_eventsource = r'"event_source"\s*:\s*"browser"'
     pattern_right_eventtype = r'"event_type"\s*:\s*"(pause_video|' + \
         r'play_video|seek_video|speed_change_video|stop_video)"'
-
     pattern_context = r',?\s*("context"\s*:\s*{[^}]*})'
     pattern_event = r',?\s*("event"\s*:\s*"([^"]|\\")*(?<!\\)")'
     pattern_username = r',?\s*("username"\s*:\s*"[^"]*")'
@@ -42,7 +40,6 @@ class LogProcessor(PipeModule):
 
     def __init__(self):
         super().__init__()
-        self.processed_files = []
         self.events = []
         self.denselogs = {}
 
@@ -50,10 +47,12 @@ class LogProcessor(PipeModule):
         '''Load target file
         '''
         for filename in data_filenames:
-            if '-clickstream' in filename and not is_processed(filename):
+            filename = filename.get('path') if isinstance(filename, dict) else None
+            if filename is None:
+                continue
+            if FC.Clickstream_suffix in filename:
                 with open(filename, 'r', encoding='utf-8') as file:
                     raw_data = file.readlines()
-                    self.processed_files.append(filename)
                     yield raw_data
 
     @staticmethod
@@ -92,7 +91,7 @@ class LogProcessor(PipeModule):
 
     @staticmethod
     def process_few_logs(lines):
-        '''Process one piece of log
+        '''process one piece of log
         '''
         events = []
         for line in lines:
@@ -114,7 +113,7 @@ class LogProcessor(PipeModule):
 
             # ready for event
             event = {}
-            # video_id
+            # video id
             video_id = event_event.get('id')
             if video_id is None:
                 continue
@@ -130,7 +129,7 @@ class LogProcessor(PipeModule):
                 warn("In ParseLogFile, cannot get courseId of:" + course_id)
                 warn(ex)
                 continue
-            course_id = re.sub(r'[\.|\/|\+]', '_', course_id)
+            course_id = re.sub(r'[\.|\/|\+]', '_', course_id) # course_id.replace('.', '_')
             event[DBc.FIELD_LOG_COURSE_ID] = course_id
             # event_time, has been checked in is_target_log
             str_event_time = dict_temp_data.get('time')
@@ -149,21 +148,21 @@ class LogProcessor(PipeModule):
             # event_type, has been checked in is_target_log
             event[DBc.FIELD_LOG_TYPE] = dict_temp_data.get('event_type')
             # meta_info
-            target_attrs = {'currentTime': 'currentTime', 'new_time': 'newTime',
+            target_attrs = {'currentTime': 'currentTime',
+                            'new_time': 'newTime',
                             'old_time': 'oldTime', 'new_speed': 'newSpeed',
                             'old_speed': 'oldSpeed'}
             event[DBc.FIELD_LOG_METAINFO] = {target_attrs[k]: event_event.get(
                 k) for k in target_attrs if event_event.get(k) is not None}
             events.append(event)
-
         return events
 
     def process(self, raw_data, raw_data_filenames=None):
+        '''process the data
+        '''
         info("Processing log files")
-        if raw_data_filenames is None:
-            return raw_data
-
         all_data_to_be_processed = self.load_data(raw_data_filenames)
+
         if all_data_to_be_processed is None:
             return raw_data
 
@@ -181,15 +180,14 @@ class LogProcessor(PipeModule):
                     continue
                 self.events.extend(few_events)
                 for event in few_events:
-                    # for denselog
+                    # ready to denselogs
                     course_id = event[DBc.FIELD_LOG_COURSE_ID]
                     video_id = event[DBc.FIELD_LOG_VIDEO_ID]
                     event_date = round_timestamp_to_day(event[DBc.FIELD_LOG_TIMESTAMP])
                     denselogs_key = "{0}_{1}_{2}".format(course_id, video_id, event_date)
-
                     if self.denselogs.get(denselogs_key) is None:
                         self.denselogs[denselogs_key] = {
-                            DBc.FIELD_DENSELOGS_COURSE_ID: event[DBc.FIELD_LOG_COURSE_ID],
+                            DBc.FIELD_DENSELOGS_COURSE_ID: course_id,
                             DBc.FIELD_DENSELOGS_VIDEO_ID: video_id,
                             DBc.FIELD_DENSELOGS_TIMESTAMP: event_date,
                             DBc.FIELD_DENSELOGS_CLICKS: []
@@ -209,10 +207,10 @@ class LogProcessor(PipeModule):
                         if event_date not in temporal_hotness:
                             temporal_hotness[event_date] = 0
                         temporal_hotness[event_date] += 1
-
+            # except BaseException as ex:
+            #     warn("In ParseLogFile, some problem happend:" + line)
+            #     warn(ex)
         processed_data = raw_data
         processed_data[RD_DATA][DBc.COLLECTION_LOG] = self.events
         processed_data[RD_DATA][DBc.COLLECTION_DENSELOGS] = list(self.denselogs.values())
-        processed_data.setdefault('processed_files', []).extend(self.processed_files)
-
         return processed_data

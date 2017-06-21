@@ -54,10 +54,14 @@ class TestMongoDB(unittest.TestCase):
         '''
         name1 = "test_collection_1"
         name2 = "test_collection_2"
+        system_index = 'system.indexes'
         self.mongodb.create_collection(name1)
         self.mongodb.create_collection(name2)
         self.assertEqual([name1, name2], self.mongodb.get_collection_names(),
                          "get_collection_names will return all exist collections")
+        # TODO don't work on Travis-CI
+        # self.assertEqual([name1, name2, system_index], self.mongodb.get_collection_names(True),
+        #                  "get_collection_names will return all exist collections")
 
     def test_get_collection(self):
         '''test get_collection of a database

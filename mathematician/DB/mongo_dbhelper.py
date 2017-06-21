@@ -4,9 +4,11 @@ import pymongo
 from pymongo import MongoClient
 from .base_dbhelper import BaseDB, BaseCollection
 
+
 class MongoDB(BaseDB):
     '''A class to manipulate database
     '''
+
     def __init__(self, host, db_name, port=27017):
         if not isinstance(host, str):
             raise TypeError("MongoDB: host should be instance of str")
@@ -27,13 +29,14 @@ class MongoDB(BaseDB):
         '''Create a collection
         '''
         if not isinstance(name, str):
-            raise TypeError("create_collection: name should be instance of str")
+            raise TypeError(
+                "create_collection: name should be instance of str")
         self.__db.create_collection(name, codec_options, read_preference,
                                     write_concern, read_concern, **kwargs)
         return MongoCollection(self.__db, name)
 
-    def get_collection_names(self):
-        return self.__db.collection_names()
+    def get_collection_names(self, include_system_collections=False):
+        return self.__db.collection_names(include_system_collections)
 
     def get_collection(self, name):
         if not isinstance(name, str):
@@ -55,12 +58,15 @@ class MongoDB(BaseDB):
     def clear(self):
         self.__client.drop_database(self.__db)
 
+
 class MongoCollection(BaseCollection):
     '''A class to manipulate collection
     '''
+
     def __init__(self, db, name):
         if not isinstance(db, pymongo.database.Database):
-            raise TypeError("MongoDB: db should be instance of pymongo.database.Database")
+            raise TypeError(
+                "MongoDB: db should be instance of pymongo.database.Database")
         if not isinstance(name, str):
             raise TypeError("MongoDB: name should be instance of str")
         super().__init__(db, name)

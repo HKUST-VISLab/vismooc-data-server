@@ -1,15 +1,35 @@
 """All the config fields of data server
 """
 import json
-from os.path import exists, join
-
+from os.path import join, exists
 from . import logger
-
 
 class ThirdPartyKeys:
     """Third party keys
     """
     Youtube_key = None
+    HKMooc_access_token = None
+    HKMooc_key = None
+
+class FilenameConfig:
+    """File names of raw data
+    """
+    Clickstream_suffix = "-clickstream-log"
+    Data_dir = "/vismooc-test-data/"
+    MongoDB_FILE = "dbsnapshots_mongodb"
+    SQLDB_FILE = "dbsnapshots_mysqldb"
+    META_DB_RECORD = "meta_db_record"
+    ACTIVE_VERSIONS = join("mongodb", "edxapp", "modulestore.active_versions.bson")
+    STRUCTURES = join("mongodb", "edxapp", "modulestore.structures.bson")
+
+class DataSource:
+    """Urls of datasources
+    """
+    HOST = "https://dataapi2.hkmooc.hk"
+    ACCESS_TOKENS_URL = "/resources/access_tokens"
+    CLICKSTREAMS_URL = "/resources/clickstreams"
+    MONGODB_URL = "/resources/dbsnapshots_mongodb"
+    SQLDB_URL = "/resources/dbsnapshots_mysqldb"
 
 class DBConfig:
     """Config of database
@@ -559,9 +579,45 @@ def init_config(config_file_path):
     if sql_config:
         DBConfig.SQL_CONFIG = sql_config
 
-    dataserver_config = config_json.get('data_server')
+    dataserver_config = config_json.get("data_server")
+    if dataserver_config:
+        # init data server sources
+        data_sources_config = dataserver_config.get("data_sources")
+        if data_sources_config:
+            DataSource.HOST = data_sources_config.get(
+                "data_source_host") or DataSource.HOST
+            DataSource.ACCESS_TOKENS_URL = data_sources_config.get(
+                "access_tokens_url") or DataSource.ACCESS_TOKENS_URL
+            DataSource.CLICKSTREAMS_URL = data_sources_config.get(
+                "clickstreams_url") or DataSource.CLICKSTREAMS_URL
+            DataSource.MONGODB_URL = data_sources_config.get(
+                "mongoDB_url") or DataSource.MONGODB_URL
+            DataSource.SQLDB_URL = data_sources_config.get(
+                "SQLDB_url") or DataSource.SQLDB_URL
 
-    # init 3rd party keys
-    third_party_keys = dataserver_config.get("third_party_keys")
-    if third_party_keys:
-        ThirdPartyKeys.Youtube_key = third_party_keys.get('Youtube_key') or ThirdPartyKeys.Youtube_key
+        # init the data file NameError
+        data_filenames = dataserver_config.get("data_filenames")
+        if data_filenames:
+            FilenameConfig.Data_dir = data_filenames.get("data_dir")
+            FilenameConfig.MongoDB_FILE = data_filenames.get(
+                "mongodb_file") or FilenameConfig.MongoDB_FILE
+            FilenameConfig.SQLDB_FILE = data_filenames.get(
+                "sqldb_file") or FilenameConfig.SQLDB_FILE
+            FilenameConfig.META_DB_RECORD = data_filenames.get(
+                "meta_db_record") or FilenameConfig.META_DB_RECORD
+            FilenameConfig.ACTIVE_VERSIONS = data_filenames.get(
+                "active_versions") or FilenameConfig.ACTIVE_VERSIONS
+            FilenameConfig.STRUCTURES = data_filenames.get(
+                "structures") or FilenameConfig.STRUCTURES
+
+        # init 3rd party keys
+        print(dataserver_config)
+        third_party_keys = dataserver_config.get("third_party_keys")
+        print(third_party_keys)
+        if third_party_keys:
+            ThirdPartyKeys.Youtube_key = third_party_keys.get(
+                "Youtube_key") or ThirdPartyKeys.Youtube_key
+            ThirdPartyKeys.HKMooc_key = third_party_keys.get(
+                "HKMOOC_key") or ThirdPartyKeys.HKMooc_key
+            ThirdPartyKeys.HKMooc_access_token = third_party_keys.get("HKMOOC_access_token") or\
+                                                 ThirdPartyKeys.HKMooc_access_token

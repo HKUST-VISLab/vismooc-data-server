@@ -5,9 +5,10 @@ import unittest
 from unittest.mock import patch, DEFAULT, MagicMock
 
 from mathematician.pipe import PipeModule
-from mathematician.Processor.Rawfile2MongoProcessor import LogProcessor
+from mathematician.Processor.HKMOOC2MongoProcessor import LogProcessor
+from mathematician.config import FilenameConfig as FC
 from mathematician.config import DBConfig as DBc
-from mathematician.Processor.utils import PARALLEL_GRAIN, try_parse_date, round_timestamp_to_day, try_get_timestamp
+from mathematician.Processor.utils import PARALLEL_GRAIN, round_timestamp_to_day, try_parse_date, try_get_timestamp
 
 
 def get_right_log(event_type='play_video'):
@@ -20,8 +21,8 @@ def get_log_expected_return(event_type='play_video'):
     expectd[DBc.FIELD_LOG_USER_ID] = 4540165
     expectd[DBc.FIELD_LOG_VIDEO_ID] = '17df731f26364049908a8c227cb4c3c3'
     expectd[DBc.FIELD_LOG_COURSE_ID] = 'HKUSTx_COMP102x_2T2014'
-    expectd[DBc.FIELD_LOG_TIMESTAMP] = try_get_timestamp(try_parse_date(
-        "2014-08-23T04:57:33.502967+00:00", LogProcessor.pattern_date))
+    expectd[DBc.FIELD_LOG_TIMESTAMP] = try_get_timestamp(try_parse_date("2014-08-23T04:57:33.502967+00:00",
+                                                                        LogProcessor.pattern_date))
     expectd[DBc.FIELD_LOG_TYPE] = event_type
     expectd[DBc.FIELD_LOG_METAINFO] = {
         "currentTime": 79,
@@ -39,15 +40,15 @@ def get_denselog_expected_return(event, count):
     click[DBc.FIELD_DENSELOGS_TYPE] = event[DBc.FIELD_LOG_TYPE]
     click.update(event[DBc.FIELD_LOG_METAINFO])
 
-    video_id = event[DBc.FIELD_LOG_VIDEO_ID]
     course_id = event[DBc.FIELD_LOG_COURSE_ID]
+    video_id = event[DBc.FIELD_LOG_VIDEO_ID]
     event_date = round_timestamp_to_day(event[DBc.FIELD_LOG_TIMESTAMP])
     denselogs_key = "{0}_{1}_{2}".format(course_id, video_id, event_date)
 
     expected = {
         DBc.FIELD_DENSELOGS_COURSE_ID: course_id,
-        DBc.FIELD_DENSELOGS_TIMESTAMP: event_date,
         DBc.FIELD_DENSELOGS_VIDEO_ID: video_id,
+        DBc.FIELD_DENSELOGS_TIMESTAMP: event_date,
         DBc.FIELD_DENSELOGS_CLICKS: [click] * count
     }
 
@@ -71,26 +72,18 @@ class TestLogProcessor(unittest.TestCase):
         processor = LogProcessor()
         self.assertIsInstance(processor, PipeModule,
                               'it should be a subclass of PipeModule')
-        self.assertListEqual(processor.processed_files, [],
-                             'the processed_files should be empty')
-        self.assertListEqual(processor.events, [],
-                             'the events should be empty')
-        self.assertDictEqual(processor.denselogs, {},
-                             'the denselogs should be empty')
 
-    @patch.multiple('mathematician.Processor.Rawfile2MongoProcessor.log', open=DEFAULT, is_processed=DEFAULT)
+    @patch.multiple('mathematician.Processor.HKMOOC2MongoProcessor.log', open=DEFAULT)
     def test_load_data(self, **mocks):
-        mock_open, mock_is_processed = mocks['open'], mocks['is_processed']
+        mock_open = mocks['open']
         open_cm = MagicMock()
         open_cm.__enter__.return_value = open_cm
         open_cm.readlines.return_value = '111'
         mock_open.return_value = open_cm
-        mock_is_processed.return_value = False
-
-        filenames = ['1-clickstream', '2-clickstream',
-                     '3-asdf', '4-clickstreamasdf']
 
         processor = LogProcessor()
+        filenames = [None, 'asdf', {'path': '1-' + FC.Clickstream_suffix}, {'path': '2-' + FC.Clickstream_suffix},
+                     {'path': '3-asdf'}, {'path': '4-' + FC.Clickstream_suffix}]
         count = 0
         for data in processor.load_data(filenames):
             self.assertEqual(data, '111', 'should read the data from files')
@@ -98,20 +91,13 @@ class TestLogProcessor(unittest.TestCase):
         self.assertIs(
             count, 3, 'should ignore files that do not contains `-clickstream` in file name')
 
-        mock_is_processed.return_value = True
-        count = 0
-        for data in processor.load_data(filenames):
-            self.assertEqual(data, '111', 'should read the data from files')
-            count += 1
-        self.assertIs(count, 0, 'should ignore files that has been processed')
-
     def test_is_target_log(self):
         # pylint: disable=C0301
         processor = LogProcessor()
         self.assertIsNone(processor.is_target_log(
             123), msg='should return None if input is not str')
 
-        wrong_event_source = r'{"username": "asdf", "event_type": "pause_video", "event": "{\"id\":\"i4x-HKUSTx-COMP102x-video-17df731f26364049908a8c227cb4c3c3\",\"currentTime\":79,\"code\":\"z4L-yr1st3I\"}", "event_source": "asdf", "context": {"user_id": 4540165, "org_id": "HKUSTx", "course_id": "org:HKUSTx/COMP102x/2T2014", "path": "/event"}, "time": "2014-08-23T04:57:33.502967+00:00"}'
+        wrong_event_source = r'{"username": "asdf", "event_type": "pause_video", "event": "{\"id\":\"i4x-HKUSTx-COMP102x-video-17df731f26364049908a8c227cb4c3c3\",\"currentTime\":79,\"code\":\"z4L-yr1st3I\"}", "event_source": "asdf", "context": {"user_id": 4540165, "org_id": "HKUSTx", "course_id": "HKUSTx/COMP102x/2T2014", "path": "/event"}, "time": "2014-08-23T04:57:33.502967+00:00"}'
         self.assertIsNone(processor.is_target_log(
             wrong_event_source), msg='should return None if the source_event is wrong')
 
@@ -174,69 +160,58 @@ class TestLogProcessor(unittest.TestCase):
         self.assertDictEqual(events[0], expectd,
                              'should parse the log and convert the attr format of log metainfo')
 
-    @patch('mathematician.Processor.Rawfile2MongoProcessor.log.LogProcessor.load_data')
+    @patch('mathematician.Processor.HKMOOC2MongoProcessor.log.LogProcessor.load_data')
     def test_process(self, mock_load_data):
         # pylint: disable=C0301
-        mock_load_data.return_value = 123
-        # - nothing to load
-        processor = LogProcessor()
-        raw_data = 123
-        raw_data_filenames = 'asdf'
-        self.assertIs(processor.process(raw_data), raw_data,
-                      'should return raw_data if raw_data_filename is None')
-
         mock_load_data.return_value = None
-        # -load nothing
-        raw_data = 123
-        self.assertIs(processor.process(raw_data, raw_data_filenames), raw_data,
+
+        # - load nothing
+        processor = LogProcessor()
+        raw_data = None
+        self.assertIs(processor.process(raw_data), raw_data,
                       'should return raw_data if load_data return None')
 
         # - input empty logs
         mock_load_data.return_value = [['' for i in range(PARALLEL_GRAIN)]]
         raw_data = {'data': {}}
-        processed_data = processor.process(raw_data, raw_data_filenames)
+        processed_data = processor.process(raw_data)
         expected = {"data": {
             DBc.COLLECTION_LOG: [],
             DBc.COLLECTION_DENSELOGS: []
-        }, "processed_files": []}
-        self.assertDictEqual(processed_data, expected,
-                             'should do nothing if no events')
+        }}
+        self.assertDictEqual(processed_data, expected, 'should do nothing if no events')
 
         mock_load_data.return_value = [[get_right_log()] * PARALLEL_GRAIN]
 
         # - generate log and dense log
         processor = LogProcessor()
         raw_data = {'data': {}}
-        processed_data = processor.process(raw_data, raw_data_filenames)
+        processed_data = processor.process(raw_data)
         expectd_log = get_log_expected_return()
-        expectd_denselog = get_denselog_expected_return(
-            expectd_log, PARALLEL_GRAIN)
+        expectd_denselog = get_denselog_expected_return(expectd_log, PARALLEL_GRAIN)
         expected = {"data": {
             DBc.COLLECTION_LOG: [expectd_log] * PARALLEL_GRAIN,
             DBc.COLLECTION_DENSELOGS: list(expectd_denselog.values())
-        }, "processed_files": []}
-        self.assertDictEqual(processed_data, expected,
-                             'should generate logs and denselogs')
+        }}
+        self.assertDictEqual(processed_data, expected, 'should generate logs and denselogs')
 
         # - augment the exist dense log
         raw_data = {'data': {}}
-        processed_data = processor.process(raw_data, raw_data_filenames)
+        processed_data = processor.process(raw_data)
         expectd_log = get_log_expected_return()
-        expectd_denselog = get_denselog_expected_return(
-            expectd_log, PARALLEL_GRAIN * 2)
+        expectd_denselog = get_denselog_expected_return(expectd_log, PARALLEL_GRAIN * 2)
         expected = {"data": {
             DBc.COLLECTION_LOG: [expectd_log] * PARALLEL_GRAIN * 2,
             DBc.COLLECTION_DENSELOGS: list(expectd_denselog.values())
-        }, "processed_files": []}
-        self.assertDictEqual(processed_data, expected,
-                             'should augment exist logs and denselogs')
+        }}
+        self.assertDictEqual(processed_data, expected, 'should augment exist logs and denselogs')
 
         # - do nothing if no videos
         processor = LogProcessor()
         raw_data = {'data': {
             DBc.COLLECTION_VIDEO: {}
         }}
-        processed_data = processor.process(raw_data, raw_data_filenames)
+        processed_data = processor.process(raw_data)
         expectd_log = get_log_expected_return()
         expectd_denselog = get_denselog_expected_return(
             expectd_log, PARALLEL_GRAIN)
@@ -244,7 +219,7 @@ class TestLogProcessor(unittest.TestCase):
             DBc.COLLECTION_LOG: [expectd_log] * PARALLEL_GRAIN,
             DBc.COLLECTION_DENSELOGS: list(expectd_denselog.values()),
             DBc.COLLECTION_VIDEO: {}
-        }, "processed_files": []}
+        }}
         self.assertDictEqual(processed_data, expected,
                              'should not modify the videos if no target video in it')
 
@@ -253,15 +228,15 @@ class TestLogProcessor(unittest.TestCase):
         raw_data = {'data': {
             DBc.COLLECTION_VIDEO: {'17df731f26364049908a8c227cb4c3c3': {}}
         }}
-        processed_data = processor.process(raw_data, raw_data_filenames)
+        processed_data = processor.process(raw_data)
         expectd_log = get_log_expected_return()
-        expectd_denselog = get_denselog_expected_return(expectd_log, PARALLEL_GRAIN)
-        expectd_video = get_video_expected_return(PARALLEL_GRAIN)
+        expectd_denselog = get_denselog_expected_return(
+            expectd_log, PARALLEL_GRAIN)
         expected = {"data": {
             DBc.COLLECTION_LOG: [expectd_log] * PARALLEL_GRAIN,
             DBc.COLLECTION_DENSELOGS: list(expectd_denselog.values()),
-            DBc.COLLECTION_VIDEO: expectd_video
-        }, "processed_files": []}
+            DBc.COLLECTION_VIDEO: get_video_expected_return(PARALLEL_GRAIN)
+        }}
         self.assertDictEqual(processed_data, expected,
                              'should auto add temporalhotness if no temporalhotness field in target video')
 
@@ -270,16 +245,15 @@ class TestLogProcessor(unittest.TestCase):
         raw_data = {'data': {
             DBc.COLLECTION_VIDEO: get_video_expected_return(None)
         }}
-        processed_data = processor.process(raw_data, raw_data_filenames)
+        processed_data = processor.process(raw_data)
         expectd_log = get_log_expected_return()
-        expectd_denselog = get_denselog_expected_return(
-            expectd_log, PARALLEL_GRAIN)
+        expectd_denselog = get_denselog_expected_return(expectd_log, PARALLEL_GRAIN)
         expectd_videos = get_video_expected_return(PARALLEL_GRAIN)
         expected = {"data": {
             DBc.COLLECTION_LOG: [expectd_log] * PARALLEL_GRAIN,
             DBc.COLLECTION_DENSELOGS: list(expectd_denselog.values()),
             DBc.COLLECTION_VIDEO: expectd_videos,
-        }, "processed_files": []}
+        }}
         self.assertDictEqual(processed_data, expected,
                              'should init the temproal hotness of video')
 
@@ -289,7 +263,7 @@ class TestLogProcessor(unittest.TestCase):
         raw_data = {'data': {
             DBc.COLLECTION_VIDEO: get_video_expected_return(temproal_hotness)
         }}
-        processed_data = processor.process(raw_data, raw_data_filenames)
+        processed_data = processor.process(raw_data)
         expectd_log = get_log_expected_return()
         expectd_denselog = get_denselog_expected_return(
             expectd_log, PARALLEL_GRAIN)
@@ -299,6 +273,6 @@ class TestLogProcessor(unittest.TestCase):
             DBc.COLLECTION_LOG: [expectd_log] * PARALLEL_GRAIN,
             DBc.COLLECTION_DENSELOGS: list(expectd_denselog.values()),
             DBc.COLLECTION_VIDEO: expectd_videos,
-        }, "processed_files": []}
+        }}
         self.assertDictEqual(processed_data, expected,
                              'should update the temproal hotness of video')

@@ -5,8 +5,9 @@ from mathematician.config import DBConfig as DBc
 from mathematician.http_helper import get_list as http_get_list
 from mathematician.logger import info, warn
 from mathematician.pipe import PipeModule
+from mathematician.config import ThirdPartyKeys as TPKc
 
-from ..utils import (YOUTUBE_KEY, fetch_video_duration, get_data_by_table,
+from ..utils import (fetch_video_duration, get_data_by_table,
                      parse_duration_from_youtube_api)
 
 class VideoProcessor(PipeModule):
@@ -18,11 +19,11 @@ class VideoProcessor(PipeModule):
         super().__init__()
         self.sql_table = 'videos'
         youtube_api_host = 'https://www.googleapis.com/youtube/v3/videos'
-        params = {"part": "contentDetails", "key": YOUTUBE_KEY}
+        params = {"part": "contentDetails", "key": TPKc.Youtube_key}
         self.youtube_api = youtube_api_host + '?' + urlencode(params)
         self.videos = {}
 
-    def load_data(self, data_filenames):
+    def load_data(self):
         '''Load target table
         '''
         data = get_data_by_table(self.sql_table)
@@ -32,7 +33,7 @@ class VideoProcessor(PipeModule):
         '''Processe video record
         '''
         info("Processing course record")
-        data_to_be_processed = self.load_data(raw_data_filenames)
+        data_to_be_processed = self.load_data()
         if data_to_be_processed is None:
             return raw_data
 

@@ -11,7 +11,6 @@ from datetime import timedelta, datetime
 import pymysql
 
 from mathematician.config import DBConfig as DBc
-from mathematician.config import ThirdPartyKeys as TPKc
 from mathematician.DB.mongo_dbhelper import MongoDB
 from mathematician.http_helper import get as http_get
 from mathematician.logger import warn
@@ -20,7 +19,6 @@ DB_NAME = 'testVismoocElearning'
 DB_HOST = 'localhost'
 PARALLEL_GRAIN = 20
 
-YOUTUBE_KEY = TPKc.Youtube_key
 RE_ISO_8601 = re.compile(
     r"^(?P<sign>[+-])?"
     r"P(?!\b)"
@@ -58,7 +56,7 @@ def split(text, separator=','):
 def try_get_timestamp(date):
     '''Try to get timestamp from a date object
     '''
-    return date and round(date.timestamp() * 1000)  # in milliseconds
+    return date and str(round(date.timestamp() * 1000))  # in milliseconds
 
 def try_get_date(timestamp):
     '''Try to get date object from timestamp
@@ -83,9 +81,14 @@ def round_timestamp_to_day(timestamp):
     '''
     if isinstance(timestamp, datetime):
         timestamp = try_get_timestamp(timestamp)
-    if isinstance(timestamp, int) or isinstance(timestamp, float):
-        return int(timestamp / DAY_TS) * DAY_TS
-    raise ValueError("The timestamp should be int or float type")
+    if isinstance(timestamp, str):
+        timestamp = int(timestamp)
+    try:
+        return str(round(timestamp / DAY_TS) * DAY_TS)
+    except BaseException as err:
+        warn('Err in round_timestamp_to_day')
+        warn(err)
+    # raise ValueError("The timestamp should be int or float type")
 
 def get_data_by_table(tablename):
     ''' Get all the data from a table

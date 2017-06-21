@@ -8,7 +8,8 @@ from mathematician.config import DBConfig as DBc
 from mathematician.http_helper import get_list as http_get_list
 from mathematician.logger import info, warn
 from mathematician.pipe import PipeModule
-from mathematician.Processor.utils import (YOUTUBE_KEY, fetch_video_duration,
+from mathematician.config import ThirdPartyKeys as TPKc
+from mathematician.Processor.utils import (fetch_video_duration,
                                            parse_duration_from_youtube_api)
 
 class CourseProcessor(PipeModule):
@@ -19,7 +20,7 @@ class CourseProcessor(PipeModule):
     def __init__(self):
         super().__init__()
         youtube_api_host = 'https://www.googleapis.com/youtube/v3/videos'
-        params = {"part": "contentDetails", "key": YOUTUBE_KEY}
+        params = {"part": "contentDetails", "key": TPKc.Youtube_key}
         self.youtube_api = youtube_api_host + '?' + urlencode(params)
         self.videos = {}
         self.courses = {}

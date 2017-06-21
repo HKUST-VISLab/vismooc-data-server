@@ -21,7 +21,7 @@ class ForumProcessor(PipeModule):
         self.social = {}
         self.sentiment_analyzer = SentimentAnalyzer()
 
-    def load_data(self, data_filenames):
+    def load_data(self):
         '''
         Load target file
         '''
@@ -30,7 +30,7 @@ class ForumProcessor(PipeModule):
 
     def process(self, raw_data, raw_data_filenames=None):
         info("Processing forum record")
-        data_to_be_processed = self.load_data(raw_data_filenames)
+        data_to_be_processed = self.load_data()
         if data_to_be_processed is None:
             return raw_data
 
@@ -49,7 +49,7 @@ class ForumProcessor(PipeModule):
             post[DBc.FIELD_FORUM_BODY] = row[6]
             post[DBc.FIELD_FORUM_SENTIMENT] = self.sentiment_analyzer.analysis(
                 post[DBc.FIELD_FORUM_BODY])
-            post[DBc.FIELD_FORUM_TYPE] = ProcessForumTable.forum_type[row[7]]
+            post[DBc.FIELD_FORUM_TYPE] = ForumProcessor.forum_type[row[7]]
             post[DBc.FIELD_FORUM_TITLE] = row[8]
             post[DBc.FIELD_FORUM_THREAD_TYPE] = row[9]
             post[DBc.FIELD_FORUM_COMMENT_THREAD_ID] = row[10]
@@ -58,7 +58,7 @@ class ForumProcessor(PipeModule):
 
         for post in self.posts.values():
 
-            if post[DBc.FIELD_FORUM_TYPE] == ProcessForumTable.forum_type['CommentThread']:
+            if post[DBc.FIELD_FORUM_TYPE] == ForumProcessor.forum_type['CommentThread']:
                 continue
             user1_user2 = None
             # if a comment is a reply to another comment, it counts to social between
