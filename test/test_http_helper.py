@@ -159,9 +159,9 @@ class TestHTTPHelperMethods(unittest.TestCase):
                                      "INFO:vismooc:Try 1th times to POST " + url + ".",
                                      "WARNING:vismooc:HTTP POST error 404 at " + url, ])
 
-    @patch('mathematician.http_helper.aiohttp.get')
+    @patch('mathematician.http_helper.aiohttp.ClientSession')
     @async_test
-    async def test_async_get(self, mock_aiohttp_get):
+    async def test_async_get(self, mock_aiohttp_ClientSession):
         url = "http://foo"
         with self.assertRaises(Exception, msg="The params of async_GET should be dict type"):
             await http.async_get(url=url, params="asdf")
@@ -172,8 +172,10 @@ class TestHTTPHelperMethods(unittest.TestCase):
         async def coro_read():
             return "It is a return"
         mock_response.read = coro_read
+        mock_aiohttp_get = MagicMock()
         mock_aiohttp_get.return_value = AsyncContextManagerMock(
             name="mock_response", aenter_return=mock_response)
+        mock_aiohttp_ClientSession.return_value = mock_aiohttp_get
         params = {'a': 1, 'b': 2}
         response = await http.async_get(url=url, params=params)
         self.assertEqual(response.get_return_code(), 200,
@@ -183,9 +185,9 @@ class TestHTTPHelperMethods(unittest.TestCase):
         self.assertEqual(response.get_content(), "It is a return",
                          "The return content should be a string")
 
-    @patch('mathematician.http_helper.aiohttp.post')
+    @patch('mathematician.http_helper.aiohttp.ClientSession')
     @async_test
-    async def test_async_post(self, mock_aiohttp_post):
+    async def test_async_post(self, mock_aiohttp_ClientSession):
         url = "http://boo"
         with self.assertRaises(Exception, msg="The param of async_post should be dict type"):
             await http.async_post(url=url, params="asdf")
@@ -196,8 +198,10 @@ class TestHTTPHelperMethods(unittest.TestCase):
         async def coro_read():
             return "It is a return"
         mock_response.read = coro_read
+        mock_aiohttp_post = MagicMock()
         mock_aiohttp_post.return_value = AsyncContextManagerMock(
             name="mock_response", aenter_return=mock_response)
+        mock_aiohttp_ClientSession.return_value = mock_aiohttp_post
         params = {'a': 1, 'b': 2}
         response = await http.async_post(url=url, params=params)
         self.assertEqual(response.get_return_code(), 200,

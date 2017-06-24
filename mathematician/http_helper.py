@@ -96,41 +96,30 @@ def post(url, headers=None, params=None, retry_times=5, delay=1):
             return_code = response.getcode()
             return HttpResponse(return_code, response_headers, data)
 
-async def async_get(url, headers=None, params=None, session=aiohttp):
-    """Out of dated
-        Send asynchronous get request
-        Example for use:
-            http_test = HttpHelper("http://www.google.com")
-            loop = asyncio.get_event_loop()
-            content = loop.run_until_complete(
-                http_test.async_get("/"))
-            print(content)
-            loop.close()
+async def async_get(url, headers=None, params=None, session=None):
+    """
     """
     if params is not None:
         if isinstance(params, dict) is False:
             raise TypeError("The params should be dict type")
+
+    if session is None:
+        session = aiohttp.ClientSession()
 
     async with session.get(url, headers=headers, params=params) as response:
         assert response.status >= 200 and response.status < 300
         data = await response.read()
         return HttpResponse(response.status, response.headers, data)
 
-async def async_post(url, headers=None, params=None, session=aiohttp):
-    """Out of dated
-        Send asynchronous post request
-
-        Example for use:
-            http_test = HttpHelper("http://www.google.com")
-            loop = asyncio.get_event_loop()
-            content = loop.run_until_complete(
-                http_test.async_get(session, "/"))
-            print(content)
-            loop.close()
+async def async_post(url, headers=None, params=None, session=None):
+    """
     """
     if params is not None:
         if isinstance(params, dict) is False:
             raise TypeError("The params should be dict type")
+
+    if session is None:
+        session = aiohttp.ClientSession()
 
     async with session.post(url, headers=headers, body=params) as response:
         assert response.status == 200
