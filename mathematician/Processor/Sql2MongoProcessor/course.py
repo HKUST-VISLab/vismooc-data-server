@@ -17,7 +17,7 @@ class CourseProcessor(PipeModule):
         self.sql_table = 'courses'
         self.courses = {}
 
-    def load_data(self, data_filenames):
+    def load_data(self):
         '''Load target table
         '''
         data = get_data_by_table(self.sql_table)
@@ -27,7 +27,7 @@ class CourseProcessor(PipeModule):
         '''Processe course record
         '''
         info("Processing course record")
-        data_to_be_processed = self.load_data(raw_data_filenames)
+        data_to_be_processed = self.load_data()
         if data_to_be_processed is None:
             return raw_data
 

@@ -1,42 +1,46 @@
-import json
-import re
-import hashlib
-import multiprocessing
-from os import listdir
-from os.path import isfile, join, isdir, getctime, getmtime
+'''The entry point to start the rawfile2mongo processor
+'''
 from datetime import datetime
+from os import listdir, path
 
-from mathematician import http_helper as http
 from mathematician.pipe import PipeLine
-from mathematician.Processor.OldHKVMoocProcessor import *
-from mathematician.DB.mongo_dbhelper import MongoDB
-from mathematician.config import DBConfig as DBc
-from mathematician.logger import info
-
+from mathematician.Processor.Rawfile2MongoProcessor import (DumpToDB,
+                                                            FormatEnrollmentFile,
+                                                            FormatForumFile,
+                                                            FormatGradeFile,
+                                                            FormatLogFile,
+                                                            FormatUserFile,
+                                                            ProcessCourseStructFile,
+                                                            ProcessMetadbFiles)
 
 DB_NAME = 'testVismoocElearning'
 DB_HOST = 'localhost'
+
 
 def get_files(dir_name):
     files = []
     if '.ignore' in dir_name:
         return []
-    for f in listdir(dir_name):
-        if isfile(join(dir_name, f)):
-            files.append(join(dir_name, f))
-        elif isdir(join(dir_name, f)):
-            files.extend(get_files(join(dir_name, f)))
+    for file_name in listdir(dir_name):
+        if path.isfile(path.join(dir_name, file_name)):
+            files.append(path.join(dir_name, file_name))
+        elif path.isdir(path.join(dir_name, file_name)):
+            files.extend(get_files(path.join(dir_name, file_name)))
     return files
 
+def main():
+    '''The main function
+    '''
+    courses_dir = '/vismooc-test-data/elearning-data/'
+    filenames = get_files(courses_dir)
+
+    pipeline = PipeLine()
+    pipeline.input_files(filenames).pipe(ProcessMetadbFiles()).pipe(ProcessCourseStructFile()).pipe(
+        FormatEnrollmentFile()).pipe(FormatLogFile()).pipe(FormatUserFile()).pipe(
+            FormatForumFile()).pipe(FormatGradeFile()).pipe(DumpToDB())
+    start_time = datetime.now()
+    pipeline.execute()
+    print('spend time:' + str(datetime.now() - start_time))
 
 if __name__ == "__main__":
-    coursesDir = '/vismooc-test-data/elearning-data/'
-    filenames = get_files(coursesDir)
-
-    pipeLine = PipeLine()
-    pipeLine.input_files(filenames).pipe(MetaDBProcessor()).pipe(CourseProcessor()).pipe(
-        EnrollmentProcessor()).pipe(LogProcessor()).pipe(UserProcessor()).pipe(
-            ForumProcessor()).pipe(GradeProcessor()).pipe(DBProcessor())
-    startTime = datetime.now()
-    pipeLine.execute()
-    info('spend time:' + str(datetime.now() - startTime))
+    main()

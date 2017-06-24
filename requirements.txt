@@ -27,3 +27,7 @@ urllib3==1.21.1
 vaderSentiment==2.5
 wrapt==1.10.8
 yarl==0.8.1
+nltk==3.2.2
+twython==3.4.0
+vaderSentiment==2.5
+pyMySQL==0.7.11

@@ -1,17 +1,27 @@
+'''The entry point to start the sql2mongo processor
+'''
 from datetime import datetime
+
 from mathematician.pipe import PipeLine
-from mathematician.logger import info
-from mathematician.Processor.Sql2MongoProcessor import *
+from mathematician.Processor.Sql2MongoProcessor import (DumpToDB,
+                                                        ProcessCourseTable,
+                                                        ProcessEnrollmentTable,
+                                                        ProcessForumTable,
+                                                        ProcessGradeTable,
+                                                        ProcessLogTable,
+                                                        ProcessUserTable,
+                                                        ProcessVideoTable)
 
 def main():
-    pipeLine = PipeLine()
-    pipeLine.input_files([]).pipe(CourseProcessor()).pipe(VideoProcessor()).pipe(
-        EnrollmentProcessor()).pipe(LogProcessor()).pipe(UserProcessor()).pipe(
-            ForumProcessor()).pipe(GradeProcessor()).pipe(DBProcessor())
-    startTime = datetime.now()
-    pipeLine.execute()
-    info('spend time:' + str(datetime.now() - startTime))
+    '''The entry function
+    '''
+    pipeline = PipeLine()
+    pipeline.input_files([]).pipe(ProcessCourseTable()).pipe(ProcessVideoTable()).pipe(
+        ProcessEnrollmentTable()).pipe(ProcessLogTable()).pipe(ProcessUserTable()).pipe(
+            ProcessForumTable()).pipe(ProcessGradeTable()).pipe(DumpToDB())
+    start_time = datetime.now()
+    pipeline.execute()
+    print('spend time:' + str(datetime.now() - start_time))
 
 if __name__ == "__main__":
     main()
-

@@ -11,7 +11,7 @@ class BaseDB(metaclass=ABCMeta):
         '''
 
     @abstractmethod
-    def get_collection_names(self):
+    def get_collection_names(self, include_system_collections):
         """Get a list of all the collection names in this database.
         Returns:
             list: A list of collection name

@@ -20,8 +20,8 @@ class LogProcessor(PipeModule):
 
     order = 6
     pattern_right_eventsource = r'"event_source"\s*:\s*"browser"'
-    pattern_right_eventtype = r'"event_type"\s*:\s*"(load_video|' + \
-        r'pause_video|play_video|seek_video|speed_change_video|stop_video)"'
+    pattern_right_eventtype = r'"event_type"\s*:\s*"(pause_video|' + \
+        r'play_video|seek_video|speed_change_video|stop_video)"'
 
     pattern_context = r',?\s*("context"\s*:\s*{[^}]*})'
     pattern_event = r',?\s*("event"\s*:\s*"([^"]|\\")*(?<!\\)")'
@@ -160,8 +160,10 @@ class LogProcessor(PipeModule):
 
     def process(self, raw_data, raw_data_filenames=None):
         info("Processing log files")
-        all_data_to_be_processed = self.load_data(raw_data_filenames)
+        if raw_data_filenames is None:
+            return raw_data
 
+        all_data_to_be_processed = self.load_data(raw_data_filenames)
         if all_data_to_be_processed is None:
             return raw_data
 
