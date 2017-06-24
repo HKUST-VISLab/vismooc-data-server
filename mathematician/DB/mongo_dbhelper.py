@@ -97,10 +97,10 @@ class MongoCollection(BaseCollection):
         """
         return self.__collection.find_one_and_delete({"_id": document_id}, projection)
 
-    def update_one(self, query, update_data, upsert=False):
+    def update_one(self, document_id, update_data, upsert=False):
         """Update a single document according to its id
         """
-        self.__collection.update_one(query, update_data, upsert)
+        self.__collection.update_one(document_id, update_data, upsert)
 
     def update_one_then_return(self, document_id, update_data, upsert=False, projection=None):
         """Update a single document then return the updated document

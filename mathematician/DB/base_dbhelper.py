@@ -28,7 +28,7 @@ class BaseDB(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def add_user(self, user_name, passwd):
+    def add_user(self, username, passwd):
         """Set username and password to DB for authentication
 
         Args:
