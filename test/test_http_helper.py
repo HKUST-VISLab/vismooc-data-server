@@ -175,7 +175,9 @@ class TestHTTPHelperMethods(unittest.TestCase):
         mock_aiohttp_get = MagicMock()
         mock_aiohttp_get.return_value = AsyncContextManagerMock(
             name="mock_response", aenter_return=mock_response)
-        mock_aiohttp_ClientSession.return_value = mock_aiohttp_get
+        mock_session = MagicMock()
+        mock_session.get = mock_aiohttp_get
+        mock_aiohttp_ClientSession.return_value = mock_session
         params = {'a': 1, 'b': 2}
         response = await http.async_get(url=url, params=params)
         self.assertEqual(response.get_return_code(), 200,
@@ -201,7 +203,9 @@ class TestHTTPHelperMethods(unittest.TestCase):
         mock_aiohttp_post = MagicMock()
         mock_aiohttp_post.return_value = AsyncContextManagerMock(
             name="mock_response", aenter_return=mock_response)
-        mock_aiohttp_ClientSession.return_value = mock_aiohttp_post
+        mock_session = MagicMock()
+        mock_session.get = mock_aiohttp_posts
+        mock_aiohttp_ClientSession.return_value = mock_session
         params = {'a': 1, 'b': 2}
         response = await http.async_post(url=url, params=params)
         self.assertEqual(response.get_return_code(), 200,
