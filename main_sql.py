@@ -1,8 +1,10 @@
 '''The entry point to start the sql2mongo processor
 '''
+import sys
 from datetime import datetime
 
 from mathematician.pipe import PipeLine
+from mathematician import config
 from mathematician.Processor.Sql2MongoProcessor import (DumpToDB,
                                                         ProcessCourseTable,
                                                         ProcessEnrollmentTable,
@@ -15,6 +17,7 @@ from mathematician.Processor.Sql2MongoProcessor import (DumpToDB,
 def main():
     '''The entry function
     '''
+    config.init_config(sys.argv[1])
     pipeline = PipeLine()
     pipeline.input_files([]).pipe(ProcessCourseTable()).pipe(ProcessVideoTable()).pipe(
         ProcessEnrollmentTable()).pipe(ProcessLogTable()).pipe(ProcessUserTable()).pipe(
