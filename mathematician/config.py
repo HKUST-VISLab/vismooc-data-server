@@ -611,9 +611,7 @@ def init_config(config_file_path):
                 "structures") or FilenameConfig.STRUCTURES
 
         # init 3rd party keys
-        print(dataserver_config)
         third_party_keys = dataserver_config.get("third_party_keys")
-        print(third_party_keys)
         if third_party_keys:
             ThirdPartyKeys.Youtube_key = third_party_keys.get(
                 "Youtube_key") or ThirdPartyKeys.Youtube_key
