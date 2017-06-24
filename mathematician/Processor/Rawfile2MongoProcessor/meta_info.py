@@ -11,9 +11,6 @@ class MetaDBProcessor(PipeModule):
     '''
     order = -1
 
-    def __init__(self):
-        super().__init__()
-
     @classmethod
     def compute_one_metadb_item(cls, filename):
         '''Process one file to get one metadb document
