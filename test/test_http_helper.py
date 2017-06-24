@@ -204,7 +204,7 @@ class TestHTTPHelperMethods(unittest.TestCase):
         mock_aiohttp_post.return_value = AsyncContextManagerMock(
             name="mock_response", aenter_return=mock_response)
         mock_session = MagicMock()
-        mock_session.get = mock_aiohttp_post
+        mock_session.post = mock_aiohttp_post
         mock_aiohttp_ClientSession.return_value = mock_session
         params = {'a': 1, 'b': 2}
         response = await http.async_post(url=url, params=params)
