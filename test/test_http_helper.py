@@ -402,12 +402,10 @@ class TestHTTPHelperClass(unittest.TestCase):
         headers = {"a_header": "a_header"}
         conn = http.HttpConnection(host, headers)
         mock_async_post.coro.return_value = None
-
         with self.assertLogs("vismooc", level=INFO) as cm:
             self.assertIsNone(await conn.async_post('/', None), msg="return a None")
         self.assertEqual(
             cm.output, ["WARNING:vismooc:The response of HttpConnection async_POST is None"])
-
         response_headers = {'Set-Cookie': 'It is a cookie'}
         mock_response = MagicMock()
         mock_response.get_headers.return_value = response_headers
