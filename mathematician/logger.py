@@ -4,10 +4,10 @@ import logging
 from datetime import datetime
 
 VISMOOC_LOGGER = logging.getLogger("vismooc")
-VISMOOC_LOGGER.setLevel(logging.INFO)
+VISMOOC_LOGGER.setLevel(logging.DEBUG)
 
 CONSOLE_HANDLER = logging.StreamHandler()
-CONSOLE_HANDLER.setLevel(logging.INFO)
+CONSOLE_HANDLER.setLevel(logging.DEBUG)
 
 FORMATTER = logging.Formatter('%(asctime)s-%(name)s-%(levelname)s-%(message)s')
 
@@ -23,6 +23,11 @@ def info(msg):
     '''Print the Info message from vismooc data server
     '''
     VISMOOC_LOGGER.info(str(msg))
+
+def debug(msg):
+    '''Pring the Debug message from vismooc data server
+    '''
+    VISMOOC_LOGGER.debug(str(msg))
 
 PROGRESS_LENGTH = 40
 def progressbar(filename, progress, total):

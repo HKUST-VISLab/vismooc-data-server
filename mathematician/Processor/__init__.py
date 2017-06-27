@@ -1,5 +1,6 @@
 '''Data processor
 '''
-from . import Rawfile2MongoProcessor, Sql2MongoProcessor, utils
+from . import Rawfile2MongoProcessor, Sql2MongoProcessor, HKMOOC2MongoProcessor, utils
 
-__All__ = ['Rawfile2MongoProcessor', 'Sql2MongoProcessor', 'utils']
+__all__ = ['Rawfile2MongoProcessor', 'Sql2MongoProcessor',
+           'HKMOOC2MongoProcessor', 'utils']

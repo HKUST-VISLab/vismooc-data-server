@@ -119,11 +119,11 @@ class TestLogProcessor(unittest.TestCase):
         self.assertIsNone(processor.is_target_log(
             wrong_event_type), msg='should return None if the event_type is wrong')
 
-        empty_username = r'{"username": "", "event_type": "load_video", "event": "{\"id\":\"i4x-HKUSTx-COMP102x-video-17df731f26364049908a8c227cb4c3c3\",\"currentTime\":79,\"code\":\"z4L-yr1st3I\"}", "event_source": "browser", "context": {"user_id": 4540165, "org_id": "HKUSTx", "course_id": "org:HKUSTx/COMP102x/2T2014", "path": "/event"}, "time": "2014-08-23T04:57:33.502967+00:00"}'
+        empty_username = r'{"username": "", "event_type": "pause_video", "event": "{\"id\":\"i4x-HKUSTx-COMP102x-video-17df731f26364049908a8c227cb4c3c3\",\"currentTime\":79,\"code\":\"z4L-yr1st3I\"}", "event_source": "browser", "context": {"user_id": 4540165, "org_id": "HKUSTx", "course_id": "org:HKUSTx/COMP102x/2T2014", "path": "/event"}, "time": "2014-08-23T04:57:33.502967+00:00"}'
         self.assertIsNone(processor.is_target_log(
             empty_username), msg='should return None if username is empty')
 
-        no_username = r'{"event_type": "load_video", "event": "{\"id\":\"i4x-HKUSTx-COMP102x-video-17df731f26364049908a8c227cb4c3c3\",\"currentTime\":79,\"code\":\"z4L-yr1st3I\"}", "event_source": "browser", "context": {"user_id": 4540165, "org_id": "HKUSTx", "course_id": "org:HKUSTx/COMP102x/2T2014", "path": "/event"}, "time": "2014-08-23T04:57:33.502967+00:00"}'
+        no_username = r'{"event_type": "pause_video", "event": "{\"id\":\"i4x-HKUSTx-COMP102x-video-17df731f26364049908a8c227cb4c3c3\",\"currentTime\":79,\"code\":\"z4L-yr1st3I\"}", "event_source": "browser", "context": {"user_id": 4540165, "org_id": "HKUSTx", "course_id": "org:HKUSTx/COMP102x/2T2014", "path": "/event"}, "time": "2014-08-23T04:57:33.502967+00:00"}'
         self.assertIsNone(processor.is_target_log(no_username),
                           msg='should return None if no username')
 
@@ -131,7 +131,7 @@ class TestLogProcessor(unittest.TestCase):
         self.assertIsNone(processor.is_target_log(no_context),
                           msg='should return None if no context')
 
-        no_timestamp = r'{"username": "asd", "event_type": "load_video", "event": "{\"id\":\"i4x-HKUSTx-COMP102x-video-17df731f26364049908a8c227cb4c3c3\",\"currentTime\":79,\"code\":\"z4L-yr1st3I\"}", "event_source": "browser", "context": {"user_id": 4540165, "org_id": "HKUSTx", "course_id": "org:HKUSTx/COMP102x/2T2014", "path": "/event"}}'
+        no_timestamp = r'{"username": "asd", "event_type": "pause_video", "event": "{\"id\":\"i4x-HKUSTx-COMP102x-video-17df731f26364049908a8c227cb4c3c3\",\"currentTime\":79,\"code\":\"z4L-yr1st3I\"}", "event_source": "browser", "context": {"user_id": 4540165, "org_id": "HKUSTx", "course_id": "org:HKUSTx/COMP102x/2T2014", "path": "/event"}}'
         self.assertIsNone(processor.is_target_log(
             no_timestamp), msg='should return None if no time')
 
@@ -140,7 +140,7 @@ class TestLogProcessor(unittest.TestCase):
             no_evnet_field), msg='should return None if no event field')
 
         # 6 right event_type
-        target_event_type = ['load_video', 'pause_video', 'play_video',
+        target_event_type = ['pause_video', 'play_video',
                              'seek_video', 'speed_change_video', 'stop_video']
         lines = [get_right_log(event_type) for event_type in target_event_type]
 
@@ -177,18 +177,24 @@ class TestLogProcessor(unittest.TestCase):
     @patch('mathematician.Processor.Rawfile2MongoProcessor.log.LogProcessor.load_data')
     def test_process(self, mock_load_data):
         # pylint: disable=C0301
-        mock_load_data.return_value = None
-
-        # - load nothing
+        mock_load_data.return_value = 123
+        # - nothing to load
         processor = LogProcessor()
-        raw_data = None
+        raw_data = 123
+        raw_data_filenames = 'asdf'
         self.assertIs(processor.process(raw_data), raw_data,
+                      'should return raw_data if raw_data_filename is None')
+
+        mock_load_data.return_value = None
+        # -load nothing
+        raw_data = 123
+        self.assertIs(processor.process(raw_data, raw_data_filenames), raw_data,
                       'should return raw_data if load_data return None')
 
         # - input empty logs
         mock_load_data.return_value = [['' for i in range(PARALLEL_GRAIN)]]
         raw_data = {'data': {}}
-        processed_data = processor.process(raw_data)
+        processed_data = processor.process(raw_data, raw_data_filenames)
         expected = {"data": {
             DBc.COLLECTION_LOG: [],
             DBc.COLLECTION_DENSELOGS: []
@@ -201,7 +207,7 @@ class TestLogProcessor(unittest.TestCase):
         # - generate log and dense log
         processor = LogProcessor()
         raw_data = {'data': {}}
-        processed_data = processor.process(raw_data)
+        processed_data = processor.process(raw_data, raw_data_filenames)
         expectd_log = get_log_expected_return()
         expectd_denselog = get_denselog_expected_return(
             expectd_log, PARALLEL_GRAIN)
@@ -214,7 +220,7 @@ class TestLogProcessor(unittest.TestCase):
 
         # - augment the exist dense log
         raw_data = {'data': {}}
-        processed_data = processor.process(raw_data)
+        processed_data = processor.process(raw_data, raw_data_filenames)
         expectd_log = get_log_expected_return()
         expectd_denselog = get_denselog_expected_return(
             expectd_log, PARALLEL_GRAIN * 2)
@@ -230,7 +236,7 @@ class TestLogProcessor(unittest.TestCase):
         raw_data = {'data': {
             DBc.COLLECTION_VIDEO: {}
         }}
-        processed_data = processor.process(raw_data)
+        processed_data = processor.process(raw_data, raw_data_filenames)
         expectd_log = get_log_expected_return()
         expectd_denselog = get_denselog_expected_return(
             expectd_log, PARALLEL_GRAIN)
@@ -247,7 +253,7 @@ class TestLogProcessor(unittest.TestCase):
         raw_data = {'data': {
             DBc.COLLECTION_VIDEO: {'17df731f26364049908a8c227cb4c3c3': {}}
         }}
-        processed_data = processor.process(raw_data)
+        processed_data = processor.process(raw_data, raw_data_filenames)
         expectd_log = get_log_expected_return()
         expectd_denselog = get_denselog_expected_return(expectd_log, PARALLEL_GRAIN)
         expectd_video = get_video_expected_return(PARALLEL_GRAIN)
@@ -264,7 +270,7 @@ class TestLogProcessor(unittest.TestCase):
         raw_data = {'data': {
             DBc.COLLECTION_VIDEO: get_video_expected_return(None)
         }}
-        processed_data = processor.process(raw_data)
+        processed_data = processor.process(raw_data, raw_data_filenames)
         expectd_log = get_log_expected_return()
         expectd_denselog = get_denselog_expected_return(
             expectd_log, PARALLEL_GRAIN)
@@ -283,7 +289,7 @@ class TestLogProcessor(unittest.TestCase):
         raw_data = {'data': {
             DBc.COLLECTION_VIDEO: get_video_expected_return(temproal_hotness)
         }}
-        processed_data = processor.process(raw_data)
+        processed_data = processor.process(raw_data, raw_data_filenames)
         expectd_log = get_log_expected_return()
         expectd_denselog = get_denselog_expected_return(
             expectd_log, PARALLEL_GRAIN)

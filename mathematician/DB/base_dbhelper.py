@@ -11,7 +11,7 @@ class BaseDB(metaclass=ABCMeta):
         '''
 
     @abstractmethod
-    def get_collection_names(self):
+    def get_collection_names(self, include_system_collections):
         """Get a list of all the collection names in this database.
         Returns:
             list: A list of collection name
@@ -28,7 +28,7 @@ class BaseDB(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def add_user(self, user_name, passwd):
+    def add_user(self, username, passwd):
         """Set username and password to DB for authentication
 
         Args:

@@ -4,7 +4,7 @@ from mathematician.config import DBConfig as DBc
 from mathematician.logger import info
 from mathematician.pipe import PipeModule
 
-from ..utils import get_data_by_table
+from ..utils import get_data_by_table, try_parse_course_id
 
 class GradeProcessor(PipeModule):
 
@@ -33,10 +33,7 @@ class GradeProcessor(PipeModule):
         for row in data_to_be_processed:
             grade = {}
             grade[DBc.FIELD_GRADES_USER_ID] = row[1]
-            course_id = row[2]
-            if '+' in course_id:
-                course_id = course_id[course_id.index(':')+1:].replace('+', '/')
-            course_id = course_id.replace('/', '_')
+            course_id = try_parse_course_id(row[2])
             grade[DBc.FIELD_GRADES_COURSE_ID] = course_id
             grade[DBc.FIELD_GRADES_TIMESTAMP] = row[3].timestamp() if isinstance(row[3], datetime) else None
             grade[DBc.FIELD_GRADES_GRADE] = float(row[4])

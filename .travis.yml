@@ -9,7 +9,7 @@ services:
 notifications:
   email:
     on_success: never
-    on_failure: never
+    on_failure: always
   webhooks:
     urls: https://webhooks.gitter.im/e/627a6148acaaeddc21b9
     on_success: change  # options: [always|never|change] default: always
@@ -21,11 +21,12 @@ install:
   - pip install -r requirements.txt
   - pip install "coverage>=4.0,<4.4"
 script:
-  - coverage run --source mathematician -m unittest discover -s ./test
+  - "pylint --disable=R,C mathematician"
+  - coverage run -m unittest discover -s ./test
 after_success:
-  - mkdir dist
   - pip install codeclimate-test-reporter
   - codeclimate-test-reporter --token $CODECLIMATE_REPO_TOKEN
-  - cp -r mathematician dist/mathematician
-  - cp main.py dist/main.py
-  - cp requirements.txt dist/requirements.txt
+  - export DOCKER_TAG=$TRAVIS_BRANCH-$TRAVIS_COMMIT
+  - docker build -t hkustvislab/vismooc-data-server:elearning-$TRAVIS_BRANCH -t hkustvislab/vismooc-data-server:elearning-$DOCKER_TAG .
+  - docker login -u="$DOCKER_EMAIL" -p="$DOCKER_PASSWORD"
+  - docker push hkustvislab/vismooc-data-server

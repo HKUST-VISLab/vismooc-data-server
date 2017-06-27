@@ -11,7 +11,6 @@ from datetime import timedelta, datetime
 import pymysql
 
 from mathematician.config import DBConfig as DBc
-from mathematician.config import ThirdPartyKeys as TPKc
 from mathematician.DB.mongo_dbhelper import MongoDB
 from mathematician.http_helper import get as http_get
 from mathematician.logger import warn
@@ -20,7 +19,6 @@ DB_NAME = 'testVismoocElearning'
 DB_HOST = 'localhost'
 PARALLEL_GRAIN = 20
 
-YOUTUBE_KEY = TPKc.Youtube_key
 RE_ISO_8601 = re.compile(
     r"^(?P<sign>[+-])?"
     r"P(?!\b)"
@@ -54,11 +52,10 @@ def split(text, separator=','):
             results.append("".join(tmp_stack))
             return results
 
-
 def try_get_timestamp(date):
     '''Try to get timestamp from a date object
     '''
-    return date and round(date.timestamp() * 1000)  # in milliseconds
+    return date and str(round(date.timestamp() * 1000))  # in milliseconds
 
 def try_get_date(timestamp):
     '''Try to get date object from timestamp
@@ -77,15 +74,31 @@ def try_parse_date(date_str, pattern="%Y-%m-%d %H:%M:%S.%f"):
     except ValueError:
         return None
 
+def try_parse_course_id(course_id):
+    '''Try parse course id to form an uniform format
+    '''
+    try:
+        if ':' in course_id:
+            course_id = course_id[course_id.index(':')+1:]
+        course_id = re.sub(r'[\.|\/|\+]', '_', course_id)
+    except ValueError as err:
+        raise err
+    return course_id
+
 DAY_TS = 1000 * 60 * 60 * 24
 def round_timestamp_to_day(timestamp):
     '''Round the timestamp from ms to day
     '''
     if isinstance(timestamp, datetime):
         timestamp = try_get_timestamp(timestamp)
-    if isinstance(timestamp, int) or isinstance(timestamp, float):
-        return int(timestamp / DAY_TS) * DAY_TS
-    raise ValueError("The timestamp should be int or float type")
+    if isinstance(timestamp, str):
+        timestamp = int(timestamp)
+    try:
+        return str(round(timestamp / DAY_TS) * DAY_TS)
+    except BaseException as err:
+        warn('Err in round_timestamp_to_day')
+        warn(err)
+    # raise ValueError("The timestamp should be int or float type")
 
 def get_data_by_table(tablename):
     ''' Get all the data from a table
@@ -98,7 +111,6 @@ def get_data_by_table(tablename):
     results = cursor.fetchall()
     sql_db.close()
     return results
-
 
 def fetch_video_duration(url):
     '''fetch the video duration from the url
@@ -136,7 +148,6 @@ def fetch_video_duration(url):
         warn(ex)
     return video_duration
 
-
 def parse_duration_from_youtube_api(datestring):
     '''Parse video duration from the result return from youtube api
     '''
@@ -162,14 +173,12 @@ def parse_duration_from_youtube_api(datestring):
             "there must be something woring in this time string")
     return ret
 
-
 def get_cpu_num():
     '''Get the cpu number of the machine
     '''
     cpu_num = multiprocessing.cpu_count()
     cpu_num = cpu_num - 1 if cpu_num > 1 else cpu_num
     return cpu_num
-
 
 def is_processed(filename):
     ''' Check whether a file is processed or not according to

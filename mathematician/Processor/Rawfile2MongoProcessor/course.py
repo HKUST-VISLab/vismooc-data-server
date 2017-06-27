@@ -1,6 +1,5 @@
 import json
 import re
-from datetime import datetime
 from urllib.parse import urlencode
 
 import queue
@@ -8,8 +7,11 @@ from mathematician.config import DBConfig as DBc
 from mathematician.http_helper import get_list as http_get_list
 from mathematician.logger import info, warn
 from mathematician.pipe import PipeModule
-from mathematician.Processor.utils import (YOUTUBE_KEY, fetch_video_duration,
-                                           parse_duration_from_youtube_api)
+from mathematician.config import ThirdPartyKeys as TPKc
+from mathematician.Processor.utils import (fetch_video_duration,
+                                           parse_duration_from_youtube_api,
+                                           try_parse_date,
+                                           try_get_timestamp)
 
 class CourseProcessor(PipeModule):
     '''Processe -course_structure- file
@@ -19,7 +21,7 @@ class CourseProcessor(PipeModule):
     def __init__(self):
         super().__init__()
         youtube_api_host = 'https://www.googleapis.com/youtube/v3/videos'
-        params = {"part": "contentDetails", "key": YOUTUBE_KEY}
+        params = {"part": "contentDetails", "key": TPKc.Youtube_key}
         self.youtube_api = youtube_api_host + '?' + urlencode(params)
         self.videos = {}
         self.courses = {}
@@ -142,9 +144,9 @@ class CourseProcessor(PipeModule):
                     course_id = course_compon[0] + '_' + course_compon[1] + '_' + course_compon[3]
                     course = {}
                     start_time = metadata.get('start')
-                    start_time = datetime.strptime(start_time, pattern_time) if start_time else None
+                    start_time = try_parse_date(start_time, pattern_time) if start_time else None
                     end_time = metadata.get('end')
-                    end_time = datetime.strptime(end_time, pattern_time) if end_time else None
+                    end_time = try_parse_date(start_time, pattern_time) if end_time else None
                     course[DBc.FIELD_COURSE_ORG] = org
                     course[DBc.FIELD_COURSE_ORIGINAL_ID] = course_id
                     course[DBc.FIELD_COURSE_NAME] = metadata.get('display_name')
@@ -162,8 +164,8 @@ class CourseProcessor(PipeModule):
                     course[DBc.FIELD_COURSE_URL] = None
                     course[DBc.FIELD_COURSE_DESCRIPTION] = None
                     course[DBc.FIELD_COURSE_METAINFO] = {}
-                    course[DBc.FIELD_COURSE_STARTTIME] = start_time and start_time.timestamp()
-                    course[DBc.FIELD_COURSE_ENDTIME] = end_time and end_time.timestamp()
+                    course[DBc.FIELD_COURSE_STARTTIME] = try_get_timestamp(start_time)
+                    course[DBc.FIELD_COURSE_ENDTIME] = try_get_timestamp(end_time)
                     course[DBc.FIELD_COURSE_STUDENT_IDS] = set()
                     course[DBc.FIELD_COURSE_VIDEO_IDS] = set()
                     course[DBc.FIELD_COURSE_GRADES] = {}

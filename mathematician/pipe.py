@@ -1,7 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
 
-
 class PipeModule(metaclass=ABCMeta):
     """An abstract class. All processing module who should be past
     to a pipline need to inherient
@@ -48,7 +47,7 @@ class PipeLine:
         return self
 
     def input_files(self, filenames):
-        '''Put in the list of path to the input file
+        '''Put in the list of path to the input files
         '''
         if isinstance(filenames, list) is False:
             raise TypeError('filenames should be a non-empty list')
@@ -57,9 +56,9 @@ class PipeLine:
 
     def pipe(self, processor):
         """
-            Register the processor in this pipeline. All processors will be excuted one by one
+            Register the processor in this pipeline. All processors will be executed one by one
             according to their order, which is default to 1.
-            If no order is defined, all processors will be excuted in the order of their
+            If no order is defined, all processors will be executed in the order of their
             registration.
         """
         if isinstance(processor, PipeModule) is False:
@@ -90,7 +89,7 @@ class PipeLine:
 
     def output(self):
         """
-            Excute all processor one by one and return the data after processing
+            Execute all processor one by one and return the data after processing
         """
         if self._processed_data is None:
             self.execute()
