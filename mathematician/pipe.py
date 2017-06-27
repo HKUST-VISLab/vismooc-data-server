@@ -1,3 +1,5 @@
+'''The pipe module
+'''
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
 
