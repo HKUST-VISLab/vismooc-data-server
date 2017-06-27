@@ -3,6 +3,7 @@ from datetime import datetime
 from mathematician.config import DBConfig as DBc
 from mathematician.logger import info
 from mathematician.pipe import PipeModule
+from mathematician.Processor.utils import try_get_timestamp, try_parse_course_id
 
 from ..utils import get_data_by_table
 
@@ -36,9 +37,7 @@ class CourseProcessor(PipeModule):
         for row in data_to_be_processed:
             course = {}
             course_id = row[1]
-            if '+' in course_id:
-                course_id = course_id[course_id.index(':')+1:].replace('+', '/')
-            course_id = course_id.replace('/', '_')
+            course_id = try_parse_course_id(course_id)
             course[DBc.FIELD_COURSE_ORG] = row[4]
             course[DBc.FIELD_COURSE_ORIGINAL_ID] = course_id
             course[DBc.FIELD_COURSE_NAME] = row[2]
@@ -51,8 +50,8 @@ class CourseProcessor(PipeModule):
             course[DBc.FIELD_COURSE_URL] = None
             course[DBc.FIELD_COURSE_DESCRIPTION] = row[6]
             course[DBc.FIELD_COURSE_METAINFO] = {}
-            course[DBc.FIELD_COURSE_STARTTIME] = row[7].timestamp() if isinstance(row[7], datetime) else None
-            course[DBc.FIELD_COURSE_ENDTIME] = row[8].timestamp() if isinstance(row[8], datetime) else None
+            course[DBc.FIELD_COURSE_STARTTIME] = try_get_timestamp(row[7]) if isinstance(row[7], datetime) else None
+            course[DBc.FIELD_COURSE_ENDTIME] = try_get_timestamp(row[8])  if isinstance(row[8], datetime) else None
             course[DBc.FIELD_COURSE_STUDENT_IDS] = set()
             course[DBc.FIELD_COURSE_VIDEO_IDS] = [x[2] for x in course_videos if x[1] == row[1]]
             course[DBc.FIELD_COURSE_GRADES] = {}

@@ -4,6 +4,7 @@ from mathematician.config import DBConfig as DBc
 from mathematician.logger import info
 from mathematician.pipe import PipeModule
 from mathematician.text_helper import SentimentAnalyzer
+from mathematician.Processor.utils import try_get_timestamp, try_parse_course_id
 
 from ..utils import get_data_by_table
 
@@ -38,14 +39,11 @@ class ForumProcessor(PipeModule):
             post = {}
             post[DBc.FIELD_FORUM_ORIGINAL_ID] = row[1]
             post[DBc.FIELD_FORUM_AUTHOR_ID] = row[3]
-            course_id = row[2]
-            if '+' in course_id:
-                course_id = course_id[course_id.index(':')+1:].replace('+', '/')
-            course_id = course_id.replace('/', '_')
+            course_id = try_parse_course_id(row[2])
             post[DBc.FIELD_FORUM_COURSE_ID] = course_id
 
-            post[DBc.FIELD_FORUM_CREATED_AT] = row[4].timestamp() if isinstance(row[4], datetime) else None
-            post[DBc.FIELD_FORUM_UPDATED_AT] = row[5].timestamp() if isinstance(row[5], datetime) else None
+            post[DBc.FIELD_FORUM_CREATED_AT] = try_get_timestamp(row[4]) if isinstance(row[4], datetime) else None
+            post[DBc.FIELD_FORUM_UPDATED_AT] = try_get_timestamp(row[5]) if isinstance(row[5], datetime) else None
             post[DBc.FIELD_FORUM_BODY] = row[6]
             post[DBc.FIELD_FORUM_SENTIMENT] = self.sentiment_analyzer.analysis(
                 post[DBc.FIELD_FORUM_BODY])

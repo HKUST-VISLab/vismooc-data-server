@@ -1,23 +1,20 @@
 '''Process the log data from MoocDB to MongoDB
 '''
-import re
-
 from mathematician.config import DBConfig as DBc
 from mathematician.logger import info, warn
 from mathematician.pipe import PipeModule
 from mathematician.Processor.Sql2MongoProcessor.constant import RD_DATA
 from mathematician.Processor.utils import (get_data_by_table,
                                            round_timestamp_to_day,
-                                           try_get_timestamp)
+                                           try_get_timestamp,
+                                           try_parse_course_id)
 
 
 class LogProcessor(PipeModule):
     '''The Processor to process log data from MoocDB to MongoDB
     '''
     order = 6
-    field2index = {'currentTime': 7,
-                   'newTime': 8, 'oldTime': 9,
-                   'newSpeed': 10, 'oldSpeed': 11}
+    field2index = {'path': 6, 'currentTime': 8, 'newTime': 9, 'oldTime': 10, 'newSpeed': 11, 'oldSpeed': 12}
 
     def __init__(self):
         super().__init__()
@@ -44,23 +41,26 @@ class LogProcessor(PipeModule):
         for row in all_data_to_be_processed:
 
             # ugly hacked. TODO
-            course_id = row[4] if len(row) > 12 else 'org:HKUSTx/COMP102x/2T2014'
+            course_id = row[1] if len(row) > 12 else 'org:HKUSTx/COMP102x/2T2014'
             if course_id is None:
                 continue
             try:
-                course_id = course_id[course_id.index(':') + 1:]
+                course_id = try_parse_course_id(course_id)
             except ValueError as ex:
                 warn("In ParseLogFile, cannot get courseId of:" + course_id)
                 warn(ex)
                 continue
-            course_id = re.sub(r'[\.|\/|\+]', '_', course_id)
+
+            video_id = row[3]
+            if video_id[-1] == '/':
+                video_id = video_id[:-1]
 
             event = {}
-            event[DBc.FIELD_LOG_USER_ID] = row[1]
-            event[DBc.FIELD_LOG_VIDEO_ID] = row[2]
-            event[DBc.FIELD_LOG_TIMESTAMP] = try_get_timestamp(row[3])
+            event[DBc.FIELD_LOG_USER_ID] = row[2]
+            event[DBc.FIELD_LOG_VIDEO_ID] = video_id
+            event[DBc.FIELD_LOG_TIMESTAMP] = try_get_timestamp(row[4])
             event[DBc.FIELD_LOG_COURSE_ID] = course_id
-            event[DBc.FIELD_LOG_TYPE] = row[6]
+            event[DBc.FIELD_LOG_TYPE] = row[5]
             event[DBc.FIELD_LOG_METAINFO] = {k: row[v]
                                              for (k, v) in LogProcessor.field2index.items() if row[v] is not None}
             self.events.append(event)
