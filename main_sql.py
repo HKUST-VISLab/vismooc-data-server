@@ -1,27 +1,26 @@
 '''The entry point to start the sql2mongo processor
 '''
-import sys
 from datetime import datetime
 
 from mathematician.pipe import PipeLine
-from mathematician import config
-from mathematician.Processor.Sql2MongoProcessor import (DumpToDB,
-                                                        ProcessCourseTable,
-                                                        ProcessEnrollmentTable,
-                                                        ProcessForumTable,
-                                                        ProcessGradeTable,
-                                                        ProcessLogTable,
-                                                        ProcessUserTable,
-                                                        ProcessVideoTable)
+from mathematician.Processor.Sql2MongoProcessor import (DBProcessor,
+                                                        CourseProcessor,
+                                                        EnrollmentProcessor,
+                                                        ForumProcessor,
+                                                        GradeProcessor,
+                                                        LogProcessor,
+                                                        UserProcessor,
+                                                        VideoProcessor)
+import mathematician.config as config 
 
 def main():
     '''The entry function
     '''
-    config.init_config(sys.argv[1])
+    config.init_config('./config.json')
     pipeline = PipeLine()
-    pipeline.input_files([]).pipe(ProcessCourseTable()).pipe(ProcessVideoTable()).pipe(
-        ProcessEnrollmentTable()).pipe(ProcessLogTable()).pipe(ProcessUserTable()).pipe(
-            ProcessForumTable()).pipe(ProcessGradeTable()).pipe(DumpToDB())
+    pipeline.input_files([]).pipe(CourseProcessor()).pipe(VideoProcessor()).pipe(
+        EnrollmentProcessor()).pipe(LogProcessor()).pipe(UserProcessor()).pipe(
+            ForumProcessor()).pipe(GradeProcessor()).pipe(DBProcessor())
     start_time = datetime.now()
     pipeline.execute()
     print('spend time:' + str(datetime.now() - start_time))

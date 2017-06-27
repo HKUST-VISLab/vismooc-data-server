@@ -1,6 +1,5 @@
 import json
 import re
-from datetime import datetime
 from urllib.parse import urlencode
 
 import queue
@@ -10,7 +9,9 @@ from mathematician.logger import info, warn
 from mathematician.pipe import PipeModule
 from mathematician.config import ThirdPartyKeys as TPKc
 from mathematician.Processor.utils import (fetch_video_duration,
-                                           parse_duration_from_youtube_api)
+                                           parse_duration_from_youtube_api,
+                                           try_parse_date,
+                                           try_get_timestamp)
 
 class CourseProcessor(PipeModule):
     '''Processe -course_structure- file
@@ -143,9 +144,9 @@ class CourseProcessor(PipeModule):
                     course_id = course_compon[0] + '_' + course_compon[1] + '_' + course_compon[3]
                     course = {}
                     start_time = metadata.get('start')
-                    start_time = datetime.strptime(start_time, pattern_time) if start_time else None
+                    start_time = try_parse_date(start_time, pattern_time) if start_time else None
                     end_time = metadata.get('end')
-                    end_time = datetime.strptime(end_time, pattern_time) if end_time else None
+                    end_time = try_parse_date(start_time, pattern_time) if end_time else None
                     course[DBc.FIELD_COURSE_ORG] = org
                     course[DBc.FIELD_COURSE_ORIGINAL_ID] = course_id
                     course[DBc.FIELD_COURSE_NAME] = metadata.get('display_name')
@@ -163,8 +164,8 @@ class CourseProcessor(PipeModule):
                     course[DBc.FIELD_COURSE_URL] = None
                     course[DBc.FIELD_COURSE_DESCRIPTION] = None
                     course[DBc.FIELD_COURSE_METAINFO] = {}
-                    course[DBc.FIELD_COURSE_STARTTIME] = start_time and start_time.timestamp()
-                    course[DBc.FIELD_COURSE_ENDTIME] = end_time and end_time.timestamp()
+                    course[DBc.FIELD_COURSE_STARTTIME] = try_get_timestamp(start_time)
+                    course[DBc.FIELD_COURSE_ENDTIME] = try_get_timestamp(end_time)
                     course[DBc.FIELD_COURSE_STUDENT_IDS] = set()
                     course[DBc.FIELD_COURSE_VIDEO_IDS] = set()
                     course[DBc.FIELD_COURSE_GRADES] = {}

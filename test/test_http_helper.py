@@ -362,3 +362,65 @@ class TestHTTPHelperClass(unittest.TestCase):
         args = mock_post.call_args[0]
         self.assertTupleEqual(args, (host + '/', conn.headers, params, retry_times, delay), msg="The\
             args should be passed to post method")
+
+    @patch('mathematician.http_helper.async_get', new_callable=AsyncFuncMock)
+    @async_test
+    async def test_async_get(self, mock_async_get):
+        host = "http://foo"
+        headers = {"a_header": "a_header"}
+        conn = http.HttpConnection(host, headers)
+        mock_async_get.coro.return_value = None
+
+        with self.assertLogs("vismooc", level=INFO) as cm:
+            self.assertIsNone(await conn.async_get('/', None), msg="return a None")
+        self.assertEqual(
+            cm.output, ["WARNING:vismooc:The response of HttpConnection async_GET is None"])
+
+        response_headers = {'Set-Cookie': 'It is a cookie'}
+        mock_response = MagicMock()
+        mock_response.get_headers.return_value = response_headers
+        mock_response = MagicMock()
+        mock_response.get_headers.return_value = response_headers
+        mock_async_get.coro.return_value = mock_response
+        self.assertIs(await conn.async_get('/', None), mock_response, 'Get the response')
+        args = mock_async_get.call_args[0]
+        self.assertTupleEqual(args, (host + '/', conn.headers, None), msg="The\
+                default args for get method")
+        self.assertEqual(conn.headers.get('Cookie'), response_headers.get('Set-Cookie'), 'set the cookies if\
+            has "Set-Cookie" in the response headers')
+
+        input_params = {'a': 1, 'b': 2}
+        self.assertIs(await conn.async_get('/', input_params), mock_response, 'Get the response')
+        args = mock_async_get.call_args[0]
+        self.assertTupleEqual(args, (host + '/', conn.headers, input_params),
+                              msg="The args should be passed to get method")
+
+    @patch('mathematician.http_helper.async_post', new_callable=AsyncFuncMock)
+    @async_test
+    async def test_async_post(self, mock_async_post):
+        host = "http://foo"
+        headers = {"a_header": "a_header"}
+        conn = http.HttpConnection(host, headers)
+        mock_async_post.coro.return_value = None
+        with self.assertLogs("vismooc", level=INFO) as cm:
+            self.assertIsNone(await conn.async_post('/', None), msg="return a None")
+        self.assertEqual(
+            cm.output, ["WARNING:vismooc:The response of HttpConnection async_POST is None"])
+        response_headers = {'Set-Cookie': 'It is a cookie'}
+        mock_response = MagicMock()
+        mock_response.get_headers.return_value = response_headers
+        mock_response = MagicMock()
+        mock_response.get_headers.return_value = response_headers
+        mock_async_post.coro.return_value = mock_response
+        self.assertIs(await conn.async_post('/', None), mock_response, 'Get the response')
+        args = mock_async_post.call_args[0]
+        self.assertTupleEqual(args, (host + '/', conn.headers, None), msg="The\
+                default args for get method")
+        self.assertEqual(conn.headers.get('Cookie'), response_headers.get('Set-Cookie'), 'set the cookies if\
+            has "Set-Cookie" in the response headers')
+
+        input_params = {'a': 1, 'b': 2}
+        self.assertIs(await conn.async_post('/', input_params), mock_response, 'Get the response')
+        args = mock_async_post.call_args[0]
+        self.assertTupleEqual(args, (host + '/', conn.headers, input_params),
+                              msg="The args should be passed to get method")
