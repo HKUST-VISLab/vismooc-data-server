@@ -126,7 +126,6 @@ async def async_post(url, headers=None, params=None, session=None):
         data = await response.read()
         return HttpResponse(response.status, response.headers, data)
 
-
 def get_list(urls, limit=30, headers=None, params=None):
     '''Get a list of urls async
     '''

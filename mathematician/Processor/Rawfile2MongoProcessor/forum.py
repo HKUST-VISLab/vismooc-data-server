@@ -1,13 +1,13 @@
 import json
 import multiprocessing
-from datetime import datetime
 from functools import partial
 
 from mathematician.config import DBConfig as DBc
 from mathematician.logger import info
 from mathematician.pipe import PipeModule
 from mathematician.text_helper import SentimentAnalyzer
-from mathematician.Processor.utils import PARALLEL_GRAIN, get_cpu_num
+from mathematician.Processor.utils import (PARALLEL_GRAIN, get_cpu_num,
+                                           try_parse_date, try_get_timestamp)
 
 class ForumProcessor(PipeModule):
 
@@ -56,9 +56,9 @@ class ForumProcessor(PipeModule):
             created_at = row.get('created_at').get('date')
             updated_at = row.get('updated_at').get('date')
             if not isinstance(created_at, int):
-                created_at = datetime.strptime(created_at, pattern_time).timestamp()
+                created_at = try_get_timestamp(try_parse_date(created_at, pattern_time))
             if not isinstance(updated_at, int):
-                updated_at = datetime.strptime(updated_at, pattern_time).timestamp()
+                updated_at = try_get_timestamp(try_parse_date(updated_at, pattern_time))
             post[DBc.FIELD_FORUM_CREATED_AT] = created_at
             post[DBc.FIELD_FORUM_UPDATED_AT] = updated_at
             post[DBc.FIELD_FORUM_BODY] = row.get('body')

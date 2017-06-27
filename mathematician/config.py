@@ -4,12 +4,14 @@ import json
 from os.path import join, exists
 from . import logger
 
+
 class ThirdPartyKeys:
     """Third party keys
     """
     Youtube_key = None
     HKMooc_access_token = None
     HKMooc_key = None
+
 
 class FilenameConfig:
     """File names of raw data
@@ -599,23 +601,15 @@ def init_config(config_file_path):
         data_filenames = dataserver_config.get("data_filenames")
         if data_filenames:
             FilenameConfig.Data_dir = data_filenames.get("data_dir")
-            FilenameConfig.MongoDB_FILE = data_filenames.get(
-                "mongodb_file") or FilenameConfig.MongoDB_FILE
-            FilenameConfig.SQLDB_FILE = data_filenames.get(
-                "sqldb_file") or FilenameConfig.SQLDB_FILE
-            FilenameConfig.META_DB_RECORD = data_filenames.get(
-                "meta_db_record") or FilenameConfig.META_DB_RECORD
-            FilenameConfig.ACTIVE_VERSIONS = data_filenames.get(
-                "active_versions") or FilenameConfig.ACTIVE_VERSIONS
-            FilenameConfig.STRUCTURES = data_filenames.get(
-                "structures") or FilenameConfig.STRUCTURES
+            FilenameConfig.MongoDB_FILE = data_filenames.get("mongodb_file") or FilenameConfig.MongoDB_FILE
+            FilenameConfig.SQLDB_FILE = data_filenames.get("sqldb_file") or FilenameConfig.SQLDB_FILE
+            FilenameConfig.META_DB_RECORD = data_filenames.get("meta_db_record") or FilenameConfig.META_DB_RECORD
+            FilenameConfig.ACTIVE_VERSIONS = data_filenames.get("active_versions") or FilenameConfig.ACTIVE_VERSIONS
+            FilenameConfig.STRUCTURES = data_filenames.get("structures") or FilenameConfig.STRUCTURES
 
         # init 3rd party keys
+        print(dataserver_config)
         third_party_keys = dataserver_config.get("third_party_keys")
+        print(third_party_keys)
         if third_party_keys:
-            ThirdPartyKeys.Youtube_key = third_party_keys.get(
-                "Youtube_key") or ThirdPartyKeys.Youtube_key
-            ThirdPartyKeys.HKMooc_key = third_party_keys.get(
-                "HKMOOC_key") or ThirdPartyKeys.HKMooc_key
-            ThirdPartyKeys.HKMooc_access_token = third_party_keys.get("HKMOOC_access_token") or\
-                                                 ThirdPartyKeys.HKMooc_access_token
+            ThirdPartyKeys.Youtube_key = third_party_keys.get('Youtube_key') or ThirdPartyKeys.Youtube_key

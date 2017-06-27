@@ -52,7 +52,6 @@ def split(text, separator=','):
             results.append("".join(tmp_stack))
             return results
 
-
 def try_get_timestamp(date):
     '''Try to get timestamp from a date object
     '''
@@ -74,6 +73,17 @@ def try_parse_date(date_str, pattern="%Y-%m-%d %H:%M:%S.%f"):
         return datetime.strptime(date_str, pattern)
     except ValueError:
         return None
+
+def try_parse_course_id(course_id):
+    '''Try parse course id to form an uniform format
+    '''
+    try:
+        if ':' in course_id:
+            course_id = course_id[course_id.index(':')+1:]
+        course_id = re.sub(r'[\.|\/|\+]', '_', course_id)
+    except ValueError as err:
+        raise err
+    return course_id
 
 DAY_TS = 1000 * 60 * 60 * 24
 def round_timestamp_to_day(timestamp):
@@ -101,7 +111,6 @@ def get_data_by_table(tablename):
     results = cursor.fetchall()
     sql_db.close()
     return results
-
 
 def fetch_video_duration(url):
     '''fetch the video duration from the url
@@ -139,7 +148,6 @@ def fetch_video_duration(url):
         warn(ex)
     return video_duration
 
-
 def parse_duration_from_youtube_api(datestring):
     '''Parse video duration from the result return from youtube api
     '''
@@ -165,14 +173,12 @@ def parse_duration_from_youtube_api(datestring):
             "there must be something woring in this time string")
     return ret
 
-
 def get_cpu_num():
     '''Get the cpu number of the machine
     '''
     cpu_num = multiprocessing.cpu_count()
     cpu_num = cpu_num - 1 if cpu_num > 1 else cpu_num
     return cpu_num
-
 
 def is_processed(filename):
     ''' Check whether a file is processed or not according to

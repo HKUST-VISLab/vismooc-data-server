@@ -5,6 +5,7 @@ from datetime import datetime
 from mathematician.config import DBConfig as DBc
 from mathematician.logger import info
 from mathematician.pipe import PipeModule
+from mathematician.Processor.utils import try_get_timestamp, try_parse_course_id
 
 from ..utils import get_data_by_table
 
@@ -38,13 +39,11 @@ class EnrollmentProcessor(PipeModule):
         for row in data_to_be_processed:
             enrollment = {}
             user_id = row[1]
-            course_id = row[2]
-            if '+' in course_id:
-                course_id = course_id[course_id.index(':')+1:].replace('+', '/')
-            course_id = course_id.replace('/', '_')
+            course_id = try_parse_course_id(row[2])
             enrollment[DBc.FIELD_ENROLLMENT_COURSE_ID] = course_id
             enrollment[DBc.FIELD_ENROLLMENT_USER_ID] = user_id
-            enrollment[DBc.FIELD_ENROLLMENT_TIMESTAMP] = row[3].timestamp() if isinstance(row[3], datetime) else None
+            enrollment[DBc.FIELD_ENROLLMENT_TIMESTAMP] = try_get_timestamp(row[3]) if \
+                isinstance(row[3], datetime) else None
             enrollment[DBc.FIELD_ENROLLMENT_ACTION] = EnrollmentProcessor.ENROLL if \
                 row[4] == 1 else EnrollmentProcessor.UNENROLL
             self.enrollments.append(enrollment)
