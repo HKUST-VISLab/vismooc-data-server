@@ -1,8 +1,10 @@
 '''The entry point to start the sql2mongo processor
 '''
+import sys
 from datetime import datetime
 
 from mathematician.pipe import PipeLine
+import mathematician.config as config
 from mathematician.Processor.Sql2MongoProcessor import (DBProcessor,
                                                         CourseProcessor,
                                                         EnrollmentProcessor,
@@ -11,12 +13,15 @@ from mathematician.Processor.Sql2MongoProcessor import (DBProcessor,
                                                         LogProcessor,
                                                         UserProcessor,
                                                         VideoProcessor)
-import mathematician.config as config 
+
 
 def main():
     '''The entry function
     '''
-    config.init_config('./config.json')
+    if len(sys.argv) >= 2:
+        config.init_config(sys.argv[1])
+    else:
+        config.init_config('./config.json')
     pipeline = PipeLine()
     pipeline.input_files([]).pipe(CourseProcessor()).pipe(VideoProcessor()).pipe(
         EnrollmentProcessor()).pipe(LogProcessor()).pipe(UserProcessor()).pipe(

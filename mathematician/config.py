@@ -550,7 +550,7 @@ def init_config(config_file_path):
     if mongo_config:
         DBConfig.DB_HOST = mongo_config.get("host") or DBConfig.DB_HOST
         DBConfig.DB_NAME = mongo_config.get("name") or DBConfig.DB_NAME
-        DBConfig.DB_PORT = mongo_config.get("port") or DBConfig.DB_PORT
+        DBConfig.DB_PORT = int(mongo_config.get("port")) or DBConfig.DB_PORT
 
     sql_config = config_json.get('sql')
     if sql_config:
