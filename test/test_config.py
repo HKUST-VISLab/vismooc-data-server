@@ -61,7 +61,7 @@ class TestConfig(unittest.TestCase):
             "mongo": {\
                 "host": "test",\
                 "name": "test",\
-                "port": "test"\
+                "port": "1123"\
             },\
             "data_server": {\
                 "third_party_keys": {\
