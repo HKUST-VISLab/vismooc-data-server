@@ -73,9 +73,8 @@ class TestConfig(unittest.TestCase):
 
         self.assertIsNone(init_config("foo"))
         test_value = "test"
-        target_fields = [
-            DBc.DB_HOST, DBc.DB_NAME, DBc.DB_PORT,
-            TPK.Youtube_key
-        ]
+        target_fields = [DBc.DB_HOST, DBc.DB_NAME, TPK.Youtube_key]
         expect_results = len(target_fields) * [test_value]
+        target_fields.append(DBc.DB_PORT)
+        expect_results.append(1123)
         self.assertEqual(target_fields, expect_results)
