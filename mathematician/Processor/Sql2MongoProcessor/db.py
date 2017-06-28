@@ -9,7 +9,7 @@ class DBProcessor(PipeModule):
     def __init__(self):
         super().__init__()
         db_config = DBc.CONFIG_JSON
-        self.db = MongoDB('localhost', 'testVismoocElearningFromSQL')
+        self.db = MongoDB(db_config[DBc.DB_HOST], db_config[DBc.DB_NAME], port=db_config[DBc.DB_PORT])
         self.db.clear()
         for collection_config in db_config[DBc.DB_GENERAL_COLLECTIONS]:
             collection = self.db.create_collection(collection_config[DBc.COLLECTION_GENERAL_NAME])

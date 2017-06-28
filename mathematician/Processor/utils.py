@@ -15,8 +15,6 @@ from mathematician.DB.mongo_dbhelper import MongoDB
 from mathematician.http_helper import get as http_get
 from mathematician.logger import warn
 
-DB_NAME = 'testVismoocElearning'
-DB_HOST = 'localhost'
 PARALLEL_GRAIN = 20
 
 RE_ISO_8601 = re.compile(
