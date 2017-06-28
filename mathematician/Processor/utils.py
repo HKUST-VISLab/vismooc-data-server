@@ -182,7 +182,7 @@ def is_processed(filename):
     ''' Check whether a file is processed or not according to
         the metadbfiles collection records
     '''
-    database = MongoDB(DB_HOST, DB_NAME)
+    database = MongoDB(DBc.DB_NAME, DBc.DB_HOST, DBc.DB_PORT)
     metadbfile = database.get_collection(DBc.COLLECTION_METADBFILES)
     md5 = hashlib.md5()
     with open(filename, 'r', encoding='utf-8') as file:

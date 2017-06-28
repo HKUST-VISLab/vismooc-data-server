@@ -21,8 +21,10 @@ class FilenameConfig:
     MongoDB_FILE = "dbsnapshots_mongodb"
     SQLDB_FILE = "dbsnapshots_mysqldb"
     META_DB_RECORD = "meta_db_record"
-    ACTIVE_VERSIONS = join("mongodb", "edxapp", "modulestore.active_versions.bson")
+    ACTIVE_VERSIONS = join("mongodb", "edxapp",
+                           "modulestore.active_versions.bson")
     STRUCTURES = join("mongodb", "edxapp", "modulestore.structures.bson")
+
 
 class DataSource:
     """Urls of datasources
@@ -32,6 +34,7 @@ class DataSource:
     CLICKSTREAMS_URL = "/resources/clickstreams"
     MONGODB_URL = "/resources/dbsnapshots_mongodb"
     SQLDB_URL = "/resources/dbsnapshots_mysqldb"
+
 
 class DBConfig:
     """Config of database
@@ -167,393 +170,365 @@ class DBConfig:
     TYPE_MONGO = "mongo"
     TYPE_CLICKSTREAM = "clickstream"
 
-    CONFIG_JSON = {
-        DB_HOST: "localhost",
-        DB_PORT: 27017,
-        DB_NAME: "testVismoocElearning",
-        DB_USER: "",
-        DB_PASSWORD: "",
-        DB_GENERAL_COLLECTIONS:
-        [
-            {
-                COLLECTION_GENERAL_NAME: COLLECTION_COURSE,
-                COLLECTION_GENERAL_FIELDS:
-                [
-                    {
-                        FIELD_GENERAL_NAME: FIELD_COURSE_NAME,
-                        FIELD_GENERAL_VALIDATION: {"$type": "string"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_COURSE_YEAR,
-                        FIELD_GENERAL_VALIDATION: {"$regex": "/^[1-9][1-9]{3}_Q[0-9]_R[0-9]/"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_COURSE_ORG,
-                        FIELD_GENERAL_VALIDATION: {"$type": "string"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_COURSE_STATUS,
-                        FIELD_GENERAL_VALIDATION: {"$type": "string"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_COURSE_URL,
-                        FIELD_GENERAL_VALIDATION: {"$type": "string"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_COURSE_IMAGE_URL,
-                        FIELD_GENERAL_VALIDATION: {"$type": "string"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_COURSE_DESCRIPTION,
-                        FIELD_GENERAL_VALIDATION: {"$type": "string"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_COURSE_METAINFO,
-                        FIELD_GENERAL_VALIDATION: {"$type": "object"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_COURSE_ENDTIME,
-                        FIELD_GENERAL_VALIDATION: {"$type": "timestamp"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_COURSE_STARTTIME,
-                        FIELD_GENERAL_VALIDATION: {"$type": "timestamp"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_COURSE_ENROLLMENT_START,
-                        FIELD_GENERAL_VALIDATION: {"$type": "timestamp"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_COURSE_ENROLLMENT_END,
-                        FIELD_GENERAL_VALIDATION: {"$type": "timestamp"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_COURSE_ORIGINAL_ID,
-                        FIELD_GENERAL_VALIDATION: {"$type": "string"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_COURSE_STUDENT_IDS,
-                        FIELD_GENERAL_VALIDATION: {"$type": "array"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_COURSE_VIDEO_IDS,
-                        FIELD_GENERAL_VALIDATION: {"$type": "array"}
-                    }
-                ],
-                COLLECTION_GENERAL_INDEX:
-                [
-                    # {
-                    #     FIELD_GENERAL_NAME: FIELD_COURSE_NAME,
-                    #     INDEX_GENERAL_INDEX_ORDER: 1
-                    # },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_COURSE_ORIGINAL_ID,
-                        INDEX_GENERAL_INDEX_ORDER: 1
-                    },
-                    # {
-                    #     FIELD_GENERAL_NAME: FIELD_COURSE_STATUS,
-                    #     INDEX_GENERAL_INDEX_ORDER: 1
-                    # }
-                ]
-            },
-            {
-                COLLECTION_GENERAL_NAME: COLLECTION_USER,
-                COLLECTION_GENERAL_FIELDS:
-                [
-                    {
-                        FIELD_GENERAL_NAME: FIELD_USER_NAME,
-                        FIELD_GENERAL_VALIDATION: {"$type": "string"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_USER_USER_NAME,
-                        FIELD_GENERAL_VALIDATION: {"$type": "string"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_USER_LANGUAGE,
-                        FIELD_GENERAL_VALIDATION: {"$type": "string"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_USER_LOCATION,
-                        FIELD_GENERAL_VALIDATION: {"$type": "string"}
-                    },
-                    # {
-                    #     FIELD_GENERAL_NAME: FIELD_USER_BIRTH_DATE,
-                    #     FIELD_GENERAL_VALIDATION: {"$type": "timestamp"}
-                    # },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_USER_EDUCATION_LEVEL,
-                        FIELD_GENERAL_VALIDATION: {"$type": "string"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_USER_BIO,
-                        FIELD_GENERAL_VALIDATION: {"$type": "string"}
-                    },
-                    # {
-                    #     FIELD_GENERAL_NAME: FIELD_USER_GENDER,
-                    #     FIELD_GENERAL_VALIDATION: {"$in": ["male", "female"]}
-                    # },
-                    # {
-                    #     FIELD_GENERAL_NAME: FIELD_USER_ORIGINAL_ID,
-                    #     FIELD_GENERAL_VALIDATION: {"$type": "string"}
-                    # },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_USER_COUNTRY,
-                        FIELD_GENERAL_VALIDATION: {"$type": "string"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_USER_COURSE_IDS,
-                        FIELD_GENERAL_VALIDATION: {"$type": "array"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_USER_DROPPED_COURSE_IDS,
-                        FIELD_GENERAL_VALIDATION: {"$type": "array"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_USER_COURSE_ROLE,
-                        FIELD_GENERAL_VALIDATION: {"$type": "object"}
-                    }
-                ],
-                COLLECTION_GENERAL_INDEX:
-                [
-                    {
-                        FIELD_GENERAL_NAME: FIELD_USER_ORIGINAL_ID,
-                        INDEX_GENERAL_INDEX_ORDER: 1
-                    }
-                ]
-            },
-            {
-                COLLECTION_GENERAL_NAME: COLLECTION_ENROLLMENT,
-                COLLECTION_GENERAL_FIELDS:
-                [
-                    {
-                        FIELD_GENERAL_NAME: FIELD_ENROLLMENT_COURSE_ID,
-                        FIELD_GENERAL_VALIDATION: {"$type": "objectId"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_ENROLLMENT_USER_ID,
-                        FIELD_GENERAL_VALIDATION: {"$type": "objectId"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_ENROLLMENT_TIMESTAMP,
-                        FIELD_GENERAL_VALIDATION: {"$type": "timestamp"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_ENROLLMENT_ACTION,
-                        FIELD_GENERAL_VALIDATION: {"$in": ["TODO", "TODO"]}
-                    }
-                ],
-                COLLECTION_GENERAL_INDEX:
-                [
-                    {
-                        FIELD_GENERAL_NAME: FIELD_ENROLLMENT_TIMESTAMP,
-                        INDEX_GENERAL_INDEX_ORDER: 1
-                    }
-                ]
-            },
-            {
-                COLLECTION_GENERAL_NAME: COLLECTION_VIDEO,
-                COLLECTION_GENERAL_FIELDS:
-                [
-                    {
-                        FIELD_GENERAL_NAME: FIELD_VIDEO_NAME,
-                        FIELD_GENERAL_VALIDATION: {"$type": "string"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_VIDEO_TEMPORAL_HOTNESS,
-                        FIELD_GENERAL_VALIDATION: {"$type": "object"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_VIDEO_METAINFO,
-                        FIELD_GENERAL_VALIDATION: {"$type": "object"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_VIDEO_SECTION,
-                        FIELD_GENERAL_VALIDATION: {"$type": "string"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_VIDEO_DESCRIPTION,
-                        FIELD_GENERAL_VALIDATION: {"$type": "string"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_VIDEO_RELEASE_DATE,
-                        FIELD_GENERAL_VALIDATION: {"$type": "timestamp"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_VIDEO_URL,
-                        FIELD_GENERAL_VALIDATION: {"$type": "string"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_VIDEO_DURATION,
-                        FIELD_GENERAL_VALIDATION: {"$type": "int"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_VIDEO_ORIGINAL_ID,
-                        FIELD_GENERAL_VALIDATION: {"$type": "string"}
-                    }
-                ],
-                COLLECTION_GENERAL_INDEX:
-                [
-                    {
-                        FIELD_GENERAL_NAME: FIELD_VIDEO_ORIGINAL_ID,
-                        INDEX_GENERAL_INDEX_ORDER: 1
-                    }
-                ]
-            },
-            {
-                COLLECTION_GENERAL_NAME: COLLECTION_LOG,
-                COLLECTION_GENERAL_FIELDS:
-                [
-                    {
-                        FIELD_GENERAL_NAME: FIELD_LOG_USER_ID,
-                        FIELD_GENERAL_VALIDATION: {"$type": "objectId"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_LOG_VIDEO_ID,
-                        FIELD_GENERAL_VALIDATION: {"$type": "objectId"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_LOG_COURSE_ID,
-                        FIELD_GENERAL_VALIDATION: {"$type": "objectId"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_LOG_TIMESTAMP,
-                        FIELD_GENERAL_VALIDATION: {"$type": "timestamp"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_LOG_TYPE,
-                        FIELD_GENERAL_VALIDATION: {"$in": ["TODO", "TODO"]}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_LOG_METAINFO,
-                        FIELD_GENERAL_VALIDATION: {"$type": "object"}
-                    }
-                ],
-                COLLECTION_GENERAL_INDEX:
-                [
-                    {
-                        FIELD_GENERAL_NAME: FIELD_LOG_VIDEO_ID,
-                        INDEX_GENERAL_INDEX_ORDER: 1
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_LOG_USER_ID,
-                        INDEX_GENERAL_INDEX_ORDER: 1
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_LOG_COURSE_ID,
-                        INDEX_GENERAL_INDEX_ORDER: 1
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_LOG_TIMESTAMP,
-                        INDEX_GENERAL_INDEX_ORDER: 1
-                    }
-                ]
-            },
-            {
-                COLLECTION_GENERAL_NAME: COLLECTION_DENSELOGS,
-                COLLECTION_GENERAL_FIELDS:
-                [
-                ],
-                COLLECTION_GENERAL_INDEX:
-                [
-                    {
-                        FIELD_GENERAL_NAME: FIELD_DENSELOGS_TIMESTAMP,
-                        INDEX_GENERAL_INDEX_ORDER: 1
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_DENSELOGS_VIDEO_ID,
-                        INDEX_GENERAL_INDEX_ORDER: 1
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_DENSELOGS_COURSE_ID,
-                        INDEX_GENERAL_INDEX_ORDER: 1
-                    }
-                ]
-            },
-            {
-                COLLECTION_GENERAL_NAME: COLLECTION_METADBFILES,
-                COLLECTION_GENERAL_FIELDS:
-                [
-                    {
-                        FIELD_GENERAL_NAME: FIELD_METADBFILES_TYPE,
-                        FIELD_GENERAL_VALIDATION: {"$type", "string"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_METADBFILES_LAST_MODIFIED,
-                        FIELD_GENERAL_VALIDATION: {"$type", "timestamp"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_METADBFILES_FILEPATH,
-                        FIELD_GENERAL_VALIDATION: {"$type", "string"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_METADBFILES_ETAG,
-                        FIELD_GENERAL_VALIDATION: {"$type", "string"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_METADBFILES_CREATEDAT,
-                        FIELD_GENERAL_VALIDATION: {"$type", "timestamp"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_METADBFILES_PROCESSED,
-                        FIELD_GENERAL_VALIDATION: {"$type", "boolean"}
-                    }
-                ],
-                COLLECTION_GENERAL_INDEX:
-                [
-                    {
-                        FIELD_GENERAL_NAME: FIELD_METADBFILES_TYPE,
-                        INDEX_GENERAL_INDEX_ORDER: 1
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_METADBFILES_ETAG,
-                        INDEX_GENERAL_INDEX_ORDER: 1
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_METADBFILES_LAST_MODIFIED,
-                        INDEX_GENERAL_INDEX_ORDER: 1
-                    }
-                ]
-            },
-            {
-                COLLECTION_GENERAL_NAME: COLLECTION_FORUM_SOCIALNETWORKS,
-                COLLECTION_GENERAL_FIELDS:
-                [
-                    {
-                        FIELD_GENERAL_NAME: FIELD_FORUM_SOCIALNETWORKS_COURSE_ID,
-                        FIELD_GENERAL_VALIDATION: {"$type", "string"}
-                    },
-                    {
-                        FIELD_GENERAL_NAME: FIELD_FORUM_SOCIALNETWORKS_SOCIALNETWORK,
-                        FIELD_GENERAL_VALIDATION: {"$type", "object"}
-                    },
-                ],
-                COLLECTION_GENERAL_INDEX:
-                [
-                    {
-                        FIELD_GENERAL_NAME: FIELD_FORUM_SOCIALNETWORKS_COURSE_ID,
-                        INDEX_GENERAL_INDEX_ORDER: 1
-                    },
-                ]
-            },
-            {
-                COLLECTION_GENERAL_NAME: COLLECTION_FORUM,
-                COLLECTION_GENERAL_FIELDS:
-                [
-                    {
-                        FIELD_GENERAL_NAME: FIELD_FORUM_ORIGINAL_ID,
-                        FIELD_GENERAL_VALIDATION: {"$type", "string"}
-                    }
-                ],
-                COLLECTION_GENERAL_INDEX:
-                [
-                    {
-                        FIELD_GENERAL_NAME: FIELD_FORUM_ORIGINAL_ID,
-                        INDEX_GENERAL_INDEX_ORDER: 1
-                    },
-                ]
-            }
-        ]
-    }
+    DB_GENERAL_COLLECTIONS = [
+        {
+            COLLECTION_GENERAL_NAME: COLLECTION_COURSE,
+            COLLECTION_GENERAL_FIELDS:
+            [
+                {
+                    FIELD_GENERAL_NAME: FIELD_COURSE_NAME,
+                    FIELD_GENERAL_VALIDATION: {"$type": "string"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_COURSE_YEAR,
+                    FIELD_GENERAL_VALIDATION: {"$regex": "/^[1-9][1-9]{3}_Q[0-9]_R[0-9]/"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_COURSE_ORG,
+                    FIELD_GENERAL_VALIDATION: {"$type": "string"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_COURSE_STATUS,
+                    FIELD_GENERAL_VALIDATION: {"$type": "string"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_COURSE_URL,
+                    FIELD_GENERAL_VALIDATION: {"$type": "string"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_COURSE_IMAGE_URL,
+                    FIELD_GENERAL_VALIDATION: {"$type": "string"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_COURSE_DESCRIPTION,
+                    FIELD_GENERAL_VALIDATION: {"$type": "string"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_COURSE_METAINFO,
+                    FIELD_GENERAL_VALIDATION: {"$type": "object"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_COURSE_ENDTIME,
+                    FIELD_GENERAL_VALIDATION: {"$type": "timestamp"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_COURSE_STARTTIME,
+                    FIELD_GENERAL_VALIDATION: {"$type": "timestamp"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_COURSE_ENROLLMENT_START,
+                    FIELD_GENERAL_VALIDATION: {"$type": "timestamp"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_COURSE_ENROLLMENT_END,
+                    FIELD_GENERAL_VALIDATION: {"$type": "timestamp"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_COURSE_ORIGINAL_ID,
+                    FIELD_GENERAL_VALIDATION: {"$type": "string"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_COURSE_STUDENT_IDS,
+                    FIELD_GENERAL_VALIDATION: {"$type": "array"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_COURSE_VIDEO_IDS,
+                    FIELD_GENERAL_VALIDATION: {"$type": "array"}
+                }
+            ],
+            COLLECTION_GENERAL_INDEX:
+            [
+                {
+                    FIELD_GENERAL_NAME: FIELD_COURSE_ORIGINAL_ID,
+                    INDEX_GENERAL_INDEX_ORDER: 1
+                }
+            ]
+        },
+        {
+            COLLECTION_GENERAL_NAME: COLLECTION_USER,
+            COLLECTION_GENERAL_FIELDS:
+            [
+                {
+                    FIELD_GENERAL_NAME: FIELD_USER_NAME,
+                    FIELD_GENERAL_VALIDATION: {"$type": "string"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_USER_USER_NAME,
+                    FIELD_GENERAL_VALIDATION: {"$type": "string"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_USER_LANGUAGE,
+                    FIELD_GENERAL_VALIDATION: {"$type": "string"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_USER_LOCATION,
+                    FIELD_GENERAL_VALIDATION: {"$type": "string"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_USER_EDUCATION_LEVEL,
+                    FIELD_GENERAL_VALIDATION: {"$type": "string"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_USER_BIO,
+                    FIELD_GENERAL_VALIDATION: {"$type": "string"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_USER_COUNTRY,
+                    FIELD_GENERAL_VALIDATION: {"$type": "string"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_USER_COURSE_IDS,
+                    FIELD_GENERAL_VALIDATION: {"$type": "array"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_USER_DROPPED_COURSE_IDS,
+                    FIELD_GENERAL_VALIDATION: {"$type": "array"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_USER_COURSE_ROLE,
+                    FIELD_GENERAL_VALIDATION: {"$type": "object"}
+                }
+            ],
+            COLLECTION_GENERAL_INDEX:
+            [
+                {
+                    FIELD_GENERAL_NAME: FIELD_USER_ORIGINAL_ID,
+                    INDEX_GENERAL_INDEX_ORDER: 1
+                }
+            ]
+        },
+        {
+            COLLECTION_GENERAL_NAME: COLLECTION_ENROLLMENT,
+            COLLECTION_GENERAL_FIELDS:
+            [
+                {
+                    FIELD_GENERAL_NAME: FIELD_ENROLLMENT_COURSE_ID,
+                    FIELD_GENERAL_VALIDATION: {"$type": "objectId"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_ENROLLMENT_USER_ID,
+                    FIELD_GENERAL_VALIDATION: {"$type": "objectId"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_ENROLLMENT_TIMESTAMP,
+                    FIELD_GENERAL_VALIDATION: {"$type": "timestamp"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_ENROLLMENT_ACTION,
+                    FIELD_GENERAL_VALIDATION: {"$in": ["TODO", "TODO"]}
+                }
+            ],
+            COLLECTION_GENERAL_INDEX:
+            [
+                {
+                    FIELD_GENERAL_NAME: FIELD_ENROLLMENT_TIMESTAMP,
+                    INDEX_GENERAL_INDEX_ORDER: 1
+                }
+            ]
+        },
+        {
+            COLLECTION_GENERAL_NAME: COLLECTION_VIDEO,
+            COLLECTION_GENERAL_FIELDS:
+            [
+                {
+                    FIELD_GENERAL_NAME: FIELD_VIDEO_NAME,
+                    FIELD_GENERAL_VALIDATION: {"$type": "string"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_VIDEO_TEMPORAL_HOTNESS,
+                    FIELD_GENERAL_VALIDATION: {"$type": "object"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_VIDEO_METAINFO,
+                    FIELD_GENERAL_VALIDATION: {"$type": "object"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_VIDEO_SECTION,
+                    FIELD_GENERAL_VALIDATION: {"$type": "string"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_VIDEO_DESCRIPTION,
+                    FIELD_GENERAL_VALIDATION: {"$type": "string"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_VIDEO_RELEASE_DATE,
+                    FIELD_GENERAL_VALIDATION: {"$type": "timestamp"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_VIDEO_URL,
+                    FIELD_GENERAL_VALIDATION: {"$type": "string"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_VIDEO_DURATION,
+                    FIELD_GENERAL_VALIDATION: {"$type": "int"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_VIDEO_ORIGINAL_ID,
+                    FIELD_GENERAL_VALIDATION: {"$type": "string"}
+                }
+            ],
+            COLLECTION_GENERAL_INDEX:
+            [
+                {
+                    FIELD_GENERAL_NAME: FIELD_VIDEO_ORIGINAL_ID,
+                    INDEX_GENERAL_INDEX_ORDER: 1
+                }
+            ]
+        },
+        {
+            COLLECTION_GENERAL_NAME: COLLECTION_LOG,
+            COLLECTION_GENERAL_FIELDS:
+            [
+                {
+                    FIELD_GENERAL_NAME: FIELD_LOG_USER_ID,
+                    FIELD_GENERAL_VALIDATION: {"$type": "objectId"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_LOG_VIDEO_ID,
+                    FIELD_GENERAL_VALIDATION: {"$type": "objectId"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_LOG_COURSE_ID,
+                    FIELD_GENERAL_VALIDATION: {"$type": "objectId"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_LOG_TIMESTAMP,
+                    FIELD_GENERAL_VALIDATION: {"$type": "timestamp"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_LOG_TYPE,
+                    FIELD_GENERAL_VALIDATION: {"$in": ["TODO", "TODO"]}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_LOG_METAINFO,
+                    FIELD_GENERAL_VALIDATION: {"$type": "object"}
+                }
+            ],
+            COLLECTION_GENERAL_INDEX:
+            [
+                {
+                    FIELD_GENERAL_NAME: FIELD_LOG_VIDEO_ID,
+                    INDEX_GENERAL_INDEX_ORDER: 1
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_LOG_USER_ID,
+                    INDEX_GENERAL_INDEX_ORDER: 1
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_LOG_COURSE_ID,
+                    INDEX_GENERAL_INDEX_ORDER: 1
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_LOG_TIMESTAMP,
+                    INDEX_GENERAL_INDEX_ORDER: 1
+                }
+            ]
+        },
+        {
+            COLLECTION_GENERAL_NAME: COLLECTION_DENSELOGS,
+            COLLECTION_GENERAL_FIELDS:
+            [
+            ],
+            COLLECTION_GENERAL_INDEX:
+            [
+                {
+                    FIELD_GENERAL_NAME: FIELD_DENSELOGS_TIMESTAMP,
+                    INDEX_GENERAL_INDEX_ORDER: 1
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_DENSELOGS_VIDEO_ID,
+                    INDEX_GENERAL_INDEX_ORDER: 1
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_DENSELOGS_COURSE_ID,
+                    INDEX_GENERAL_INDEX_ORDER: 1
+                }
+            ]
+        },
+        {
+            COLLECTION_GENERAL_NAME: COLLECTION_METADBFILES,
+            COLLECTION_GENERAL_FIELDS:
+            [
+                {
+                    FIELD_GENERAL_NAME: FIELD_METADBFILES_TYPE,
+                    FIELD_GENERAL_VALIDATION: {"$type", "string"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_METADBFILES_LAST_MODIFIED,
+                    FIELD_GENERAL_VALIDATION: {"$type", "timestamp"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_METADBFILES_FILEPATH,
+                    FIELD_GENERAL_VALIDATION: {"$type", "string"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_METADBFILES_ETAG,
+                    FIELD_GENERAL_VALIDATION: {"$type", "string"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_METADBFILES_CREATEDAT,
+                    FIELD_GENERAL_VALIDATION: {"$type", "timestamp"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_METADBFILES_PROCESSED,
+                    FIELD_GENERAL_VALIDATION: {"$type", "boolean"}
+                }
+            ],
+            COLLECTION_GENERAL_INDEX:
+            [
+                {
+                    FIELD_GENERAL_NAME: FIELD_METADBFILES_TYPE,
+                    INDEX_GENERAL_INDEX_ORDER: 1
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_METADBFILES_ETAG,
+                    INDEX_GENERAL_INDEX_ORDER: 1
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_METADBFILES_LAST_MODIFIED,
+                    INDEX_GENERAL_INDEX_ORDER: 1
+                }
+            ]
+        },
+        {
+            COLLECTION_GENERAL_NAME: COLLECTION_FORUM_SOCIALNETWORKS,
+            COLLECTION_GENERAL_FIELDS:
+            [
+                {
+                    FIELD_GENERAL_NAME: FIELD_FORUM_SOCIALNETWORKS_COURSE_ID,
+                    FIELD_GENERAL_VALIDATION: {"$type", "string"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_FORUM_SOCIALNETWORKS_SOCIALNETWORK,
+                    FIELD_GENERAL_VALIDATION: {"$type", "object"}
+                },
+            ],
+            COLLECTION_GENERAL_INDEX:
+            [
+                {
+                    FIELD_GENERAL_NAME: FIELD_FORUM_SOCIALNETWORKS_COURSE_ID,
+                    INDEX_GENERAL_INDEX_ORDER: 1
+                },
+            ]
+        },
+        {
+            COLLECTION_GENERAL_NAME: COLLECTION_FORUM,
+            COLLECTION_GENERAL_FIELDS:
+            [
+                {
+                    FIELD_GENERAL_NAME: FIELD_FORUM_ORIGINAL_ID,
+                    FIELD_GENERAL_VALIDATION: {"$type", "string"}
+                }
+            ],
+            COLLECTION_GENERAL_INDEX:
+            [
+                {
+                    FIELD_GENERAL_NAME: FIELD_FORUM_ORIGINAL_ID,
+                    INDEX_GENERAL_INDEX_ORDER: 1
+                },
+            ]
+        }
+    ]
 
 
 def init_config(config_file_path):
@@ -601,15 +576,19 @@ def init_config(config_file_path):
         data_filenames = dataserver_config.get("data_filenames")
         if data_filenames:
             FilenameConfig.Data_dir = data_filenames.get("data_dir")
-            FilenameConfig.MongoDB_FILE = data_filenames.get("mongodb_file") or FilenameConfig.MongoDB_FILE
-            FilenameConfig.SQLDB_FILE = data_filenames.get("sqldb_file") or FilenameConfig.SQLDB_FILE
-            FilenameConfig.META_DB_RECORD = data_filenames.get("meta_db_record") or FilenameConfig.META_DB_RECORD
-            FilenameConfig.ACTIVE_VERSIONS = data_filenames.get("active_versions") or FilenameConfig.ACTIVE_VERSIONS
-            FilenameConfig.STRUCTURES = data_filenames.get("structures") or FilenameConfig.STRUCTURES
+            FilenameConfig.MongoDB_FILE = data_filenames.get(
+                "mongodb_file") or FilenameConfig.MongoDB_FILE
+            FilenameConfig.SQLDB_FILE = data_filenames.get(
+                "sqldb_file") or FilenameConfig.SQLDB_FILE
+            FilenameConfig.META_DB_RECORD = data_filenames.get(
+                "meta_db_record") or FilenameConfig.META_DB_RECORD
+            FilenameConfig.ACTIVE_VERSIONS = data_filenames.get(
+                "active_versions") or FilenameConfig.ACTIVE_VERSIONS
+            FilenameConfig.STRUCTURES = data_filenames.get(
+                "structures") or FilenameConfig.STRUCTURES
 
         # init 3rd party keys
-        print(dataserver_config)
         third_party_keys = dataserver_config.get("third_party_keys")
-        print(third_party_keys)
         if third_party_keys:
-            ThirdPartyKeys.Youtube_key = third_party_keys.get('Youtube_key') or ThirdPartyKeys.Youtube_key
+            ThirdPartyKeys.Youtube_key = third_party_keys.get(
+                'Youtube_key') or ThirdPartyKeys.Youtube_key

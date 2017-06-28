@@ -1,18 +1,22 @@
+'''The database processor module
+'''
 from mathematician.config import DBConfig as DBc
 from mathematician.DB.mongo_dbhelper import MongoDB
 from mathematician.logger import info
 from mathematician.pipe import PipeModule
+from mathematician.Processor.Sql2MongoProcessor.constant import RD_DATA
 
 class DBProcessor(PipeModule):
+    '''The processor for writing data to database
+    '''
     order = 999
 
     def __init__(self):
         super().__init__()
-        db_config = DBc.CONFIG_JSON
-        self.db = MongoDB(db_config[DBc.DB_HOST], db_config[DBc.DB_NAME], port=db_config[DBc.DB_PORT])
-        self.db.clear()
-        for collection_config in db_config[DBc.DB_GENERAL_COLLECTIONS]:
-            collection = self.db.create_collection(collection_config[DBc.COLLECTION_GENERAL_NAME])
+        self.database = MongoDB(DBc.DB_HOST, DBc.DB_NAME, DBc.DB_PORT)
+        self.database.clear()
+        for collection_config in DBc.DB_GENERAL_COLLECTIONS:
+            collection = self.database.create_collection(collection_config[DBc.COLLECTION_GENERAL_NAME])
             indexes = []
             for index_config in collection_config[DBc.COLLECTION_GENERAL_INDEX]:
                 indexes.append((index_config[DBc.FIELD_GENERAL_NAME], index_config[DBc.INDEX_GENERAL_INDEX_ORDER]))
@@ -20,7 +24,7 @@ class DBProcessor(PipeModule):
 
     def process(self, raw_data, raw_data_filenames=None):
         info("DB Insertion")
-        db_data = raw_data['data']
+        db_data = raw_data[RD_DATA]
 
         if db_data.get(DBc.COLLECTION_COURSE):
             db_data[DBc.COLLECTION_COURSE] = db_data[DBc.COLLECTION_COURSE].values()
@@ -41,7 +45,7 @@ class DBProcessor(PipeModule):
         # insert to db
         for collection_name in db_data:
             info('Insert ' + collection_name)
-            collection = self.db.get_collection(collection_name)
+            collection = self.database.get_collection(collection_name)
             if db_data[collection_name] is not None:
                 collection.insert_many(db_data[collection_name])
 
