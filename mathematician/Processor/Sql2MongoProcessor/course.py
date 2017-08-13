@@ -3,7 +3,7 @@ from datetime import datetime
 from mathematician.config import DBConfig as DBc
 from mathematician.logger import info
 from mathematician.pipe import PipeModule
-from mathematician.Processor.utils import try_get_timestamp, try_parse_course_id
+from mathematician.Processor.utils import try_get_timestamp, try_parse_course_id, try_parse_video_id
 
 from ..utils import get_data_by_table
 
@@ -53,7 +53,7 @@ class CourseProcessor(PipeModule):
             course[DBc.FIELD_COURSE_STARTTIME] = try_get_timestamp(row[7]) if isinstance(row[7], datetime) else None
             course[DBc.FIELD_COURSE_ENDTIME] = try_get_timestamp(row[8])  if isinstance(row[8], datetime) else None
             course[DBc.FIELD_COURSE_STUDENT_IDS] = set()
-            course[DBc.FIELD_COURSE_VIDEO_IDS] = [x[2] for x in course_videos if x[1] == row[1]]
+            course[DBc.FIELD_COURSE_VIDEO_IDS] = [try_parse_video_id(x[2]) for x in course_videos if x[1] == row[1]]
             course[DBc.FIELD_COURSE_GRADES] = {}
             self.courses[course_id] = course
 

@@ -8,7 +8,7 @@ from mathematician.pipe import PipeModule
 from mathematician.config import ThirdPartyKeys as TPKc
 
 from ..utils import (fetch_video_duration, get_data_by_table,
-                     parse_duration_from_youtube_api)
+                     parse_duration_from_youtube_api, try_parse_video_id)
 
 class VideoProcessor(PipeModule):
     '''Processe video table
@@ -39,7 +39,7 @@ class VideoProcessor(PipeModule):
 
         for row in data_to_be_processed:
             video = {}
-            video_id = row[1]
+            video_id = try_parse_video_id(row[1])
 
             video[DBc.FIELD_VIDEO_NAME] = row[2]
             video[DBc.FIELD_VIDEO_SECTION] = row[3]

@@ -7,7 +7,8 @@ from mathematician.Processor.Sql2MongoProcessor.constant import RD_DATA
 from mathematician.Processor.utils import (get_data_by_table,
                                            round_timestamp_to_day,
                                            try_get_timestamp,
-                                           try_parse_course_id)
+                                           try_parse_course_id,
+                                           try_parse_video_id)
 
 
 class LogProcessor(PipeModule):
@@ -54,6 +55,7 @@ class LogProcessor(PipeModule):
             video_id = row[3]
             if video_id[-1] == '/':
                 video_id = video_id[:-1]
+            video_id = try_parse_video_id(video_id)
 
             event = {}
             event[DBc.FIELD_LOG_USER_ID] = row[2]
