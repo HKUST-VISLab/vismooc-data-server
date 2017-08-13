@@ -192,3 +192,13 @@ def is_processed(filename):
         DBc.FIELD_METADBFILES_ETAG: digest, DBc.FIELD_METADBFILES_PROCESSED: True
     })
     return True if db_entry else False
+
+def try_parse_video_id(video_id):
+    '''Try parse video id to form an uniform format
+    '''
+    try:
+        if '@' in video_id:
+            video_id = video_id.split('@')[-1]
+    except ValueError as err:
+        raise err
+    return video_id
