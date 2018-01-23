@@ -32,7 +32,7 @@ class BaseDB(metaclass=ABCMeta):
         """Set username and password to DB for authentication
 
         Args:
-            user_name (string): The name of the user
+            username (string): The name of the user
             passwd (string): The password of the user
         """
 

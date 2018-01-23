@@ -5,16 +5,19 @@ import unittest
 from logging import INFO
 from unittest.mock import DEFAULT, MagicMock, patch
 
+from mathematician import __version__
 from mathematician.config import DBConfig as DBc
 from mathematician.config import ThirdPartyKeys as TPK
 from mathematician.config import init_config
 
+
 class TestConfig(unittest.TestCase):
 
     def test_init_config_with_wrong_params(self):
-        with self.assertLogs("vismooc", level=INFO) as cm:
+        with self.assertLogs("vismooc-ds@" + __version__, level=INFO) as cm:
             init_config("asdfs")
-        self.assertEqual(cm.output, ["WARNING:vismooc:The config file does not exist"])
+        self.assertEqual(cm.output, [
+                         "WARNING:vismooc-ds@" + __version__ + ":The config file does not exist"])
 
     @patch.multiple('mathematician.config', exists=DEFAULT, open=DEFAULT)
     def test_init_config_with_default_value(self, **mocks):
@@ -45,9 +48,10 @@ class TestConfig(unittest.TestCase):
         open_cm.read.return_value = "{balabala"
         mock_open.return_value = open_cm
 
-        first_warn = "WARNING:vismooc:Decode init json file failed"
-        second_warn = "WARNING:vismooc:Expecting property name enclosed in double quotes"
-        with self.assertLogs("vismooc", level=INFO) as cm:
+        first_warn = "WARNING:vismooc-ds@" + __version__ + ":Decode init json file failed"
+        second_warn = "WARNING:vismooc-ds@" + __version__ + \
+            ":Expecting property name enclosed in double quotes"
+        with self.assertLogs("vismooc-ds@" + __version__, level=INFO) as cm:
             self.assertIsNone(init_config("foo"))
         self.assertEqual(cm.output, [first_warn, second_warn])
 

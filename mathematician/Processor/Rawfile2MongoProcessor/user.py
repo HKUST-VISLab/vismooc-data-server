@@ -81,10 +81,10 @@ class UserProcessor(PipeModule):
                 user[DBc.FIELD_USER_EDUCATION_LEVEL] = user_profile and user_profile[10]
                 user[DBc.FIELD_USER_LOCATION] = user_profile and user_profile[4]
                 user[DBc.FIELD_USER_NAME] = (row[2] + row[3]) or (user_profile and user_profile[2])
-                user[DBc.FIELD_USER_ORIGINAL_ID] = user_id
+                user[DBc.FIELD_USER_ID] = user_id
                 user[DBc.FIELD_USER_COURSE_ROLE] = {}
                 user[DBc.FIELD_USER_BIO] = None
-                self.users[user[DBc.FIELD_USER_ORIGINAL_ID]] = user
+                self.users[user[DBc.FIELD_USER_ID]] = user
 
         processed_data = raw_data
         # user collection needs courseIds and droppedCourseIds

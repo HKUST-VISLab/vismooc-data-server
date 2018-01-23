@@ -48,7 +48,7 @@ class VideoProcessor(PipeModule):
             video[DBc.FIELD_VIDEO_RELEASE_DATE] = None
             video[DBc.FIELD_VIDEO_URL] = row[5]
             video[DBc.FIELD_VIDEO_DURATION] = None
-            video[DBc.FIELD_VIDEO_ORIGINAL_ID] = video_id
+            video[DBc.FIELD_VIDEO_ID] = video_id
             # video[DBc.FIELD_VIDEO_METAINFO]['youtube_id'] = row[6]
             self.videos[video_id] = video
 
@@ -57,7 +57,7 @@ class VideoProcessor(PipeModule):
         for video in self.videos.values():
             # video collection is completed
             # course collection needs studentIds
-            video_id = video[DBc.FIELD_VIDEO_ORIGINAL_ID]
+            video_id = video[DBc.FIELD_VIDEO_ID]
             # course[DBc.FIELD_COURSE_VIDEO_IDS].add(video_id)
             youtube_id = video[DBc.FIELD_VIDEO_METAINFO].get('youtube_id')
             if youtube_id is not None:

@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import patch, MagicMock
 
 from mathematician.pipe import PipeModule
-from mathematician.Processor.Rawfile2MongoProcessor import EnrollmentProcessor
+from mathematician.Processor.Rawfile2MongoProcessor.enrollment import EnrollmentProcessor
 from mathematician.Processor.Rawfile2MongoProcessor.constant import RD_DATA
 from mathematician.Processor.utils import try_get_timestamp, try_parse_date
 from mathematician.config import DBConfig as DBc

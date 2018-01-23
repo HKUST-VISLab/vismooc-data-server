@@ -44,7 +44,7 @@ class UserProcessor(PipeModule):
             user[DBc.FIELD_USER_COUNTRY] = row[10]
             user[DBc.FIELD_USER_COURSE_IDS] = set()
             user[DBc.FIELD_USER_DROPPED_COURSE_IDS] = set()
-            user[DBc.FIELD_USER_ORIGINAL_ID] = user_id
+            user[DBc.FIELD_USER_ID] = user_id
             user[DBc.FIELD_USER_COURSE_ROLE] = {}
             self.users[user_id] = user
 

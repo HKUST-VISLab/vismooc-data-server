@@ -2,8 +2,9 @@
 """
 import json
 from os.path import exists
-from . import logger
+from mathematician.Processor import HKMOOC2MongoProcessor
 
+from . import logger
 
 class ThirdPartyKeys:
     """Third party keys
@@ -28,6 +29,7 @@ class DBConfig:
     INDEX_GENERAL_INDEX_ORDER = "order"
 
     COLLECTION_COURSE = "courses"
+    FIELD_COURSE_ID = "id"
     FIELD_COURSE_ORIGINAL_ID = "originalId"
     FIELD_COURSE_NAME = "name"
     FIELD_COURSE_YEAR = "year"
@@ -47,6 +49,7 @@ class DBConfig:
     FIELD_COURSE_GRADES = "grades"
 
     COLLECTION_USER = "users"
+    FIELD_USER_ID = "id"
     FIELD_USER_ORIGINAL_ID = "originalId"
     FIELD_USER_USER_NAME = "username"
     FIELD_USER_NAME = "name"
@@ -75,6 +78,7 @@ class DBConfig:
     FIELD_GRADES_GRADE = "grade"
 
     COLLECTION_VIDEO = "videos"
+    FIELD_VIDEO_ID = "id"
     FIELD_VIDEO_ORIGINAL_ID = "originalId"
     FIELD_VIDEO_NAME = "name"
     FIELD_VIDEO_TEMPORAL_HOTNESS = "temporalHotness"
@@ -95,6 +99,7 @@ class DBConfig:
     FIELD_FORUM_SOCIALNETWORKS_ACTIVENESS_RANGE = "activenessRange"
 
     COLLECTION_FORUM = "forumthreads"
+    FIELD_FORUM_ID = "id"
     FIELD_FORUM_ORIGINAL_ID = "originalId"
     FIELD_FORUM_AUTHOR_ID = "authorId"
     FIELD_FORUM_COURSE_ID = "courseId"
@@ -141,8 +146,7 @@ class DBConfig:
     FIELD_METADBFILES_PROCESSED = "processed"
 
     TYPE_MYSQL = "mysql"
-    TYPE_MONGO = "mongo"
-    TYPE_CLICKSTREAM = "clickstream"
+
 
     DB_GENERAL_COLLECTIONS = [
         {
@@ -202,6 +206,10 @@ class DBConfig:
                     FIELD_GENERAL_VALIDATION: {"$type": "string"}
                 },
                 {
+                    FIELD_GENERAL_NAME: FIELD_COURSE_ID,
+                    FIELD_GENERAL_VALIDATION: {"$type": "string"}
+                },
+                {
                     FIELD_GENERAL_NAME: FIELD_COURSE_STUDENT_IDS,
                     FIELD_GENERAL_VALIDATION: {"$type": "array"}
                 },
@@ -212,10 +220,18 @@ class DBConfig:
             ],
             COLLECTION_GENERAL_INDEX:
             [
+                # {
+                #     FIELD_GENERAL_NAME: FIELD_COURSE_NAME,
+                #     INDEX_GENERAL_INDEX_ORDER: 1
+                # },
                 {
-                    FIELD_GENERAL_NAME: FIELD_COURSE_ORIGINAL_ID,
+                    FIELD_GENERAL_NAME: FIELD_COURSE_ID,
                     INDEX_GENERAL_INDEX_ORDER: 1
-                }
+                },
+                # {
+                #     FIELD_GENERAL_NAME: FIELD_COURSE_STATUS,
+                #     INDEX_GENERAL_INDEX_ORDER: 1
+                # }
             ]
         },
         {
@@ -238,12 +254,28 @@ class DBConfig:
                     FIELD_GENERAL_NAME: FIELD_USER_LOCATION,
                     FIELD_GENERAL_VALIDATION: {"$type": "string"}
                 },
+                # {
+                #     FIELD_GENERAL_NAME: FIELD_USER_BIRTH_DATE,
+                #     FIELD_GENERAL_VALIDATION: {"$type": "timestamp"}
+                # },
                 {
                     FIELD_GENERAL_NAME: FIELD_USER_EDUCATION_LEVEL,
                     FIELD_GENERAL_VALIDATION: {"$type": "string"}
                 },
                 {
                     FIELD_GENERAL_NAME: FIELD_USER_BIO,
+                    FIELD_GENERAL_VALIDATION: {"$type": "string"}
+                },
+                # {
+                #     FIELD_GENERAL_NAME: FIELD_USER_GENDER,
+                #     FIELD_GENERAL_VALIDATION: {"$in": ["male", "female"]}
+                # },
+                {
+                    FIELD_GENERAL_NAME: FIELD_USER_ORIGINAL_ID,
+                    FIELD_GENERAL_VALIDATION: {"$type": "string"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_USER_ID,
                     FIELD_GENERAL_VALIDATION: {"$type": "string"}
                 },
                 {
@@ -266,7 +298,7 @@ class DBConfig:
             COLLECTION_GENERAL_INDEX:
             [
                 {
-                    FIELD_GENERAL_NAME: FIELD_USER_ORIGINAL_ID,
+                    FIELD_GENERAL_NAME: FIELD_USER_ID,
                     INDEX_GENERAL_INDEX_ORDER: 1
                 }
             ]
@@ -339,12 +371,16 @@ class DBConfig:
                 {
                     FIELD_GENERAL_NAME: FIELD_VIDEO_ORIGINAL_ID,
                     FIELD_GENERAL_VALIDATION: {"$type": "string"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_VIDEO_ID,
+                    FIELD_GENERAL_VALIDATION: {"$type": "string"}
                 }
             ],
             COLLECTION_GENERAL_INDEX:
             [
                 {
-                    FIELD_GENERAL_NAME: FIELD_VIDEO_ORIGINAL_ID,
+                    FIELD_GENERAL_NAME: FIELD_VIDEO_ID,
                     INDEX_GENERAL_INDEX_ORDER: 1
                 }
             ]
@@ -492,12 +528,16 @@ class DBConfig:
                 {
                     FIELD_GENERAL_NAME: FIELD_FORUM_ORIGINAL_ID,
                     FIELD_GENERAL_VALIDATION: {"$type", "string"}
+                },
+                {
+                    FIELD_GENERAL_NAME: FIELD_FORUM_ID,
+                    FIELD_GENERAL_VALIDATION: {"$type", "string"}
                 }
             ],
             COLLECTION_GENERAL_INDEX:
             [
                 {
-                    FIELD_GENERAL_NAME: FIELD_FORUM_ORIGINAL_ID,
+                    FIELD_GENERAL_NAME: FIELD_FORUM_ID,
                     INDEX_GENERAL_INDEX_ORDER: 1
                 },
             ]
@@ -531,9 +571,16 @@ def init_config(config_file_path):
         DBConfig.SQL_CONFIG = sql_config
 
     dataserver_config = config_json.get("data_server")
-    if dataserver_config:
-        # init 3rd party keys
-        third_party_keys = dataserver_config.get("third_party_keys")
-        if third_party_keys:
-            ThirdPartyKeys.Youtube_key = third_party_keys.get(
-                'Youtube_key') or ThirdPartyKeys.Youtube_key
+    if dataserver_config is None:
+        return
+
+    # init logger config
+    logger_level = dataserver_config.get('logger_level')
+    logger.set_log_level(logger_level)
+
+    # init 3rd party keys
+    third_party_keys = dataserver_config.get("third_party_keys")
+    if third_party_keys:
+        ThirdPartyKeys.Youtube_key = third_party_keys.get('Youtube_key')
+
+    HKMOOC2MongoProcessor.Config.init_config(dataserver_config)

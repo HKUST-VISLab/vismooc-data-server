@@ -5,12 +5,12 @@ import unittest
 # from unittest.mock import DEFAULT, MagicMock, patch
 
 from mathematician.pipe import PipeModule
-from mathematician.Processor.Rawfile2MongoProcessor import CourseProcessor
+from mathematician.Processor.Rawfile2MongoProcessor import course
 
 class TestCourseProcessor(unittest.TestCase):
 
     def test_constructor(self):
-        processor = CourseProcessor()
+        processor = course.CourseProcessor()
         self.assertIsInstance(processor, PipeModule, 'it should be a subclass of PipeModule')
         self.assertDictEqual(processor.videos, {}, 'the videos should be empty')
         self.assertDictEqual(processor.courses, {}, 'the courses should be empty')

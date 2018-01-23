@@ -104,3 +104,7 @@ vismooc-raw-data
 dbsnapshots_*
 elearning-data
 sqlconfig.json
+
+.vs
+*.sln
+*.pyproj

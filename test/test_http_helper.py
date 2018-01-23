@@ -2,12 +2,13 @@
 '''
 # pylint: disable=C0111, C0103
 import unittest
-from logging import INFO
+from logging import INFO, DEBUG
 from unittest.mock import MagicMock, patch
 from urllib.error import HTTPError
 from urllib.parse import urlencode
 
 import asyncio
+from mathematician import __version__
 import mathematician.http_helper as http
 
 
@@ -54,12 +55,14 @@ class TestHTTPHelperMethods(unittest.TestCase):
     '''Unit test of http_helper module
     '''
 
-    @patch('urllib.request.urlopen')
-    def test_head(self, mock_urlopen):
+    def test_head_wrong_param_type(self):
         url = "http://foo.com"
         with self.assertRaises(Exception, msg="The params of HEAD should be dict type"):
             http.head(url=url, params="adsf")
 
+    @patch('urllib.request.urlopen')
+    def test_head_concat_params_as_str(self, mock_urlopen):
+        url = "http://foo.com"
         mock_response = MagicMock()
         mock_response.getcode.return_value = 200
         mock_response.read.return_value = "It is a return"
@@ -72,6 +75,16 @@ class TestHTTPHelperMethods(unittest.TestCase):
         self.assertEqual(true_url, right_url, "If pass params into the HEAD mehtod, the url should\
                          be a query string")
 
+    @patch('urllib.request.urlopen')
+    def test_head_200(self, mock_urlopen):
+        url = "http://foo.com"
+        mock_response = MagicMock()
+        mock_response.getcode.return_value = 200
+        mock_response.read.return_value = "It is a return"
+        mock_response.info.return_value = {"a_header": "a_header"}
+        mock_urlopen.return_value = mock_response
+        params = {'a': 1, 'b': 2}
+
         response = http.head(url)
         self.assertEqual(response.get_return_code(), 200,
                          "The return code should be 200")
@@ -79,26 +92,38 @@ class TestHTTPHelperMethods(unittest.TestCase):
                          should be `{'a_header':'a_header'}`")
         self.assertEqual(response.get_content(), None,
                          "The return content should be None")
-        with self.assertLogs("vismooc", level=INFO) as cm:
+        with self.assertLogs("vismooc-ds@" + __version__, level=DEBUG) as cm:
             http.head(url)
         self.assertEqual(
-            cm.output, ["INFO:vismooc:Try 0th times to HEAD " + url + "."])
+            cm.output, ["DEBUG:vismooc-ds@" + __version__ + ":Try 0th times to HEAD " + url + "."])
+
+    @patch('urllib.request.urlopen')
+    def test_head_404(self, mock_urlopen):
+        url = "http://foo.com"
+        mock_response = MagicMock()
+        mock_response.getcode.return_value = 200
+        mock_response.read.return_value = "It is a return"
+        mock_response.info.return_value = {"a_header": "a_header"}
+        mock_urlopen.return_value = mock_response
+        params = {'a': 1, 'b': 2}
 
         mock_urlopen.side_effect = HTTPError(
             url, 404, 'Not Found', {'a': 1}, None)
-        with self.assertLogs("vismooc", level=INFO) as cm:
+        with self.assertLogs("vismooc-ds@" + __version__, level=DEBUG) as cm:
             http.head(url, retry_times=2, delay=0)
-        self.assertEqual(cm.output, ["INFO:vismooc:Try 0th times to HEAD " + url + ".",
-                                     "WARNING:vismooc:HTTP HEAD error 404 at " + url,
-                                     "INFO:vismooc:Try 1th times to HEAD " + url + ".",
-                                     "WARNING:vismooc:HTTP HEAD error 404 at " + url, ])
+        self.assertEqual(cm.output, ["DEBUG:vismooc-ds@" + __version__ + ":Try 0th times to HEAD " + url + ".",
+                                     "WARNING:vismooc-ds@" + __version__ + ":HTTP HEAD error 404 at " + url,
+                                     "DEBUG:vismooc-ds@" + __version__ + ":Try 1th times to HEAD " + url + ".",
+                                     "WARNING:vismooc-ds@" + __version__ + ":HTTP HEAD error 404 at " + url, ])
 
-    @patch('urllib.request.urlopen')
-    def test_get(self, mock_urlopen):
+    def test_get_wrong_param_type(self):
         url = "http://foo"
         with self.assertRaises(Exception, msg="The params of GET should be dict type"):
             http.get(url=url, params="asdf")
 
+    @patch('urllib.request.urlopen')
+    def test_get_concat_params_to_str(self, mock_urlopen):
+        url = "http://foo"
         mock_response = MagicMock()
         mock_response.getcode.return_value = 200
         mock_response.read.return_value = "It is a return"
@@ -111,6 +136,15 @@ class TestHTTPHelperMethods(unittest.TestCase):
         self.assertEqual(true_url, right_url, "If pass params into the GET mehtod, the url should\
                          be a query string")
 
+    @patch('urllib.request.urlopen')
+    def test_get_200(self, mock_urlopen):
+        url = "http://foo"
+        mock_response = MagicMock()
+        mock_response.getcode.return_value = 200
+        mock_response.read.return_value = "It is a return"
+        mock_response.info.return_value = {"a_header": "a_header"}
+        mock_urlopen.return_value = mock_response
+
         response = http.get(url)
         self.assertEqual(response.get_return_code(), 200,
                          "The return code should be 200")
@@ -118,26 +152,37 @@ class TestHTTPHelperMethods(unittest.TestCase):
                          should be `{'a_header':'a_header'}`")
         self.assertEqual(response.get_content(), "It is a return",
                          "The return content should be a string")
-        with self.assertLogs("vismooc", level=INFO) as cm:
+        with self.assertLogs("vismooc-ds@" + __version__, level=DEBUG) as cm:
             http.get(url)
         self.assertEqual(
-            cm.output, ["INFO:vismooc:Try 0th times to GET " + url + "."])
+            cm.output, ["DEBUG:vismooc-ds@" + __version__ + ":Try 0th times to GET " + url + "."])
+
+    @patch('urllib.request.urlopen')
+    def test_get_404(self, mock_urlopen):
+        url = "http://foo"
+        mock_response = MagicMock()
+        mock_response.getcode.return_value = 200
+        mock_response.read.return_value = "It is a return"
+        mock_response.info.return_value = {"a_header": "a_header"}
+        mock_urlopen.return_value = mock_response
 
         mock_urlopen.side_effect = HTTPError(
             url, 404, 'Not Found', {'a': 1}, None)
-        with self.assertLogs("vismooc", level=INFO) as cm:
+        with self.assertLogs("vismooc-ds@" + __version__, level=DEBUG) as cm:
             http.get(url, retry_times=2, delay=0)
-        self.assertEqual(cm.output, ["INFO:vismooc:Try 0th times to GET " + url + ".",
-                                     "WARNING:vismooc:HTTP GET error 404 at " + url,
-                                     "INFO:vismooc:Try 1th times to GET " + url + ".",
-                                     "WARNING:vismooc:HTTP GET error 404 at " + url, ])
+        self.assertEqual(cm.output, ["DEBUG:vismooc-ds@" + __version__ + ":Try 0th times to GET " + url + ".",
+                                     "WARNING:vismooc-ds@" + __version__ + ":HTTP GET error 404 at " + url,
+                                     "DEBUG:vismooc-ds@" + __version__ + ":Try 1th times to GET " + url + ".",
+                                     "WARNING:vismooc-ds@" + __version__ + ":HTTP GET error 404 at " + url, ])
 
-    @patch('urllib.request.urlopen')
-    def test_post(self, mock_urlopen):
+    def test_post_wong_param_type(self):
         url = "http://foo.com"
         with self.assertRaises(Exception, msg="The params of POST should be dict type"):
             http.post(url=url, params="asdf")
 
+    @patch('urllib.request.urlopen')
+    def test_post_200(self, mock_urlopen):
+        url = "http://foo.com"
         mock_response = MagicMock()
         mock_response.getcode.return_value = 200
         mock_response.read.return_value = "It is a return"
@@ -145,30 +190,42 @@ class TestHTTPHelperMethods(unittest.TestCase):
         mock_urlopen.return_value = mock_response
 
         params = {'a': 11, 'b': 2}
-        with self.assertLogs("vismooc", level=INFO) as cm:
+        with self.assertLogs("vismooc-ds@" + __version__, level=DEBUG) as cm:
             http.post(url, params=params)
         self.assertEqual(
-            cm.output, ["INFO:vismooc:Try 0th times to POST " + url + "."])
+            cm.output, ["DEBUG:vismooc-ds@" + __version__ + ":Try 0th times to POST " + url + "."])
+
+    @patch('urllib.request.urlopen')
+    def test_post_404(self, mock_urlopen):
+        url = "http://foo.com"
+        mock_response = MagicMock()
+        mock_response.getcode.return_value = 200
+        mock_response.read.return_value = "It is a return"
+        mock_response.info.return_value = {"a_header": "a_header"}
+        mock_urlopen.return_value = mock_response
 
         mock_urlopen.side_effect = HTTPError(
             url, 404, 'Not Found', {'a': 1}, None)
-        with self.assertLogs("vismooc", level=INFO) as cm:
+        with self.assertLogs("vismooc-ds@" + __version__, level=DEBUG) as cm:
             http.post(url, retry_times=2, delay=0)
-        self.assertEqual(cm.output, ["INFO:vismooc:Try 0th times to POST " + url + ".",
-                                     "WARNING:vismooc:HTTP POST error 404 at " + url,
-                                     "INFO:vismooc:Try 1th times to POST " + url + ".",
-                                     "WARNING:vismooc:HTTP POST error 404 at " + url, ])
+        self.assertEqual(cm.output, ["DEBUG:vismooc-ds@" + __version__ + ":Try 0th times to POST " + url + ".",
+                                     "WARNING:vismooc-ds@" + __version__ + ":HTTP POST error 404 at " + url,
+                                     "DEBUG:vismooc-ds@" + __version__ + ":Try 1th times to POST " + url + ".",
+                                     "WARNING:vismooc-ds@" + __version__ + ":HTTP POST error 404 at " + url, ])
 
-    @patch('mathematician.http_helper.aiohttp.ClientSession')
-    @async_test
-    async def test_async_get(self, mock_aiohttp_ClientSession):
+    async def test_async_get_wrong_param_type(self):
         url = "http://foo"
         with self.assertRaises(Exception, msg="The params of async_GET should be dict type"):
             await http.async_get(url=url, params="asdf")
 
+    @patch('mathematician.http_helper.aiohttp.ClientSession')
+    @async_test
+    async def test_async_get_200(self, mock_aiohttp_ClientSession):
+        url = "http://foo"
         mock_response = MagicMock()
         mock_response.status = 200
         mock_response.headers = {"a_header": "a_header"}
+
         async def coro_read():
             return "It is a return"
         mock_response.read = coro_read
@@ -187,16 +244,20 @@ class TestHTTPHelperMethods(unittest.TestCase):
         self.assertEqual(response.get_content(), "It is a return",
                          "The return content should be a string")
 
-    @patch('mathematician.http_helper.aiohttp.ClientSession')
     @async_test
-    async def test_async_post(self, mock_aiohttp_ClientSession):
+    async def test_async_post_wrong_param_type(self):
         url = "http://boo"
         with self.assertRaises(Exception, msg="The param of async_post should be dict type"):
             await http.async_post(url=url, params="asdf")
 
+    @patch('mathematician.http_helper.aiohttp.ClientSession')
+    @async_test
+    async def test_async_post_200(self, mock_aiohttp_ClientSession):
+        url = "http://boo"
         mock_response = MagicMock()
         mock_response.status = 200
         mock_response.headers = {"a_header": "a_header"}
+
         async def coro_read():
             return "It is a return"
         mock_response.read = coro_read
@@ -263,16 +324,22 @@ class TestHTTPHelperClass(unittest.TestCase):
                              'should update a header in the headers')
 
     @patch('mathematician.http_helper.get')
-    def test_get(self, mock_get):
+    def test_get_return_none(self, mock_get):
         host = "http://foo"
         headers = {"a_header": "a_header"}
         conn = http.HttpConnection(host, headers)
         mock_get.return_value = None
 
-        with self.assertLogs("vismooc", level=INFO) as cm:
+        with self.assertLogs("vismooc-ds@" + __version__, level=DEBUG) as cm:
             self.assertIsNone(conn.get('/'), msg="return a None")
         self.assertEqual(
-            cm.output, ["WARNING:vismooc:The response of HttpConnection GET is None"])
+            cm.output, ["WARNING:vismooc-ds@" + __version__ + ":The response of HttpConnection GET is None"])
+
+    @patch('mathematician.http_helper.get')
+    def test_get_default_param(self, mock_get):
+        host = "http://foo"
+        headers = {"a_header": "a_header"}
+        conn = http.HttpConnection(host, headers)
 
         response_headers = {'Set-Cookie': 'It is a cookie'}
         mock_response = MagicMock()
@@ -286,6 +353,17 @@ class TestHTTPHelperClass(unittest.TestCase):
         self.assertEqual(conn.headers.get('Cookie'), response_headers.get('Set-Cookie'), 'set the cookies if\
             has "Set-Cookie" in the response headers')
 
+    @patch('mathematician.http_helper.get')
+    def test_get_custom_param(self, mock_get):
+        host = "http://foo"
+        headers = {"a_header": "a_header"}
+        conn = http.HttpConnection(host, headers)
+
+        response_headers = {'Set-Cookie': 'It is a cookie'}
+        mock_response = MagicMock()
+        mock_response.get_headers.return_value = response_headers
+        mock_get.return_value = mock_response
+
         params = {'a': 1, 'b': 2}
         retry_times = 4
         delay = 100
@@ -296,17 +374,22 @@ class TestHTTPHelperClass(unittest.TestCase):
             args should be passed to get method")
 
     @patch('mathematician.http_helper.head')
-    def test_head(self, mock_head):
+    def test_head_return_none(self, mock_head):
         host = "http://foo"
         headers = {"a_header": "a_header"}
         conn = http.HttpConnection(host, headers)
         mock_head.return_value = None
 
-        with self.assertLogs("vismooc", level=INFO) as cm:
+        with self.assertLogs("vismooc-ds@" + __version__, level=DEBUG) as cm:
             self.assertIsNone(conn.head('/'), msg="return a None")
         self.assertEqual(
-            cm.output, ["WARNING:vismooc:The response of HttpConnection HEAD is None"])
+            cm.output, ["WARNING:vismooc-ds@" + __version__ + ":The response of HttpConnection HEAD is None"])
 
+    @patch('mathematician.http_helper.head')
+    def test_head_default_param(self, mock_head):
+        host = "http://foo"
+        headers = {"a_header": "a_header"}
+        conn = http.HttpConnection(host, headers)
         response_headers = {'Set-Cookie': 'It is a cookie'}
         mock_response = MagicMock()
         mock_response.get_headers.return_value = response_headers
@@ -319,6 +402,16 @@ class TestHTTPHelperClass(unittest.TestCase):
         self.assertEqual(conn.headers.get('Cookie'), response_headers.get('Set-Cookie'), 'set the cookies if\
             has "Set-Cookie" in the response headers')
 
+    @patch('mathematician.http_helper.head')
+    def test_head_custom_param(self, mock_head):
+        host = "http://foo"
+        headers = {"a_header": "a_header"}
+        conn = http.HttpConnection(host, headers)
+        response_headers = {'Set-Cookie': 'It is a cookie'}
+        mock_response = MagicMock()
+        mock_response.get_headers.return_value = response_headers
+        mock_head.return_value = mock_response
+
         params = {'a': 1, 'b': 2}
         retry_times = 4
         delay = 100
@@ -329,30 +422,47 @@ class TestHTTPHelperClass(unittest.TestCase):
             args should be passed to head method")
 
     @patch('mathematician.http_helper.post')
-    def test_post(self, mock_post):
+    def test_post_return_none(self, mock_post):
         host = "http://foo"
         headers = {"a_header": "a_header"}
         conn = http.HttpConnection(host, headers)
         mock_post.return_value = None
 
         params = {'a': 1, 'b': 2}
-        with self.assertLogs("vismooc", level=INFO) as cm:
+        with self.assertLogs("vismooc-ds@" + __version__, level=DEBUG) as cm:
             self.assertIsNone(conn.post('/', params), msg="return a None")
         self.assertEqual(
-            cm.output, ["WARNING:vismooc:The response of HttpConnection POST is None"])
+            cm.output, ["WARNING:vismooc-ds@" + __version__ + ":The response of HttpConnection POST is None"])
+
+    @patch('mathematician.http_helper.post')
+    def test_post_default_param(self, mock_post):
+        host = "http://foo"
+        headers = {"a_header": "a_header"}
+        conn = http.HttpConnection(host, headers)
 
         response_headers = {'Set-Cookie': 'It is a cookie'}
         mock_response = MagicMock()
         mock_response.get_headers.return_value = response_headers
         mock_post.return_value = mock_response
 
-        self.assertIs(conn.post('/', params),
+        self.assertIs(conn.post('/', None),
                       mock_response, 'Post the response')
         args = mock_post.call_args[0]
-        self.assertTupleEqual(args, (host + '/', conn.headers, params, 5, 1), msg="The default args for\
+        self.assertTupleEqual(args, (host + '/', conn.headers, None, 5, 1), msg="The default args for\
             post method")
         self.assertEqual(conn.headers.get('Cookie'), response_headers.get('Set-Cookie'), 'set the cookies if\
             has "Set-Cookie" in the response headers')
+
+    @patch('mathematician.http_helper.post')
+    def test_post_custom_param(self, mock_post):
+        host = "http://foo"
+        headers = {"a_header": "a_header"}
+        conn = http.HttpConnection(host, headers)
+
+        response_headers = {'Set-Cookie': 'It is a cookie'}
+        mock_response = MagicMock()
+        mock_response.get_headers.return_value = response_headers
+        mock_post.return_value = mock_response
 
         params = {'a': 1, 'b': 2}
         retry_times = 4
@@ -365,16 +475,23 @@ class TestHTTPHelperClass(unittest.TestCase):
 
     @patch('mathematician.http_helper.async_get', new_callable=AsyncFuncMock)
     @async_test
-    async def test_async_get(self, mock_async_get):
+    async def test_async_get_return_none(self, mock_async_get):
         host = "http://foo"
         headers = {"a_header": "a_header"}
         conn = http.HttpConnection(host, headers)
         mock_async_get.coro.return_value = None
 
-        with self.assertLogs("vismooc", level=INFO) as cm:
+        with self.assertLogs("vismooc-ds@" + __version__, level=DEBUG) as cm:
             self.assertIsNone(await conn.async_get('/', None), msg="return a None")
         self.assertEqual(
-            cm.output, ["WARNING:vismooc:The response of HttpConnection async_GET is None"])
+            cm.output, ["WARNING:vismooc-ds@" + __version__ + ":The response of HttpConnection async_GET is None"])
+
+    @patch('mathematician.http_helper.async_get', new_callable=AsyncFuncMock)
+    @async_test
+    async def test_async_get_default_param(self, mock_async_get):
+        host = "http://foo"
+        headers = {"a_header": "a_header"}
+        conn = http.HttpConnection(host, headers)
 
         response_headers = {'Set-Cookie': 'It is a cookie'}
         mock_response = MagicMock()
@@ -389,6 +506,20 @@ class TestHTTPHelperClass(unittest.TestCase):
         self.assertEqual(conn.headers.get('Cookie'), response_headers.get('Set-Cookie'), 'set the cookies if\
             has "Set-Cookie" in the response headers')
 
+    @patch('mathematician.http_helper.async_get', new_callable=AsyncFuncMock)
+    @async_test
+    async def test_async_get_custom_param(self, mock_async_get):
+        host = "http://foo"
+        headers = {"a_header": "a_header"}
+        conn = http.HttpConnection(host, headers)
+
+        response_headers = {'Set-Cookie': 'It is a cookie'}
+        mock_response = MagicMock()
+        mock_response.get_headers.return_value = response_headers
+        mock_response = MagicMock()
+        mock_response.get_headers.return_value = response_headers
+        mock_async_get.coro.return_value = mock_response
+
         input_params = {'a': 1, 'b': 2}
         self.assertIs(await conn.async_get('/', input_params), mock_response, 'Get the response')
         args = mock_async_get.call_args[0]
@@ -397,15 +528,23 @@ class TestHTTPHelperClass(unittest.TestCase):
 
     @patch('mathematician.http_helper.async_post', new_callable=AsyncFuncMock)
     @async_test
-    async def test_async_post(self, mock_async_post):
+    async def test_async_post_return_none(self, mock_async_post):
         host = "http://foo"
         headers = {"a_header": "a_header"}
         conn = http.HttpConnection(host, headers)
         mock_async_post.coro.return_value = None
-        with self.assertLogs("vismooc", level=INFO) as cm:
+        with self.assertLogs("vismooc-ds@" + __version__, level=DEBUG) as cm:
             self.assertIsNone(await conn.async_post('/', None), msg="return a None")
         self.assertEqual(
-            cm.output, ["WARNING:vismooc:The response of HttpConnection async_POST is None"])
+            cm.output, ["WARNING:vismooc-ds@" + __version__ + ":The response of HttpConnection async_POST is None"])
+
+    @patch('mathematician.http_helper.async_post', new_callable=AsyncFuncMock)
+    @async_test
+    async def test_async_post_default_param(self, mock_async_post):
+        host = "http://foo"
+        headers = {"a_header": "a_header"}
+        conn = http.HttpConnection(host, headers)
+
         response_headers = {'Set-Cookie': 'It is a cookie'}
         mock_response = MagicMock()
         mock_response.get_headers.return_value = response_headers
@@ -418,6 +557,20 @@ class TestHTTPHelperClass(unittest.TestCase):
                 default args for get method")
         self.assertEqual(conn.headers.get('Cookie'), response_headers.get('Set-Cookie'), 'set the cookies if\
             has "Set-Cookie" in the response headers')
+
+    @patch('mathematician.http_helper.async_post', new_callable=AsyncFuncMock)
+    @async_test
+    async def test_async_post(self, mock_async_post):
+        host = "http://foo"
+        headers = {"a_header": "a_header"}
+        conn = http.HttpConnection(host, headers)
+
+        response_headers = {'Set-Cookie': 'It is a cookie'}
+        mock_response = MagicMock()
+        mock_response.get_headers.return_value = response_headers
+        mock_response = MagicMock()
+        mock_response.get_headers.return_value = response_headers
+        mock_async_post.coro.return_value = mock_response
 
         input_params = {'a': 1, 'b': 2}
         self.assertIs(await conn.async_post('/', input_params), mock_response, 'Get the response')

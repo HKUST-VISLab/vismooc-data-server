@@ -15,6 +15,8 @@ from mathematician.DB.mongo_dbhelper import MongoDB
 from mathematician.http_helper import get as http_get
 from mathematician.logger import warn
 
+DB_NAME = 'testVismoocElearning'
+DB_HOST = 'localhost'
 PARALLEL_GRAIN = 20
 
 RE_ISO_8601 = re.compile(
@@ -71,6 +73,8 @@ def try_parse_date(date_str, pattern="%Y-%m-%d %H:%M:%S.%f"):
         return datetime.strptime(date_str, pattern)
     except ValueError:
         return None
+    except TypeError:
+        return None
 
 def try_parse_course_id(course_id):
     '''Try parse course id to form an uniform format
@@ -82,6 +86,16 @@ def try_parse_course_id(course_id):
     except ValueError as err:
         raise err
     return course_id
+
+def try_parse_video_id(video_id):
+    '''Try parse video id to form an uniform format
+    '''
+    try:
+        if '@' in video_id:
+            video_id = video_id.split('@')[-1]
+    except ValueError as err:
+        raise err
+    return video_id
 
 DAY_TS = 1000 * 60 * 60 * 24
 def round_timestamp_to_day(timestamp):
@@ -182,7 +196,7 @@ def is_processed(filename):
     ''' Check whether a file is processed or not according to
         the metadbfiles collection records
     '''
-    database = MongoDB(DBc.DB_NAME, DBc.DB_HOST, DBc.DB_PORT)
+    database = MongoDB(DB_HOST, DB_NAME)
     metadbfile = database.get_collection(DBc.COLLECTION_METADBFILES)
     md5 = hashlib.md5()
     with open(filename, 'r', encoding='utf-8') as file:
@@ -192,13 +206,3 @@ def is_processed(filename):
         DBc.FIELD_METADBFILES_ETAG: digest, DBc.FIELD_METADBFILES_PROCESSED: True
     })
     return True if db_entry else False
-
-def try_parse_video_id(video_id):
-    '''Try parse video id to form an uniform format
-    '''
-    try:
-        if '@' in video_id:
-            video_id = video_id.split('@')[-1]
-    except ValueError as err:
-        raise err
-    return video_id

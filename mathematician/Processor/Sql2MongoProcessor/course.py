@@ -39,7 +39,7 @@ class CourseProcessor(PipeModule):
             course_id = row[1]
             course_id = try_parse_course_id(course_id)
             course[DBc.FIELD_COURSE_ORG] = row[4]
-            course[DBc.FIELD_COURSE_ORIGINAL_ID] = course_id
+            course[DBc.FIELD_COURSE_ID] = course_id
             course[DBc.FIELD_COURSE_NAME] = row[2]
             course[DBc.FIELD_COURSE_YEAR] = row[3]
             course[DBc.FIELD_COURSE_IMAGE_URL] = None

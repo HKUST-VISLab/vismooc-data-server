@@ -5,7 +5,7 @@ import unittest
 # from unittest.mock import DEFAULT, MagicMock, patch
 
 from mathematician.pipe import PipeModule
-from mathematician.Processor.Sql2MongoProcessor import CourseProcessor
+from mathematician.Processor.Sql2MongoProcessor.course import CourseProcessor
 
 class TestCourseProcessor(unittest.TestCase):
 

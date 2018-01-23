@@ -129,7 +129,7 @@ class CourseProcessor(PipeModule):
                     video[DBc.FIELD_VIDEO_URL] = (len(metadata.get('html5_sources')) and
                                                   metadata.get('html5_sources')[0]) or metadata.get('edx_video_id')
                     video[DBc.FIELD_VIDEO_DURATION] = None
-                    video[DBc.FIELD_VIDEO_ORIGINAL_ID] = video_id
+                    video[DBc.FIELD_VIDEO_ID] = video_id
                     video[DBc.FIELD_VIDEO_METAINFO]['youtube_id'] = metadata.get('youtube_id_1_0')
                     self.videos[video_id] = video
                     course_videos[video_id] = video
@@ -148,7 +148,7 @@ class CourseProcessor(PipeModule):
                     end_time = metadata.get('end')
                     end_time = try_parse_date(start_time, pattern_time) if end_time else None
                     course[DBc.FIELD_COURSE_ORG] = org
-                    course[DBc.FIELD_COURSE_ORIGINAL_ID] = course_id
+                    course[DBc.FIELD_COURSE_ID] = course_id
                     course[DBc.FIELD_COURSE_NAME] = metadata.get('display_name')
                     course_year = start_time and str(start_time.year)
                     period = course_compon[3][course_compon[3].index('Q') - 1:course_compon[3].index('Q')] \
@@ -176,7 +176,7 @@ class CourseProcessor(PipeModule):
             for video in course_videos.values():
                 # video collection is completed
                 # course collection needs studentIds
-                video_id = video[DBc.FIELD_VIDEO_ORIGINAL_ID]
+                video_id = video[DBc.FIELD_VIDEO_ID]
                 course[DBc.FIELD_COURSE_VIDEO_IDS].add(video_id)
                 youtube_id = video[DBc.FIELD_VIDEO_METAINFO].get('youtube_id')
                 if youtube_id is not None:

@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import patch, DEFAULT, MagicMock
 
 from mathematician.pipe import PipeModule
-from mathematician.Processor.Rawfile2MongoProcessor import LogProcessor
+from mathematician.Processor.Rawfile2MongoProcessor.log import LogProcessor
 from mathematician.config import DBConfig as DBc
 from mathematician.Processor.utils import PARALLEL_GRAIN, try_parse_date, round_timestamp_to_day, try_get_timestamp
 

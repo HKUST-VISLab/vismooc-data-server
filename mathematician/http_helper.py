@@ -5,9 +5,9 @@ import hashlib
 import json
 import multiprocessing
 import os
+from os import path as path
 import time
 import urllib.request
-from os import path as path
 from urllib.parse import urlencode
 
 import aiohttp
@@ -15,7 +15,8 @@ import aiohttp
 import asyncio
 import ssl
 
-from .logger import info, progressbar, warn
+from . import logger
+
 
 def head(url, headers=None, params=None, retry_times=5, delay=1):
     """Send synchronous head request
@@ -35,10 +36,10 @@ def head(url, headers=None, params=None, retry_times=5, delay=1):
     req = urllib.request.Request(url=url, headers=headers, method='GET')
     for attempt_number in range(retry_times):
         try:
-            info("Try " + str(attempt_number) + "th times to HEAD " + url + ".")
+            logger.debug("Try " + str(attempt_number) + "th times to HEAD " + url + ".")
             response = urllib.request.urlopen(req, context=context, timeout=100)
         except urllib.error.HTTPError as ex:
-            warn("HTTP HEAD error " + str(ex.getcode()) + " at " + url)
+            logger.warn("HTTP HEAD error " + str(ex.getcode()) + " at " + url)
             time.sleep(delay)
         else:
             response_headers = response.info()
@@ -62,10 +63,10 @@ def get(url, headers=None, params=None, retry_times=5, delay=1):
     req = urllib.request.Request(url=url, headers=headers, method='GET')
     for attempt_number in range(retry_times):
         try:
-            info("Try " + str(attempt_number) + "th times to GET " + url + ".")
+            logger.debug("Try " + str(attempt_number) + "th times to GET " + url + ".")
             response = urllib.request.urlopen(req, context=context)
         except urllib.error.HTTPError as ex:
-            warn("HTTP GET error " + str(ex.getcode()) + " at " + url)
+            logger.warn("HTTP GET error " + str(ex.getcode()) + " at " + url)
             time.sleep(delay)
         else:
             data = response.read()
@@ -85,10 +86,10 @@ def post(url, headers=None, params=None, retry_times=5, delay=1):
     req = urllib.request.Request(url=url, headers=headers, data=params, method='POST')
     for attempt_number in range(retry_times):
         try:
-            info("Try " + str(attempt_number) + "th times to POST " + url + ".")
+            logger.debug("Try " + str(attempt_number) + "th times to POST " + url + ".")
             response = urllib.request.urlopen(req)
         except urllib.error.HTTPError as ex:
-            warn("HTTP POST error " + str(ex.getcode()) + " at " + url)
+            logger.warn("HTTP POST error " + str(ex.getcode()) + " at " + url)
             time.sleep(delay)
         else:
             data = response.read()
@@ -158,10 +159,10 @@ def download_single_file(url, save_dir=None, headers=None, params=None, common_s
     req = urllib.request.Request(url=url, headers=headers, method='GET')
     for attempt_number in range(retry_times):
         try:
-            info("Try " + str(attempt_number) + "th times to download " + url + ".")
+            logger.debug("Try " + str(attempt_number) + "th times to download " + url + ".")
             response = urllib.request.urlopen(req, context=context)
         except urllib.error.HTTPError as ex:
-            warn("HTTP GET error " + str(ex.getcode()) + " at " + url)
+            logger.warn("HTTP GET error " + str(ex.getcode()) + " at " + url)
             time.sleep(delay)
         else:
             response_headers = response.info()
@@ -174,7 +175,7 @@ def download_single_file(url, save_dir=None, headers=None, params=None, common_s
             file_total_length = response_headers.get('Content-Length')
             file_total_length = int(file_total_length) if file_total_length else 0
             if file_total_length == 0:
-                info("The conent length of "+url+" is 0, finish downloading")
+                logger.warn("The conent length of "+url+" is 0, finish downloading")
                 return
             # get md5
             md5_checksum = response_headers.get("Content-MD5") or md5_checksum
@@ -192,7 +193,7 @@ def download_single_file(url, save_dir=None, headers=None, params=None, common_s
                     tmp_current_percent = int(file_progress_length * inverse_file_total_length)
                     if int(tmp_current_percent) > current_percent:
                         current_percent = tmp_current_percent
-                        progressbar(url, file_progress_length, file_total_length)
+                        logger.progressbar(url, file_progress_length, file_total_length)
                     file.write(block)
                 response.close()
             if md5_checksum:
@@ -206,9 +207,9 @@ def download_single_file(url, save_dir=None, headers=None, params=None, common_s
                         md5.update(chunk)
                 md5_returned = md5.hexdigest()
                 if md5_checksum == md5_returned:
-                    info("MD5 of " + url + " is verified")
+                    logger.info("MD5 of " + url + " is verified")
                 else:
-                    warn("MD5 of " + url + " verification failed!. File downloaded failed!")
+                    logger.warn("MD5 of " + url + " verification failed!. File downloaded failed!")
                     return
             if os.path.exists(file_path):
                 os.remove(file_path)
@@ -288,7 +289,7 @@ class HttpConnection:
             if response.get_headers().get("Set-Cookie") is not None:
                 self.__headers["Cookie"] = response.get_headers().get("Set-Cookie")
         else:
-            warn("The response of HttpConnection GET is None")
+            logger.warn("The response of HttpConnection GET is None")
         return response
 
     def head(self, url, params=None, retry_times=5, delay=1):
@@ -299,7 +300,7 @@ class HttpConnection:
             if response.get_headers().get("Set-Cookie") is not None:
                 self.__headers["Cookie"] = response.get_headers().get("Set-Cookie")
         else:
-            warn("The response of HttpConnection HEAD is None")
+            logger.warn("The response of HttpConnection HEAD is None")
         return response
 
     def post(self, url, params, retry_times=5, delay=1):
@@ -310,7 +311,7 @@ class HttpConnection:
             if response.get_headers().get("Set-Cookie") is not None:
                 self.__headers["Cookie"] = response.get_headers().get("Set-Cookie")
         else:
-            warn("The response of HttpConnection POST is None")
+            logger.warn("The response of HttpConnection POST is None")
         return response
 
     def download_file(self, url, save_dir, common_suffix='', md5_checksum=None, retry_times=5,
@@ -335,7 +336,7 @@ class HttpConnection:
             if response.get_headers().get("Set-Cookie") is not None:
                 self.__headers["Cookie"] = response.get_headers().get("Set-Cookie")
         else:
-            warn("The response of HttpConnection async_GET is None")
+            logger.warn("The response of HttpConnection async_GET is None")
         return response
 
     async def async_post(self, url, params):
@@ -346,10 +347,9 @@ class HttpConnection:
             if response.get_headers().get("Set-Cookie") is not None:
                 self.__headers["Cookie"] = response.get_headers().get("Set-Cookie")
         else:
-            warn("The response of HttpConnection async_POST is None")
+            logger.warn("The response of HttpConnection async_POST is None")
 
         return response
-
 
 class HttpResponse():
     """ Encapsulate http response headers, content, and status code in this class

@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import patch
 
 from mathematician.pipe import PipeModule
-from mathematician.Processor.Sql2MongoProcessor import LogProcessor
+from mathematician.Processor.Sql2MongoProcessor.log import LogProcessor
 from mathematician.config import DBConfig as DBc
 from mathematician.Processor.utils import try_parse_date, round_timestamp_to_day, try_get_timestamp
 
