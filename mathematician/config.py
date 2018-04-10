@@ -2,7 +2,6 @@
 """
 import json
 from os.path import exists
-from mathematician.Processor import HKMOOC2MongoProcessor
 
 from . import logger
 
@@ -582,5 +581,3 @@ def init_config(config_file_path):
     third_party_keys = dataserver_config.get("third_party_keys")
     if third_party_keys:
         ThirdPartyKeys.Youtube_key = third_party_keys.get('Youtube_key')
-
-    HKMOOC2MongoProcessor.Config.init_config(dataserver_config)
