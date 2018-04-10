@@ -5,14 +5,14 @@ from datetime import datetime
 
 from mathematician.pipe import PipeLine
 import mathematician.config as config
-from mathematician.Processor.Sql2MongoProcessor import (DBProcessor,
-                                                        CourseProcessor,
-                                                        EnrollmentProcessor,
-                                                        ForumProcessor,
-                                                        GradeProcessor,
-                                                        LogProcessor,
-                                                        UserProcessor,
-                                                        VideoProcessor)
+from mathematician.Processor.Sql2MongoProcessor import (course,
+                                                        db,
+                                                        enrollment,
+                                                        forum,
+                                                        grade,
+                                                        log,
+                                                        user,
+                                                        video)
 
 
 def main():
@@ -23,9 +23,15 @@ def main():
     else:
         config.init_config('./config.json')
     pipeline = PipeLine()
-    pipeline.input_files([]).pipe(CourseProcessor()).pipe(VideoProcessor()).pipe(
-        EnrollmentProcessor()).pipe(LogProcessor()).pipe(UserProcessor()).pipe(
-            ForumProcessor()).pipe(GradeProcessor()).pipe(DBProcessor())
+    pipeline.input_files([]) \
+        .pipe(course.CourseProcessor()) \
+        .pipe(video.VideoProcessor()) \
+        .pipe(enrollment.EnrollmentProcessor()) \
+        .pipe(log.LogProcessor()) \
+        .pipe(user.UserProcessor()) \
+        .pipe(forum.ForumProcessor()) \
+        .pipe(grade.GradeProcessor()) \
+        .pipe(db.DBProcessor())
     start_time = datetime.now()
     pipeline.execute()
     print('spend time:' + str(datetime.now() - start_time))

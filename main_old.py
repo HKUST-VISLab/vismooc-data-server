@@ -4,14 +4,15 @@ from datetime import datetime
 from os import listdir, path
 
 from mathematician.pipe import PipeLine
-from mathematician.Processor.Rawfile2MongoProcessor import (DumpToDB,
-                                                            FormatEnrollmentFile,
-                                                            FormatForumFile,
-                                                            FormatGradeFile,
-                                                            FormatLogFile,
-                                                            FormatUserFile,
-                                                            ProcessCourseStructFile,
-                                                            ProcessMetadbFiles)
+from mathematician.Processor.Rawfile2MongoProcessor import (course,
+                                                            course_role,
+                                                            db,
+                                                            enrollment,
+                                                            forum,
+                                                            grade,
+                                                            log,
+                                                            user,
+                                                            meta_info)
 
 DB_NAME = 'testVismoocElearning'
 DB_HOST = 'localhost'
@@ -35,9 +36,15 @@ def main():
     filenames = get_files(courses_dir)
 
     pipeline = PipeLine()
-    pipeline.input_files(filenames).pipe(ProcessMetadbFiles()).pipe(ProcessCourseStructFile()).pipe(
-        FormatEnrollmentFile()).pipe(FormatLogFile()).pipe(FormatUserFile()).pipe(
-            FormatForumFile()).pipe(FormatGradeFile()).pipe(DumpToDB())
+    pipeline.input_files(filenames) \
+        .pipe(meta_info.MetaDBProcessor()) \
+        .pipe(course.CourseProcessor()) \
+        .pipe(enrollment.EnrollmentProcessor()) \
+        .pipe(log.LogProcessor()) \
+        .pipe(user.UserProcessor()) \
+        .pipe(forum.ForumProcessor()) \
+        .pipe(grade.GradeProcessor()) \
+        .pipe(db.DBProcessor())
     start_time = datetime.now()
     pipeline.execute()
     print('spend time:' + str(datetime.now() - start_time))
