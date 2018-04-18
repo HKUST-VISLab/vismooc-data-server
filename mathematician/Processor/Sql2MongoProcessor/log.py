@@ -41,8 +41,7 @@ class LogProcessor(PipeModule):
         videos = raw_data[RD_DATA].get(DBc.COLLECTION_VIDEO)
         for row in all_data_to_be_processed:
 
-            # ugly hacked. TODO
-            course_id = row[1] if len(row) > 12 else 'org:HKUSTx/COMP102x/2T2014'
+            course_id = row[1] # if len(row) > 12 else 'org:HKUSTx/COMP102x/2T2014'
             if course_id is None:
                 continue
             try:
@@ -58,7 +57,8 @@ class LogProcessor(PipeModule):
             video_id = try_parse_video_id(video_id)
 
             event = {}
-            event[DBc.FIELD_LOG_USER_ID] = row[2]
+            user_id = row[2]
+            event[DBc.FIELD_LOG_USER_ID] = user_id
             event[DBc.FIELD_LOG_VIDEO_ID] = video_id
             event[DBc.FIELD_LOG_TIMESTAMP] = try_get_timestamp(row[4])
             event[DBc.FIELD_LOG_COURSE_ID] = course_id
@@ -91,9 +91,14 @@ class LogProcessor(PipeModule):
                 if temporal_hotness is None:
                     temporal_hotness = {}
                     videos[video_id][DBc.FIELD_VIDEO_TEMPORAL_HOTNESS] = temporal_hotness
+                if temporal_hotness.get(course_id) == None:
+                    temporal_hotness[course_id] = {}
+                temporal_hotness = temporal_hotness[course_id]
                 if event_date not in temporal_hotness:
-                    temporal_hotness[event_date] = 0
-                temporal_hotness[event_date] += 1
+                    temporal_hotness[event_date] = {}
+                if user_id not in temporal_hotness[event_date]:
+                    temporal_hotness[event_date][user_id] = 0
+                temporal_hotness[event_date][user_id] += 1
 
         processed_data = raw_data
         processed_data[RD_DATA][DBc.COLLECTION_LOG] = self.events

@@ -33,13 +33,17 @@ class CourseProcessor(PipeModule):
             return raw_data
 
         course_videos = get_data_by_table('course_video')
+        stats_overall = get_data_by_table('stats_overall')[0]
+        grades = get_data_by_table('grades')
 
         for row in data_to_be_processed:
             course = {}
-            course_id = row[1]
-            course_id = try_parse_course_id(course_id)
+            original_course_id = stats_overall[0]
+            # course_id = row[1]
+            course_id = try_parse_course_id(original_course_id)
             course[DBc.FIELD_COURSE_ORG] = row[4]
             course[DBc.FIELD_COURSE_ID] = course_id
+            course[DBc.FIELD_COURSE_ORIGINAL_ID] = course_id
             course[DBc.FIELD_COURSE_NAME] = row[2]
             course[DBc.FIELD_COURSE_YEAR] = row[3]
             course[DBc.FIELD_COURSE_IMAGE_URL] = None
@@ -52,9 +56,9 @@ class CourseProcessor(PipeModule):
             course[DBc.FIELD_COURSE_METAINFO] = {}
             course[DBc.FIELD_COURSE_STARTTIME] = try_get_timestamp(row[7]) if isinstance(row[7], datetime) else None
             course[DBc.FIELD_COURSE_ENDTIME] = try_get_timestamp(row[8])  if isinstance(row[8], datetime) else None
-            course[DBc.FIELD_COURSE_STUDENT_IDS] = set()
+            course[DBc.FIELD_COURSE_STUDENT_IDS] = set()# [x[1] for x in grades if x[2] == original_course_id]
             course[DBc.FIELD_COURSE_VIDEO_IDS] = [try_parse_video_id(x[2]) for x in course_videos if x[1] == row[1]]
-            course[DBc.FIELD_COURSE_GRADES] = {}
+            course[DBc.FIELD_COURSE_GRADES] = {} #{x[1] : float(x[4]) for x in grades if x[2] == original_course_id}
             self.courses[course_id] = course
 
         processed_data = raw_data

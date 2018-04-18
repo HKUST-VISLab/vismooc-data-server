@@ -31,13 +31,16 @@ class UserProcessor(PipeModule):
         if data_to_be_processed is None:
             return raw_data
 
+        to_original_user_id = {}
+
         for row in data_to_be_processed:
             user = {}
             user_id = row[1]
+            name = row[3]
             user[DBc.FIELD_USER_USER_NAME] = row[2]
-            user[DBc.FIELD_USER_NAME] = row[3]
+            user[DBc.FIELD_USER_NAME] = name
             user[DBc.FIELD_USER_LOCATION] = row[5]
-            user[DBc.FIELD_USER_BIRTH_DATE] = row[6] or this_year
+            user[DBc.FIELD_USER_BIRTH_DATE] = int(row[6] or this_year)
             user[DBc.FIELD_USER_EDUCATION_LEVEL] = row[7]
             user[DBc.FIELD_USER_BIO] = row[8]
             user[DBc.FIELD_USER_GENDER] = row[9]
@@ -47,6 +50,23 @@ class UserProcessor(PipeModule):
             user[DBc.FIELD_USER_ID] = user_id
             user[DBc.FIELD_USER_COURSE_ROLE] = {}
             self.users[user_id] = user
+
+        user_info_combo = get_data_by_table('user_info_combo')
+        for row in user_info_combo:
+            user_id = row[0]
+            original_user_id = row[1]
+            to_original_user_id[user_id] = original_user_id
+
+        observed_events = get_data_by_table('observed_events')
+        counter = 0
+        for row in observed_events:
+            user_id = row[1]
+            original_user_id = to_original_user_id.get(user_id, '')
+            country = row[5]
+            if original_user_id in self.users:
+                counter += 1
+                self.users[original_user_id][DBc.FIELD_USER_COUNTRY] = country
+
 
         processed_data = raw_data
         # user collection needs courseIds and droppedCourseIds

@@ -36,27 +36,32 @@ class VideoProcessor(PipeModule):
         data_to_be_processed = self.load_data()
         if data_to_be_processed is None:
             return raw_data
+        video_axis = get_data_by_table('video_axis')
+        hash_video_axis = {x[0] : x for x in video_axis}
 
         for row in data_to_be_processed:
             video = {}
             video_id = try_parse_video_id(row[1])
+            axis_row = hash_video_axis.get(video_id, [])
 
             video[DBc.FIELD_VIDEO_NAME] = row[2]
             video[DBc.FIELD_VIDEO_SECTION] = row[3]
             video[DBc.FIELD_VIDEO_TEMPORAL_HOTNESS] = {}
             video[DBc.FIELD_VIDEO_METAINFO] = {}
-            video[DBc.FIELD_VIDEO_RELEASE_DATE] = None
-            video[DBc.FIELD_VIDEO_URL] = row[5]
-            video[DBc.FIELD_VIDEO_DURATION] = None
+            video[DBc.FIELD_VIDEO_RELEASE_DATE] = None # from video_stats_day
+            video[DBc.FIELD_VIDEO_URL] = 'https://www.youtube.com/watch?v=' + axis_row[4]
+            video[DBc.FIELD_VIDEO_DURATION] = axis_row[3]
             video[DBc.FIELD_VIDEO_ID] = video_id
-            # video[DBc.FIELD_VIDEO_METAINFO]['youtube_id'] = row[6]
+            video[DBc.FIELD_VIDEO_METAINFO]['youtube_id'] = axis_row[4]
             self.videos[video_id] = video
 
+        '''
         temp_youtube_video_dict = {}
         temp_other_video_dict = {}
         for video in self.videos.values():
             # video collection is completed
             # course collection needs studentIds
+            continue
             video_id = video[DBc.FIELD_VIDEO_ID]
             # course[DBc.FIELD_COURSE_VIDEO_IDS].add(video_id)
             youtube_id = video[DBc.FIELD_VIDEO_METAINFO].get('youtube_id')
@@ -103,6 +108,7 @@ class VideoProcessor(PipeModule):
             video_ids = temp_other_video_dict[url]
             for video_id in video_ids:
                 self.videos[video_id][DBc.FIELD_VIDEO_DURATION] = duration
+        '''
 
         if len(self.videos) == 0:
             warn("VIDEO:No video in data!")
@@ -110,7 +116,10 @@ class VideoProcessor(PipeModule):
         processed_data = raw_data
         processed_data['data'][DBc.COLLECTION_VIDEO] = self.videos
 
+        '''
         if len(broken_youtube_id) > 0:
             with open("./broken_youtube_id.log", "w+") as file:
                 file.write(str(broken_youtube_id))
+        '''
+
         return processed_data
